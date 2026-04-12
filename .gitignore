@@ -20,6 +20,9 @@ checkpoints/
 runs/
 logs/
 
+# Rust build artifacts
+target/
+
 # IDE
 .vscode/
 .idea/
