@@ -1,0 +1,84 @@
+# =============================================================================
+# ShogiDojo NNUE Training Configuration
+# =============================================================================
+# This file controls all training hyperparameters. Modify values here
+# instead of changing source code. You can also create multiple config files
+# for different experiments (e.g., configs/large_model.yaml).
+# =============================================================================
+
+data:
+  # Paths to training and validation data files (SFEN format).
+  # See dataset.py for the expected line format.
+  train_path: "data/train.sfen"
+  val_path: "data/val.sfen"
+
+  # Number of positions per training batch.
+  # Larger batches = faster training (better GPU utilization) but more memory.
+  # Typical values: 4096 - 16384. Reduce if you get out-of-memory errors.
+  batch_size: 8192
+
+  # Number of parallel data-loading processes.
+  # Set to 0 for single-process loading (useful for debugging).
+  # Set to 4-8 for normal training (depends on CPU cores available).
+  num_workers: 4
+
+model:
+  # Feature transformer output dimension (per perspective).
+  # The STM and NSTM outputs are concatenated, so the total input to
+  # the evaluation network is ft_out_dim * 2 (= 512 with default 256).
+  # Larger values = more expressive model but more parameters and slower.
+  ft_out_dim: 256
+
+  # Hidden layer dimensions for the evaluation network.
+  # These layers are very small because they run millions of times per second
+  # during game-tree search. Keep them compact for inference speed.
+  l1_dim: 32
+  l2_dim: 32
+  # Output is always 1 (a single evaluation score)
+
+training:
+  # Total number of training epochs (full passes through the training data).
+  epochs: 200
+
+  # Initial learning rate for the Adam optimizer.
+  # Too high → unstable training. Too low → slow convergence.
+  # 1e-3 is a good starting point for NNUE training.
+  lr: 1.0e-3
+
+  # Learning rate schedule: how the LR changes over time.
+  #   "cosine" (recommended): smoothly decreases LR following a cosine curve
+  #   "step": multiplies LR by lr_gamma every lr_step_size epochs
+  lr_scheduler: "cosine"
+  lr_step_size: 50          # Only used with "step" scheduler
+  lr_gamma: 0.5             # Only used with "step" scheduler
+
+  # L2 regularization strength. Penalizes large weights to prevent overfitting.
+  # Very small value (1e-6) because NNUE training data is typically abundant.
+  weight_decay: 1.0e-6
+
+  # Loss function weights:
+  #   lambda_score:  weight for the engine-score matching loss
+  #   lambda_result: weight for the game-result prediction loss
+  # Higher lambda_result makes the model care more about "does this position
+  # actually win?" vs "does this match the engine's centipawn score?"
+  lambda_score: 1.0
+  lambda_result: 0.5
+
+  # Score scaling: raw centipawn scores are divided by this value.
+  # This normalizes scores for the sigmoid function.
+  # With 600, a +600cp advantage → sigmoid(1.0) ≈ 0.73 (≈73% win probability).
+  score_scaling: 600.0
+
+  # Maximum gradient norm for gradient clipping.
+  # If the total gradient norm exceeds this, gradients are scaled down.
+  # Prevents "exploding gradients" that can crash training. Set to 0 to disable.
+  clip_grad_norm: 1.0
+
+  # Directory where model checkpoints are saved.
+  checkpoint_dir: "checkpoints"
+
+  # Directory for TensorBoard logs (reserved for future use).
+  log_dir: "runs"
+
+  # Save a checkpoint every N epochs (and always at the final epoch).
+  save_every: 10
