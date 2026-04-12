@@ -18,8 +18,11 @@ python train.py                                    # default config
 python train.py --config configs/my_config.yaml    # custom config
 python train.py --resume checkpoints/epoch_0050.pt # resume from checkpoint
 
-# Build YaneuraOu for training data generation (must use evallearn target + g++)
-cd vendor/YaneuraOu/source && make clean && make evallearn COMPILER=g++ && cd ../../..
+# Build the Rust gensfen tool for training data generation
+cd tools/gensfen && cargo build --release && cd ../..
+
+# Generate training data (self-play)
+./tools/gensfen/target/release/gensfen --depth 4 --threads 4 --positions 100000 --output data/train.sfen
 
 # No tests or linting configured yet (pytest and ruff are dev dependencies)
 ```
@@ -35,7 +38,7 @@ Data flows linearly: **constants → features → dataset → model → trainer 
 - `trainer.py` — Training loop with dual loss (score + result), best-model tracking, early stopping, LR scheduling, gradient clipping, and checkpointing.
 - `train.py` — CLI entry point.
 - `configs/default.yaml` — All hyperparameters. Fully commented.
-- `vendor/YaneuraOu/` — Git submodule of the YaneuraOu Shogi engine, used for training data generation via its `gensfen` command. Not needed once you have `.sfen` files.
+- `tools/gensfen/` — Rust tool for training data generation via self-play. Uses shogi-rs for board/move generation, alpha-beta search with material eval, outputs text SFEN directly.
 
 ## Git Workflow
 
