@@ -25,7 +25,7 @@ conversion step).
 - [x] Board and move generation (via shogi-rs)
 - [x] Alpha-beta search with iterative deepening
 - [x] Phase 1 eval: material counting (piece values only)
-- [ ] Phase 2 eval: material + basic positional heuristics (piece-square tables)
+- [x] Phase 2 eval: material + basic positional heuristics (piece-square tables)
 - [ ] Phase 3 eval: load trained NNUE weights from ShogiDojo checkpoints
 - [x] Self-play game loop with opening randomization
 - [x] Text SFEN output (position + score + game result per line)
