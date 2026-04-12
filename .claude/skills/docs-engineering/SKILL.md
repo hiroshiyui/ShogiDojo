@@ -35,7 +35,7 @@ You are maintaining documentation for **ShogiDojo**, an academic Shogi NNUE trai
    - `configs/default.yaml` defaults referenced in `README.md`
    - CLI arguments in `train.py` and `tools/gensfen` referenced in `README.md`
 
-6. **TODO.md conventions.** Use checkboxes (`- [x]` done, `- [ ]` pending). Group by phase. When marking a task complete, add the date in parentheses. When adding new tasks, place them under the appropriate phase heading.
+6. **TODO.md conventions.** Use checkboxes (`- [x]` done, `- [ ]` pending). Group by phase. When marking a task complete, add the date in parentheses. When adding new tasks, place them under the appropriate phase heading. **When all tasks in a section are completed, summarize the section into a short paragraph and mark the heading with "— Done".** This keeps the roadmap compact and focused on remaining work.
 
 7. **Style rules.**
    - Write in plain, direct English. Avoid filler words.
