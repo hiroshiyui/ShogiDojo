@@ -57,7 +57,7 @@ pip install -e .
 ```bash
 # 1. Build YaneuraOu for training data generation
 cd vendor/YaneuraOu/source
-make clean && make evallearn
+make clean && make evallearn COMPILER=g++
 cd ../../..
 
 # 2. Generate training data (self-play, ~1M positions)
@@ -89,15 +89,19 @@ You **must** build with the `evallearn` target — the standard `normal` build d
 ```bash
 cd vendor/YaneuraOu/source
 make clean
-make evallearn
+make evallearn COMPILER=g++
 ```
 
-Build options (edit the `Makefile` if needed):
+> **Note:** The vendored version is pinned to `v8.60git`. Use `g++` (not the default `clang++`) because the `evallearn` target requires OpenMP, and `g++` ships with `omp.h` out of the box while `clang++` requires a separate `libomp-dev` package.
+
+System dependencies: `g++`, `libopenblas-dev` (for BLAS support in learning).
+
+Build options (edit the `Makefile` or pass on the command line):
 
 | Option | Default | Alternatives |
 |--------|---------|-------------|
 | `TARGET_CPU` | `AVX2` | `AVX512`, `SSE42`, `ZEN3`, `APPLEM1`, `NO_SSE` |
-| `COMPILER` | `clang++` | `g++` |
+| `COMPILER` | `clang++` | `g++` (recommended for evallearn) |
 | `YANEURAOU_EDITION` | `YANEURAOU_ENGINE_NNUE` | Other NNUE variants (see Makefile) |
 
 The resulting binary is `vendor/YaneuraOu/source/YaneuraOu-by-gcc`.

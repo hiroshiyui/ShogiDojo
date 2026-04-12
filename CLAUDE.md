@@ -18,8 +18,8 @@ python train.py                                    # default config
 python train.py --config configs/my_config.yaml    # custom config
 python train.py --resume checkpoints/epoch_0050.pt # resume from checkpoint
 
-# Build YaneuraOu for training data generation (must use evallearn target)
-cd vendor/YaneuraOu/source && make clean && make evallearn && cd ../../..
+# Build YaneuraOu for training data generation (must use evallearn target + g++)
+cd vendor/YaneuraOu/source && make clean && make evallearn COMPILER=g++ && cd ../../..
 
 # No tests or linting configured yet (pytest and ruff are dev dependencies)
 ```
