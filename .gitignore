@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+virtualenv/
+venv/
+.venv/
+
+# Data
+data/
+
+# Training outputs
+checkpoints/
+runs/
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
