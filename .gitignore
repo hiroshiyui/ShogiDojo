@@ -11,8 +11,9 @@ virtualenv/
 venv/
 .venv/
 
-# Data
-data/
+# Data (ignore contents, but keep Suisho5.7z eval file)
+data/*
+!data/Suisho5.7z
 
 # Training outputs
 checkpoints/
