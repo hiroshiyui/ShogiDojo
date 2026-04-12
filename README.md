@@ -168,8 +168,7 @@ The dominant cost is training data. Plan your disk budget based on the scale of 
 | Binary data from gensfen | ~40 bytes/position | 100M positions ≈ 3.7 GB. Can be deleted after converting to text SFEN. |
 | Single checkpoint | ~19 MB | Model weights (5M params) + Adam optimizer state |
 | All checkpoints (default) | ~385 MB | 20 files (save every 10 epochs × 200 epochs) |
-| Suisho5.7z (eval file) | ~23 MB | Included in repo |
-| YaneuraOu source | ~150 MB | Git submodule |
+| gensfen Rust tool | ~1 MB | Source in `tools/gensfen/` |
 
 **Recommended disk budget by experiment scale:**
 
