@@ -1,0 +1,3 @@
+[submodule "vendor/YaneuraOu"]
+	path = vendor/YaneuraOu
+	url = https://github.com/yaneurao/YaneuraOu.git
