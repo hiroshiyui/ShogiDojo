@@ -222,6 +222,32 @@ Training logs are printed to the terminal:
 
 Checkpoints are saved to `checkpoints/` every 10 epochs (configurable).
 
+## Disk Space Requirements
+
+The dominant cost is training data. Plan your disk budget based on the scale of your experiment:
+
+| Component | Size | Notes |
+|-----------|------|-------|
+| Training data (text SFEN) | **5–100+ GB** | 100M positions ≈ 5 GB. Serious training uses 1B+ positions (~50 GB). |
+| Binary data from gensfen | ~40 bytes/position | 100M positions ≈ 3.7 GB. Can be deleted after converting to text SFEN. |
+| Single checkpoint | ~19 MB | Model weights (5M params) + Adam optimizer state |
+| All checkpoints (default) | ~385 MB | 20 files (save every 10 epochs × 200 epochs) |
+| Suisho5.7z (eval file) | ~23 MB | Included in repo |
+| YaneuraOu source | ~150 MB | Git submodule |
+
+**Recommended disk budget by experiment scale:**
+
+| Scale | Positions | Training Data | Total Disk |
+|-------|-----------|--------------|------------|
+| Quick test | 1M | ~50 MB | **~1 GB** |
+| Small run | 100M | ~5 GB | **~7 GB** |
+| Full training | 1B | ~50 GB | **~55 GB** |
+
+To reduce disk usage:
+- Increase `save_every` in the config (e.g., 50 instead of 10) to keep fewer checkpoints.
+- Delete the `.bin` binary after converting to `.sfen`.
+- Generate fewer positions and train for more epochs (trades data quality for space).
+
 ## Configuration
 
 All hyperparameters are set in `configs/default.yaml`. Key options:

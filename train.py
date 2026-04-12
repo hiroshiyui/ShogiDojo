@@ -49,13 +49,21 @@ def main():
     trainer = Trainer(cfg)
 
     # If resuming from a checkpoint, load the saved model and optimizer state.
-    # This restores the training to exactly where it left off.
+    # This restores the training to exactly where it left off, including
+    # the best-model tracking state so early stopping works correctly.
     if args.resume:
         import torch
         ckpt = torch.load(args.resume, weights_only=True)
         trainer.model.load_state_dict(ckpt['model_state_dict'])
         trainer.optimizer.load_state_dict(ckpt['optimizer_state_dict'])
-        logging.info(f"Resumed from {args.resume} (epoch {ckpt['epoch']})")
+        # Restore best-model tracking state (if saved in the checkpoint)
+        if 'best_loss' in ckpt:
+            trainer.best_loss = ckpt['best_loss']
+            trainer.best_epoch = ckpt['best_epoch']
+        logging.info(
+            f"Resumed from {args.resume} (epoch {ckpt['epoch']}, "
+            f"best_loss={trainer.best_loss:.6f} at epoch {trainer.best_epoch})"
+        )
 
     # Start training!
     trainer.train()

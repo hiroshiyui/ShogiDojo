@@ -82,3 +82,11 @@ training:
 
   # Save a checkpoint every N epochs (and always at the final epoch).
   save_every: 10
+
+  # Early stopping: stop training if the tracked loss (validation loss if
+  # available, otherwise training loss) does not improve for this many
+  # consecutive epochs. Set to 0 to disable early stopping and always
+  # train for the full number of epochs.
+  # Example: with patience=20, if the best loss was at epoch 50 and no
+  # improvement is seen by epoch 70, training stops at epoch 70.
+  early_stopping_patience: 20

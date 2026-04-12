@@ -34,6 +34,28 @@ We support two learning rate schedulers:
   - Cosine annealing: smoothly decreases LR from initial value to ~0
     over all epochs. Generally preferred for NNUE training.
   - Step decay: multiplies LR by a factor (gamma) every N epochs.
+
+=== Best-Model Tracking ===
+
+During training, we track the lowest validation loss seen so far. Whenever
+the validation loss improves (reaches a new minimum), we save the model as
+"best_model.pt". This way, even if the model overfits or destabilizes in
+later epochs, you always have the best-performing weights available.
+
+If no validation set is provided, best-model tracking uses training loss
+instead (less reliable, but still useful as a sanity check).
+
+=== Early Stopping ===
+
+Early stopping prevents wasting time (and risking overfitting) when the
+model has stopped improving. It works by counting how many consecutive
+epochs have passed without the validation loss reaching a new minimum.
+If this count exceeds a configurable "patience" threshold, training stops.
+
+For example, with patience=20: if the best validation loss was at epoch 50
+and we reach epoch 71 with no improvement, training stops at epoch 71.
+
+Set patience to 0 to disable early stopping.
 """
 
 from __future__ import annotations
@@ -133,6 +155,15 @@ class Trainer:
         self.checkpoint_dir = train_cfg['checkpoint_dir']
         self.save_every = train_cfg['save_every']
 
+        # Early stopping: stop training if no improvement for `patience` epochs.
+        # Set to 0 to disable early stopping (train for all epochs).
+        self.early_stopping_patience = train_cfg.get('early_stopping_patience', 0)
+
+        # Best-model tracking state
+        self.best_loss = float('inf')  # Lowest loss seen so far
+        self.best_epoch = 0            # Which epoch achieved the best loss
+        self.epochs_without_improvement = 0  # Counter for early stopping
+
         self._setup_scheduler(train_cfg)
 
     def _setup_scheduler(self, train_cfg: dict):
@@ -188,8 +219,10 @@ class Trainer:
           1. Train on all batches in the training set
           2. (Optional) Evaluate on the validation set
           3. Log metrics (loss, learning rate, elapsed time)
-          4. Step the learning rate scheduler
-          5. Save a checkpoint every save_every epochs
+          4. Track best model (save if validation/train loss improves)
+          5. Check early stopping condition
+          6. Step the learning rate scheduler
+          7. Save a periodic checkpoint every save_every epochs
         """
         data_cfg = self.cfg['data']
         os.makedirs(self.checkpoint_dir, exist_ok=True)
@@ -208,13 +241,44 @@ class Trainer:
 
             msg = f"Epoch {epoch}/{self.epochs}  train_loss={train_loss:.6f}  time={elapsed:.1f}s"
 
+            # Use validation loss for best-model tracking if available,
+            # otherwise fall back to training loss.
             if val_loader is not None:
                 val_loss = self._eval_epoch(val_loader)
                 msg += f"  val_loss={val_loss:.6f}"
+                tracked_loss = val_loss
+            else:
+                tracked_loss = train_loss
 
             lr = self.optimizer.param_groups[0]['lr']
             msg += f"  lr={lr:.2e}"
             logger.info(msg)
+
+            # --- Best-model tracking ---
+            # If this epoch's loss is the best so far, save it as "best_model.pt".
+            # This ensures you always have the best weights even if later epochs
+            # overfit or destabilize.
+            if tracked_loss < self.best_loss:
+                self.best_loss = tracked_loss
+                self.best_epoch = epoch
+                self.epochs_without_improvement = 0
+                self._save_best_model(epoch, tracked_loss)
+            else:
+                self.epochs_without_improvement += 1
+
+            # --- Early stopping ---
+            # If the loss hasn't improved for `patience` consecutive epochs,
+            # there's no point continuing — the model has likely converged or
+            # started overfitting. Stop early to save time.
+            if (self.early_stopping_patience > 0
+                    and self.epochs_without_improvement >= self.early_stopping_patience):
+                logger.info(
+                    f"Early stopping: no improvement for {self.early_stopping_patience} epochs. "
+                    f"Best loss={self.best_loss:.6f} at epoch {self.best_epoch}."
+                )
+                # Save a final checkpoint before stopping
+                self._save_checkpoint(epoch)
+                break
 
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -222,6 +286,11 @@ class Trainer:
             # Save checkpoint periodically and always at the final epoch
             if epoch % self.save_every == 0 or epoch == self.epochs:
                 self._save_checkpoint(epoch)
+
+        logger.info(
+            f"Training complete. Best loss={self.best_loss:.6f} at epoch {self.best_epoch}. "
+            f"Best model saved to: {os.path.join(self.checkpoint_dir, 'best_model.pt')}"
+        )
 
     def _train_epoch(self, loader: DataLoader) -> float:
         """Run one training epoch (one full pass through the training data).
@@ -311,6 +380,7 @@ class Trainer:
           - model_state_dict: all learned weights
           - optimizer_state_dict: optimizer state (momentum buffers, etc.)
           - epoch: which epoch this checkpoint is from
+          - best_loss / best_epoch: best-model tracking state (so resume works correctly)
 
         Checkpoints allow you to:
           - Resume training after interruption (--resume flag)
@@ -322,5 +392,25 @@ class Trainer:
             'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
+            'best_loss': self.best_loss,
+            'best_epoch': self.best_epoch,
         }, path)
         logger.info(f"Checkpoint saved: {path}")
+
+    def _save_best_model(self, epoch: int, loss: float):
+        """Save the current model as the best model so far.
+
+        This is separate from periodic checkpoints. The file "best_model.pt"
+        is always overwritten with the latest best, so you don't accumulate
+        multiple best-model files. After training, this file contains the
+        single best weights for deployment.
+        """
+        path = os.path.join(self.checkpoint_dir, "best_model.pt")
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'best_loss': loss,
+            'best_epoch': epoch,
+        }, path)
+        logger.info(f"New best model at epoch {epoch} (loss={loss:.6f})")
