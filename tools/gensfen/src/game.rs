@@ -20,6 +20,7 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use shogi::{Color, Position};
 
+use crate::eval::Evaluator;
 use crate::movegen;
 use crate::search::Searcher;
 use crate::sfen;
@@ -45,11 +46,12 @@ pub fn play_game(
     depth: i32,
     random_moves: usize,
     rng: &mut impl Rng,
+    evaluator: &dyn Evaluator,
 ) -> Vec<TrainingSample> {
     let mut pos = Position::new();
     pos.set_sfen(STARTPOS).expect("invalid startpos SFEN");
 
-    let mut searcher = Searcher::new();
+    let mut searcher = Searcher::new(evaluator);
     let mut recorded: Vec<RecordedPosition> = Vec::new();
 
     // Track seen positions for repetition detection.

@@ -32,6 +32,29 @@
 use shogi::{Color, Piece, PieceType, Position, Square};
 
 // ============================================================================
+// Evaluator trait
+// ============================================================================
+
+/// Trait for position evaluation functions.
+///
+/// This allows the search to use either the built-in PST evaluator (Phase 2)
+/// or a trained NNUE model (Phase 3) interchangeably.
+pub trait Evaluator: Send + Sync {
+    /// Evaluate a position from the side-to-move's perspective.
+    /// Returns centipawns (positive = good for side-to-move).
+    fn evaluate(&self, pos: &Position) -> i32;
+}
+
+/// The built-in material + piece-square-table evaluator (Phase 2).
+pub struct PstEvaluator;
+
+impl Evaluator for PstEvaluator {
+    fn evaluate(&self, pos: &Position) -> i32 {
+        evaluate(pos)
+    }
+}
+
+// ============================================================================
 // Material values (centipawns)
 // ============================================================================
 

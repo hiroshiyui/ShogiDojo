@@ -11,12 +11,14 @@
 mod eval;
 mod game;
 mod movegen;
+mod nnue;
 mod search;
 mod sfen;
 mod types;
 
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
@@ -56,6 +58,13 @@ struct Args {
     /// range of positions, not just the standard opening.
     #[arg(long, default_value_t = 8)]
     random_moves: usize,
+
+    /// Path to a trained NNUE model file (.nnue) exported by export_nnue.py.
+    /// If provided, uses the NNUE for evaluation instead of the built-in
+    /// material + PST evaluator. This enables the iterative training loop:
+    /// generate data → train NNUE → export → regenerate with stronger eval.
+    #[arg(long)]
+    model: Option<String>,
 }
 
 fn main() {
@@ -70,6 +79,21 @@ fn main() {
         .num_threads(args.threads)
         .build_global()
         .expect("failed to build rayon thread pool");
+
+    // Create the evaluator: NNUE model if --model is provided, otherwise PST
+    let evaluator: Box<dyn eval::Evaluator> = match &args.model {
+        Some(model_path) => {
+            eprintln!("Loading NNUE model: {}", model_path);
+            let model = nnue::NnueModel::load(Path::new(model_path))
+                .unwrap_or_else(|e| panic!("Failed to load model: {}", e));
+            eprintln!("  FT: {} → {}", model.ft_input_dim(), model.ft_out_dim());
+            Box::new(model)
+        }
+        None => {
+            eprintln!("Using built-in PST evaluator (no --model specified)");
+            Box::new(eval::PstEvaluator)
+        }
+    };
 
     // Open output file
     let file = File::create(&args.output).expect("failed to create output file");
@@ -99,7 +123,7 @@ fn main() {
             }
 
             // Play one complete game
-            let samples = game::play_game(args.depth, args.random_moves, &mut rng);
+            let samples = game::play_game(args.depth, args.random_moves, &mut rng, &*evaluator);
 
             if samples.is_empty() {
                 continue; // Game produced no useful data, try again

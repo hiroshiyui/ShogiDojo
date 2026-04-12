@@ -19,7 +19,7 @@
 
 use shogi::{Move, PieceType, Position};
 
-use crate::eval;
+use crate::eval::Evaluator;
 use crate::movegen;
 
 /// Score representing a won game (checkmate). The depth offset ensures
@@ -33,14 +33,19 @@ pub const INFINITY: i32 = 100_000;
 ///
 /// Each thread in the rayon pool creates its own Searcher. There is no
 /// shared state between searchers — this avoids synchronization overhead.
-pub struct Searcher {
+pub struct Searcher<'a> {
     /// Number of positions (nodes) evaluated during the current search.
     pub nodes: u64,
+    /// The evaluation function to use (PST or NNUE).
+    evaluator: &'a dyn Evaluator,
 }
 
-impl Searcher {
-    pub fn new() -> Self {
-        Self { nodes: 0 }
+impl<'a> Searcher<'a> {
+    pub fn new(evaluator: &'a dyn Evaluator) -> Self {
+        Self {
+            nodes: 0,
+            evaluator,
+        }
     }
 
     /// Find the best move in a position using iterative deepening.
@@ -163,7 +168,7 @@ impl Searcher {
         self.nodes += 1;
 
         // Stand-pat: evaluate the position without making any more moves.
-        let stand_pat = eval::evaluate(pos);
+        let stand_pat = self.evaluator.evaluate(pos);
 
         // Beta cutoff: position is already too good for us.
         if stand_pat >= beta {
