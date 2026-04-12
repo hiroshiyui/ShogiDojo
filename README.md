@@ -300,6 +300,12 @@ Linear 32 → 1  →  Evaluation Score
 
 For a full explanation of HalfKAv2, king buckets, feature encoding, and loss functions, see [doc/NNUE_Reference.md](doc/NNUE_Reference.md).
 
+## Contributing
+
+- **Do not commit directly to the `main` branch.** All work should be done on feature branches.
+- Create a pull request for every change and request review from the professor ("The Boss").
+- Changes may only be merged into `main` after the professor's approval.
+
 ## License
 
 This project is provided as-is for research and educational purposes.

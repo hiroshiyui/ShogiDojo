@@ -37,6 +37,12 @@ Data flows linearly: **constants → features → dataset → model → trainer 
 - `configs/default.yaml` — All hyperparameters. Fully commented.
 - `vendor/YaneuraOu/` — Git submodule of the YaneuraOu Shogi engine, used for training data generation via its `gensfen` command. Not needed once you have `.sfen` files.
 
+## Git Workflow
+
+- **Do not commit directly to the `main` branch.** All work should be done on feature branches.
+- Create a pull request for every change and request review from the professor ("The Boss").
+- Changes may only be merged into `main` after the professor's approval.
+
 ## Key Design Concepts
 
 **Sparse two-perspective evaluation:** Each position is encoded from both the side-to-move (STM) and not-side-to-move (NSTM) perspectives. White's perspective flips the board 180 degrees and swaps piece colors. Both perspectives share the same FeatureTransformer weights but produce separate 256-dim outputs, which are concatenated into a 512-dim vector before the eval network.
