@@ -25,13 +25,12 @@ the gensfen crate, reusing the existing search/eval/movegen infrastructure via `
 
 ## Medium Priority
 
-### Data Validation Utilities
+### ~~Data Validation Utilities~~ — Done
 
-Write a script to validate SFEN training data files:
-
-- Check for malformed lines (currently silently skipped by `dataset.py`)
-- Report statistics: score distribution, result balance (win/draw/loss ratio), position count
-- Detect duplicates
+`scripts/validate_sfen.py` validates SFEN training data files: checks for
+malformed lines, reports score distribution (histogram), game result balance
+(W/D/L), and optionally detects duplicate positions. Supports multiple files
+with aggregate summary.
 
 ### NNUE Quantization Export
 
