@@ -2,14 +2,12 @@
 
 ## High Priority
 
-### CI/CD Pipeline
+### ~~CI/CD Pipeline~~ — Done
 
-Set up GitHub Actions to run on every push and PR:
+GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
 
-- **Python**: `pytest`, `ruff check`
-- **Rust**: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`
-
-No CI exists today. All checks are manual.
+- **Python job**: `ruff check`, `pytest tests/ -v`
+- **Rust job**: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`
 
 ### End-to-End Orchestration Script
 
