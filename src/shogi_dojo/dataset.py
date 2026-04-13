@@ -35,12 +35,10 @@ Fields:
 
 from __future__ import annotations
 
-import os
 from typing import Iterator
 
-import numpy as np
 import torch
-from torch.utils.data import Dataset, IterableDataset
+from torch.utils.data import IterableDataset
 
 from .features import sfen_to_features
 

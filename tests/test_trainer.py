@@ -4,7 +4,6 @@ import os
 import tempfile
 
 import torch
-import yaml
 
 from shogi_dojo.trainer import Trainer, result_loss, sigmoid_loss
 

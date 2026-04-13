@@ -2,21 +2,15 @@
 
 from shogi_dojo.constants import (
     BLACK,
-    BISHOP,
     DRAGON,
     FEATURE_TRANSFORMER_INPUT_DIM,
-    GOLD,
     HALF_FEATURE_DIM,
     HORSE,
-    KNIGHT,
-    LANCE,
     NUM_KING_BUCKETS,
     PAWN,
-    ROOK,
-    SILVER,
     WHITE,
 )
-from shogi_dojo.features import _flip_square, make_feature_indices, parse_sfen, sfen_to_features
+from shogi_dojo.features import _flip_square, parse_sfen, sfen_to_features
 
 # The standard Shogi starting position in SFEN.
 STARTPOS = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
@@ -270,12 +264,9 @@ class TestKingBucketEffect:
     (because the king bucket changes the index offset)."""
 
     def test_different_king_rank_different_indices(self):
-        # Same piece, different king rank → different bucket → different indices.
-        sfen_king_rank8 = "4k4/9/9/9/9/9/9/9/4K4 b - 1"
-        sfen_king_rank4 = "4k4/9/9/9/4K4/9/9/9/9 b - 1"
-        # Add a Pawn so we actually get a board feature to compare.
-        sfen_a = "4k4/9/9/9/P8/9/9/9/4K4 b - 1"
-        sfen_b = "4k4/9/9/9/P3K4/9/9/9/9 b - 1"
+        # Same Pawn, different king rank → different bucket → different indices.
+        sfen_a = "4k4/9/9/9/P8/9/9/9/4K4 b - 1"   # King on rank 8
+        sfen_b = "4k4/9/9/9/P3K4/9/9/9/9 b - 1"    # King on rank 4
         stm_a, _, _ = sfen_to_features(sfen_a)
         stm_b, _, _ = sfen_to_features(sfen_b)
         # The Pawn's feature index differs because the king bucket differs.

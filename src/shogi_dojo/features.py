@@ -29,7 +29,6 @@ like "having the initiative" vs "defending".
 
 from __future__ import annotations
 
-import numpy as np
 
 from .constants import (
     BLACK,
@@ -38,10 +37,8 @@ from .constants import (
     HAND_FEATURES_PER_SIDE,
     HAND_PIECE_MAX,
     HAND_PIECE_TYPES,
-    KING,
     NUM_COLORS,
     NUM_FILES,
-    NUM_PIECE_TYPES,
     NUM_RANKS,
     NUM_SQUARES,
     SFEN_PIECE_MAP,

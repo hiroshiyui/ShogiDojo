@@ -38,7 +38,7 @@ def export(checkpoint_path: str, output_path: str):
     l1_dim = model.l1.weight.shape[0]
     l2_dim = model.l2.weight.shape[0]
 
-    print(f"Model dimensions:")
+    print("Model dimensions:")
     print(f"  FT: {ft_input_dim} × {ft_out_dim}")
     print(f"  L1: {ft_out_dim * 2} → {l1_dim}")
     print(f"  L2: {l1_dim} → {l2_dim}")
