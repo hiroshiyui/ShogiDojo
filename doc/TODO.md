@@ -32,28 +32,31 @@ malformed lines, reports score distribution (histogram), game result balance
 (W/D/L), and optionally detects duplicate positions. Supports multiple files
 with aggregate summary.
 
-### NNUE Quantization Export
+### ~~NNUE Quantization Export~~ — Done
 
-`scripts/export_nnue.py` currently exports float32 weights. Add int8/int16 quantized export for integration with a Shogi game engine. Reference: the [Stockfish NNUE wiki](https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html) documents scaling factors (127 for feature transformer int16, 64 for hidden layer int8).
+`scripts/export_nnue_quantized.py` exports int16 (FT, scale=127) and int8
+(hidden layers, scale=64) quantized weights following the Stockfish NNUE
+convention. Produces ~2x smaller files than the float32 export.
 
-### Experiment Config Variants
+### ~~Experiment Config Variants~~ — Done
 
-Add alternative configs for different training scenarios:
-
-- `configs/small.yaml` — smaller model for quick experiments (e.g., `ft_out_dim=64`, `l1_dim=16`)
-- `configs/large.yaml` — larger model for maximum strength (e.g., `ft_out_dim=512`, `l1_dim=64`)
-
-Currently only `configs/default.yaml` exists.
+- `configs/small.yaml` — ~640K params (ft_out_dim=64, l1/l2=16), 50 epochs
+- `configs/large.yaml` — ~20M params (ft_out_dim=512, l1/l2=64), 400 epochs
 
 ## Nice to Have
 
-### Training Visualization
+### ~~Training Visualization~~ — Done
 
-Add TensorBoard logging or plotting scripts for loss curves, learning rate schedules, and convergence analysis. The config already reserves `log_dir: "runs"` but it is unused.
+TensorBoard logging integrated into `trainer.py`. Logs train loss, val loss,
+and learning rate per epoch. Enabled automatically when `log_dir` is set in
+config. Install with `pip install -e ".[viz]"`. View with
+`tensorboard --logdir runs`.
 
-### Benchmarking Suite
+### ~~Benchmarking Suite~~ — Done
 
-Measure and track inference speed (positions/second), training throughput (samples/second), and memory usage across model sizes and hardware.
+`scripts/benchmark.py` measures inference speed (positions/sec at various
+batch sizes), training throughput (samples/sec), model parameter count, and
+GPU memory usage. Configurable via `--config` and `--device`.
 
 ---
 

@@ -1,0 +1,36 @@
+# =============================================================================
+# Large Model Configuration — Maximum Strength
+# =============================================================================
+# A larger NNUE model for maximum playing strength. Requires more training
+# data and GPU memory, but produces a stronger evaluation.
+#
+# Parameter count: ~20M (vs ~5M default)
+# Use case: final model training with abundant data (1M+ positions)
+# =============================================================================
+
+data:
+  train_path: "data/train.sfen"
+  val_path: "data/val.sfen"
+  batch_size: 16384     # Larger batches for better GPU utilization
+  num_workers: 8
+
+model:
+  ft_out_dim: 512       # 512 per perspective (1024 total, vs 512 default)
+  l1_dim: 64            # Larger hidden layers
+  l2_dim: 64
+
+training:
+  epochs: 400           # More epochs (larger model needs more training)
+  lr: 5.0e-4            # Slightly lower LR for stability with larger model
+  lr_scheduler: "cosine"
+  lr_step_size: 50
+  lr_gamma: 0.5
+  weight_decay: 1.0e-6
+  lambda_score: 1.0
+  lambda_result: 0.5
+  score_scaling: 600.0
+  clip_grad_norm: 1.0
+  checkpoint_dir: "checkpoints"
+  log_dir: "runs"
+  save_every: 20
+  early_stopping_patience: 30

@@ -166,6 +166,23 @@ class Trainer:
 
         self._setup_scheduler(train_cfg)
 
+        # TensorBoard logging (optional — only enabled if log_dir is set).
+        # Allows visualizing loss curves, learning rate, and other metrics
+        # with `tensorboard --logdir <log_dir>`.
+        self.writer = None
+        log_dir = train_cfg.get('log_dir')
+        if log_dir:
+            try:
+                from torch.utils.tensorboard import SummaryWriter
+                os.makedirs(log_dir, exist_ok=True)
+                self.writer = SummaryWriter(log_dir=log_dir)
+                logger.info(f"TensorBoard logging to: {log_dir}")
+            except ImportError:
+                logger.info(
+                    "TensorBoard not installed (pip install tensorboard). "
+                    "Skipping visualization logging."
+                )
+
     def _setup_scheduler(self, train_cfg: dict):
         """Configure the learning rate scheduler.
 
@@ -254,6 +271,13 @@ class Trainer:
             msg += f"  lr={lr:.2e}"
             logger.info(msg)
 
+            # --- TensorBoard logging ---
+            if self.writer is not None:
+                self.writer.add_scalar('Loss/train', train_loss, epoch)
+                if val_loader is not None:
+                    self.writer.add_scalar('Loss/val', val_loss, epoch)
+                self.writer.add_scalar('LR', lr, epoch)
+
             # --- Best-model tracking ---
             # If this epoch's loss is the best so far, save it as "best_model.pt".
             # This ensures you always have the best weights even if later epochs
@@ -291,6 +315,9 @@ class Trainer:
             f"Training complete. Best loss={self.best_loss:.6f} at epoch {self.best_epoch}. "
             f"Best model saved to: {os.path.join(self.checkpoint_dir, 'best_model.pt')}"
         )
+
+        if self.writer is not None:
+            self.writer.close()
 
     def _train_epoch(self, loader: DataLoader) -> float:
         """Run one training epoch (one full pass through the training data).

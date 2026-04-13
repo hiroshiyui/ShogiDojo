@@ -1,0 +1,36 @@
+# =============================================================================
+# Small Model Configuration — Quick Experiments
+# =============================================================================
+# A smaller NNUE model for fast iteration during development and testing.
+# Trains much faster than the default but produces a weaker model.
+#
+# Parameter count: ~640K (vs ~5M default)
+# Use case: hyperparameter sweeps, debugging, CI smoke tests
+# =============================================================================
+
+data:
+  train_path: "data/train.sfen"
+  val_path: "data/val.sfen"
+  batch_size: 4096
+  num_workers: 4
+
+model:
+  ft_out_dim: 64       # 64 per perspective (128 total, vs 512 default)
+  l1_dim: 16           # Smaller hidden layers
+  l2_dim: 16
+
+training:
+  epochs: 50           # Fewer epochs (converges faster with smaller model)
+  lr: 1.0e-3
+  lr_scheduler: "cosine"
+  lr_step_size: 50
+  lr_gamma: 0.5
+  weight_decay: 1.0e-6
+  lambda_score: 1.0
+  lambda_result: 0.5
+  score_scaling: 600.0
+  clip_grad_norm: 1.0
+  checkpoint_dir: "checkpoints"
+  log_dir: "runs"
+  save_every: 10
+  early_stopping_patience: 10
