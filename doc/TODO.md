@@ -9,17 +9,12 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and PR t
 - **Python job**: `ruff check`, `pytest tests/ -v`
 - **Rust job**: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`
 
-### End-to-End Orchestration Script
+### ~~End-to-End Orchestration Script~~ — Done
 
-Write a script (e.g., `scripts/train_loop.py`) to automate the iterative self-improvement loop:
-
-1. Generate SFEN data with `gensfen` (PST eval for first iteration, NNUE for subsequent)
-2. Train the NNUE model with `train.py`
-3. Export weights with `scripts/export_nnue.py`
-4. Regenerate data using the trained NNUE model (`gensfen --model`)
-5. Repeat steps 2-4
-
-All individual pieces exist and work. There is no coordinating script yet.
+`scripts/train_loop.py` automates the iterative self-improvement loop:
+gensfen (PST or NNUE) -> train -> export -> repeat with stronger model.
+Supports configurable iterations, positions, depth, train/val split,
+resume from a previous iteration, and timestamped output directories.
 
 ### Model Evaluation Tool
 
