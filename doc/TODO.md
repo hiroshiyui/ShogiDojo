@@ -16,11 +16,12 @@ gensfen (PST or NNUE) -> train -> export -> repeat with stronger model.
 Supports configurable iterations, positions, depth, train/val split,
 resume from a previous iteration, and timestamped output directories.
 
-### Model Evaluation Tool
+### ~~Model Evaluation Tool~~ — Done
 
-Build a tool to measure model strength by playing games between two models (or model vs. PST baseline) and computing win rates. Currently there is no way to verify that a trained model actually plays stronger than a previous version.
-
-The Rust `gensfen` tool already has the game-playing infrastructure (search, move generation, evaluation). It could be extended or a new tool built on top of it.
+`eval_match` binary plays games between two NNUE models (or model vs. PST baseline)
+with automatic color swapping for fairness. Reports win/loss/draw counts, percentages,
+and estimated Elo difference. Multi-threaded via rayon. Built as a second binary in
+the gensfen crate, reusing the existing search/eval/movegen infrastructure via `lib.rs`.
 
 ## Medium Priority
 

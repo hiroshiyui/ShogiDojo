@@ -8,14 +8,6 @@
 //! Usage:
 //!   gensfen --depth 4 --threads 4 --positions 100000 --output data/train.sfen
 
-mod eval;
-mod game;
-mod movegen;
-mod nnue;
-mod search;
-mod sfen;
-mod types;
-
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
@@ -23,6 +15,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Parser;
+use gensfen::{eval, game, nnue};
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
 use rayon::prelude::*;
