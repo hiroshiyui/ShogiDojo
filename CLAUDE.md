@@ -24,7 +24,10 @@ cd tools/gensfen && cargo build --release && cd ../..
 # Generate training data (self-play)
 ./tools/gensfen/target/release/gensfen --depth 4 --threads 4 --positions 100000 --output data/train.sfen
 
-# No tests or linting configured yet (pytest and ruff are dev dependencies)
+# Tests and linting
+pip install -e ".[dev]"
+pytest tests/
+ruff check .
 ```
 
 ## Architecture
@@ -46,9 +49,8 @@ Data flows linearly: **constants → features → dataset → model → trainer 
 
 ## Git Workflow
 
-- **Do not commit directly to the `main` branch.** All work should be done on feature branches.
-- Create a pull request for every change and request review from the professor ("The Boss").
-- Changes may only be merged into `main` after the professor's approval.
+- Commit directly to `main` for routine changes.
+- Use feature branches and pull requests when collaboration or review is needed.
 
 ## Key Design Concepts
 
