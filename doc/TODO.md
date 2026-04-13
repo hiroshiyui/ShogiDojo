@@ -1,71 +1,54 @@
 # TODO
 
-## High Priority
-
-### ~~CI/CD Pipeline~~ — Done
-
-GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
-
-- **Python job**: `ruff check`, `pytest tests/ -v`
-- **Rust job**: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`
-
-### ~~End-to-End Orchestration Script~~ — Done
-
-`scripts/train_loop.py` automates the iterative self-improvement loop:
-gensfen (PST or NNUE) -> train -> export -> repeat with stronger model.
-Supports configurable iterations, positions, depth, train/val split,
-resume from a previous iteration, and timestamped output directories.
-
-### ~~Model Evaluation Tool~~ — Done
-
-`eval_match` binary plays games between two NNUE models (or model vs. PST baseline)
-with automatic color swapping for fairness. Reports win/loss/draw counts, percentages,
-and estimated Elo difference. Multi-threaded via rayon. Built as a second binary in
-the gensfen crate, reusing the existing search/eval/movegen infrastructure via `lib.rs`.
-
-## Medium Priority
-
-### ~~Data Validation Utilities~~ — Done
-
-`scripts/validate_sfen.py` validates SFEN training data files: checks for
-malformed lines, reports score distribution (histogram), game result balance
-(W/D/L), and optionally detects duplicate positions. Supports multiple files
-with aggregate summary.
-
-### ~~NNUE Quantization Export~~ — Done
-
-`scripts/export_nnue_quantized.py` exports int16 (FT, scale=127) and int8
-(hidden layers, scale=64) quantized weights following the Stockfish NNUE
-convention. Produces ~2x smaller files than the float32 export.
-
-### ~~Experiment Config Variants~~ — Done
-
-- `configs/small.yaml` — ~640K params (ft_out_dim=64, l1/l2=16), 50 epochs
-- `configs/large.yaml` — ~20M params (ft_out_dim=512, l1/l2=64), 400 epochs
-
-## Nice to Have
-
-### ~~Training Visualization~~ — Done
-
-TensorBoard logging integrated into `trainer.py`. Logs train loss, val loss,
-and learning rate per epoch. Enabled automatically when `log_dir` is set in
-config. Install with `pip install -e ".[viz]"`. View with
-`tensorboard --logdir runs`.
-
-### ~~Benchmarking Suite~~ — Done
-
-`scripts/benchmark.py` measures inference speed (positions/sec at various
-batch sizes), training throughput (samples/sec), model parameter count, and
-GPU memory usage. Configurable via `--config` and `--device`.
+No open items. See completed work below for reference.
 
 ---
 
 ## Completed
 
-### Rust gensfen Tool (`tools/gensfen/`) — Done
+### Rust gensfen Tool — `tools/gensfen/`
 
-Standalone Rust tool replacing YaneuraOu for NNUE training data generation.
-Features: alpha-beta search with iterative deepening, three-phase eval
-(material -> positional -> NNUE), self-play with opening randomization,
-multi-threaded generation (rayon), and text SFEN output directly consumable
-by `dataset.py`.
+Standalone Rust tool for NNUE training data generation via self-play.
+Alpha-beta search with iterative deepening, PST and NNUE evaluation,
+opening randomization, multi-threaded generation (rayon), text SFEN output.
+
+### CI/CD Pipeline — `.github/workflows/ci.yml`
+
+GitHub Actions on every push/PR to `main`:
+Python (ruff + pytest) and Rust (fmt + clippy + test).
+
+### End-to-End Orchestration Script — `scripts/train_loop.py`
+
+Automates the iterative self-improvement loop:
+gensfen -> train -> export -> regenerate with NNUE eval.
+Configurable iterations, positions, depth, train/val split, resume support.
+
+### Model Evaluation Tool — `eval_match` binary
+
+Plays games between two NNUE models (or model vs. PST baseline) with
+color swapping for fairness. Reports win/loss/draw and estimated Elo difference.
+
+### Data Validation Utilities — `scripts/validate_sfen.py`
+
+Validates SFEN training data: malformed line detection, score distribution
+histogram, result balance (W/D/L), duplicate detection, multi-file summary.
+
+### NNUE Quantization Export — `scripts/export_nnue_quantized.py`
+
+Exports int16 (FT, scale=127) and int8 (hidden layers, scale=64) quantized
+weights following the Stockfish NNUE convention. ~2x smaller than float32.
+
+### Experiment Config Variants — `configs/small.yaml`, `configs/large.yaml`
+
+Small (~640K params, ft_out_dim=64) for quick experiments.
+Large (~20M params, ft_out_dim=512) for maximum strength.
+
+### Training Visualization — TensorBoard in `trainer.py`
+
+Logs train/val loss and learning rate per epoch. Enabled when `log_dir` is
+set in config. Install with `pip install -e ".[viz]"`.
+
+### Benchmarking Suite — `scripts/benchmark.py`
+
+Measures inference speed (positions/sec), training throughput (samples/sec),
+model parameter count, and GPU memory usage.
