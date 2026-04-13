@@ -352,14 +352,152 @@ pub fn evaluate(pos: &Position) -> i32 {
     for &pt in &hand_types {
         let value = piece_value(pt);
 
-        let our_piece = Piece { piece_type: pt, color: stm };
+        let our_piece = Piece {
+            piece_type: pt,
+            color: stm,
+        };
         let our_count = pos.hand(our_piece) as i32;
         score += value * our_count;
 
-        let their_piece = Piece { piece_type: pt, color: stm.flip() };
+        let their_piece = Piece {
+            piece_type: pt,
+            color: stm.flip(),
+        };
         let their_count = pos.hand(their_piece) as i32;
         score -= value * their_count;
     }
 
     score
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use shogi::bitboard::Factory as BBFactory;
+
+    fn init() {
+        BBFactory::init();
+    }
+
+    fn make_pos(sfen: &str) -> Position {
+        init();
+        let mut pos = Position::new();
+        pos.set_sfen(sfen).unwrap();
+        pos
+    }
+
+    // -----------------------------------------------------------------------
+    // piece_value — sanity checks
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn material_values_are_positive_except_king() {
+        let types = [
+            PieceType::Pawn,
+            PieceType::Lance,
+            PieceType::Knight,
+            PieceType::Silver,
+            PieceType::Gold,
+            PieceType::Bishop,
+            PieceType::Rook,
+            PieceType::ProPawn,
+            PieceType::ProLance,
+            PieceType::ProKnight,
+            PieceType::ProSilver,
+            PieceType::ProBishop,
+            PieceType::ProRook,
+        ];
+        for pt in types {
+            assert!(piece_value(pt) > 0, "{:?} should have positive value", pt);
+        }
+        assert_eq!(piece_value(PieceType::King), 0);
+    }
+
+    #[test]
+    fn promoted_piece_at_least_as_valuable_as_base() {
+        assert!(piece_value(PieceType::ProPawn) >= piece_value(PieceType::Pawn));
+        assert!(piece_value(PieceType::ProLance) >= piece_value(PieceType::Lance));
+        assert!(piece_value(PieceType::ProKnight) >= piece_value(PieceType::Knight));
+        assert!(piece_value(PieceType::ProSilver) >= piece_value(PieceType::Silver));
+        assert!(piece_value(PieceType::ProBishop) >= piece_value(PieceType::Bishop));
+        assert!(piece_value(PieceType::ProRook) >= piece_value(PieceType::Rook));
+    }
+
+    #[test]
+    fn rook_more_valuable_than_bishop() {
+        assert!(piece_value(PieceType::Rook) > piece_value(PieceType::Bishop));
+    }
+
+    // -----------------------------------------------------------------------
+    // pst_bonus — basic checks
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn pst_bonus_black_white_symmetry() {
+        // For the same piece on symmetric squares, Black's bonus at rank R
+        // should equal White's bonus at rank 8-R.
+        let sq_black = Square::new(4, 6).unwrap(); // file 4, rank 6
+        let sq_white = Square::new(4, 2).unwrap(); // file 4, rank 2 (= 8-6)
+        let bonus_b = pst_bonus(PieceType::Pawn, sq_black, Color::Black);
+        let bonus_w = pst_bonus(PieceType::Pawn, sq_white, Color::White);
+        assert_eq!(bonus_b, bonus_w);
+    }
+
+    // -----------------------------------------------------------------------
+    // evaluate — integration
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn startpos_is_roughly_balanced() {
+        let pos = make_pos("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        let score = evaluate(&pos);
+        // Starting position should be nearly equal (PST bonuses may cause small offset).
+        assert!(
+            score.abs() < 50,
+            "startpos should be roughly balanced, got {score}"
+        );
+    }
+
+    #[test]
+    fn extra_rook_is_large_advantage() {
+        // Black has an extra Rook in hand.
+        let pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b R 1");
+        let score = evaluate(&pos);
+        assert!(
+            score >= 900,
+            "extra Rook should give ~900cp advantage, got {score}"
+        );
+    }
+
+    #[test]
+    fn material_disadvantage_gives_negative_score() {
+        // White has an extra Rook in hand.
+        let pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b r 1");
+        let score = evaluate(&pos);
+        assert!(
+            score <= -900,
+            "opponent's extra Rook should be negative, got {score}"
+        );
+    }
+
+    #[test]
+    fn evaluate_returns_stm_relative_score() {
+        // Same position, flip side to move. Score sign should flip.
+        let pos_b = make_pos("4k4/9/9/9/9/9/9/9/4K4 b R 1");
+        let pos_w = make_pos("4k4/9/9/9/9/9/9/9/4K4 w R 1");
+        let score_b = evaluate(&pos_b);
+        let score_w = evaluate(&pos_w);
+        // Black has extra Rook: positive for Black, negative for White.
+        assert!(score_b > 0);
+        assert!(score_w < 0);
+        assert_eq!(score_b, -score_w);
+    }
+
+    #[test]
+    fn pst_evaluator_trait_matches_fn() {
+        let pos = make_pos("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        let eval_fn = evaluate(&pos);
+        let eval_trait = PstEvaluator.evaluate(&pos);
+        assert_eq!(eval_fn, eval_trait);
+    }
 }

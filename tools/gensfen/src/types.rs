@@ -71,3 +71,128 @@ impl TrainingSample {
         format!("sfen {}\t{}\t{:.1}", self.sfen, self.score, self.result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -----------------------------------------------------------------------
+    // RecordedPosition::resolve — all outcome × side-to-move combinations
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn resolve_black_wins_from_black_perspective() {
+        let rec = RecordedPosition {
+            sfen: "test".into(),
+            score: 100,
+            side_to_move: Color::Black,
+        };
+        let sample = rec.resolve(GameOutcome::BlackWin);
+        assert_eq!(sample.result, 1.0);
+        assert_eq!(sample.score, 100);
+    }
+
+    #[test]
+    fn resolve_black_wins_from_white_perspective() {
+        let rec = RecordedPosition {
+            sfen: "test".into(),
+            score: -50,
+            side_to_move: Color::White,
+        };
+        let sample = rec.resolve(GameOutcome::BlackWin);
+        assert_eq!(sample.result, 0.0);
+    }
+
+    #[test]
+    fn resolve_white_wins_from_white_perspective() {
+        let rec = RecordedPosition {
+            sfen: "test".into(),
+            score: 200,
+            side_to_move: Color::White,
+        };
+        let sample = rec.resolve(GameOutcome::WhiteWin);
+        assert_eq!(sample.result, 1.0);
+    }
+
+    #[test]
+    fn resolve_white_wins_from_black_perspective() {
+        let rec = RecordedPosition {
+            sfen: "test".into(),
+            score: -200,
+            side_to_move: Color::Black,
+        };
+        let sample = rec.resolve(GameOutcome::WhiteWin);
+        assert_eq!(sample.result, 0.0);
+    }
+
+    #[test]
+    fn resolve_draw_from_either_perspective() {
+        for color in [Color::Black, Color::White] {
+            let rec = RecordedPosition {
+                sfen: "test".into(),
+                score: 0,
+                side_to_move: color,
+            };
+            let sample = rec.resolve(GameOutcome::Draw);
+            assert_eq!(sample.result, 0.5);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // TrainingSample::to_line — output format
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn to_line_format() {
+        let sample = TrainingSample {
+            sfen: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1".into(),
+            score: 100,
+            result: 1.0,
+        };
+        let line = sample.to_line();
+        assert!(line.starts_with("sfen "));
+        // Tab-separated score and result
+        let parts: Vec<&str> = line.split('\t').collect();
+        assert_eq!(parts.len(), 3);
+        assert_eq!(parts[1], "100");
+        assert_eq!(parts[2], "1.0");
+    }
+
+    #[test]
+    fn to_line_negative_score() {
+        let sample = TrainingSample {
+            sfen: "test".into(),
+            score: -300,
+            result: 0.0,
+        };
+        let line = sample.to_line();
+        let parts: Vec<&str> = line.split('\t').collect();
+        assert_eq!(parts[1], "-300");
+        assert_eq!(parts[2], "0.0");
+    }
+
+    #[test]
+    fn to_line_draw_result() {
+        let sample = TrainingSample {
+            sfen: "test".into(),
+            score: 0,
+            result: 0.5,
+        };
+        let line = sample.to_line();
+        let parts: Vec<&str> = line.split('\t').collect::<Vec<_>>();
+        assert_eq!(parts[2], "0.5");
+    }
+
+    #[test]
+    fn resolve_preserves_sfen() {
+        let sfen = "4k4/9/9/9/9/9/9/9/4K4 b - 1".to_string();
+        let rec = RecordedPosition {
+            sfen: sfen.clone(),
+            score: 42,
+            side_to_move: Color::Black,
+        };
+        let sample = rec.resolve(GameOutcome::Draw);
+        assert_eq!(sample.sfen, sfen);
+        assert_eq!(sample.score, 42);
+    }
+}

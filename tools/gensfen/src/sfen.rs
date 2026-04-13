@@ -98,3 +98,96 @@ pub fn position_to_sfen(pos: &Position) -> String {
 
     format!("{board} {side} {hand} {ply}")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use shogi::bitboard::Factory as BBFactory;
+
+    fn init() {
+        // BBFactory::init() is idempotent but must be called before any board ops.
+        BBFactory::init();
+    }
+
+    fn make_pos(sfen: &str) -> Position {
+        init();
+        let mut pos = Position::new();
+        pos.set_sfen(sfen).unwrap();
+        pos
+    }
+
+    #[test]
+    fn startpos_sfen() {
+        let sfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
+        let pos = make_pos(sfen);
+        assert_eq!(position_to_sfen(&pos), sfen);
+    }
+
+    #[test]
+    fn side_to_move_white() {
+        let sfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 2";
+        let pos = make_pos(sfen);
+        let result = position_to_sfen(&pos);
+        let parts: Vec<&str> = result.split(' ').collect();
+        assert_eq!(parts[1], "w");
+    }
+
+    #[test]
+    fn empty_board_with_kings() {
+        let sfen = "4k4/9/9/9/9/9/9/9/4K4 b - 1";
+        let pos = make_pos(sfen);
+        assert_eq!(position_to_sfen(&pos), sfen);
+    }
+
+    #[test]
+    fn hand_pieces_formatted() {
+        // Black has 2 Pawns and a Bishop; White has a Gold.
+        let sfen = "4k4/9/9/9/9/9/9/9/4K4 b B2Pg 1";
+        let pos = make_pos(sfen);
+        let result = position_to_sfen(&pos);
+        let parts: Vec<&str> = result.split(' ').collect();
+        // Hand should contain B, 2P (Black) and g (White).
+        let hand = parts[2];
+        assert!(
+            hand.contains('B'),
+            "hand should include Black's Bishop: {hand}"
+        );
+        assert!(
+            hand.contains('P'),
+            "hand should include Black's Pawn: {hand}"
+        );
+        assert!(
+            hand.contains('g'),
+            "hand should include White's Gold: {hand}"
+        );
+    }
+
+    #[test]
+    fn no_hand_is_dash() {
+        let sfen = "4k4/9/9/9/9/9/9/9/4K4 b - 1";
+        let pos = make_pos(sfen);
+        let result = position_to_sfen(&pos);
+        let parts: Vec<&str> = result.split(' ').collect();
+        assert_eq!(parts[2], "-");
+    }
+
+    #[test]
+    fn promoted_piece_in_board() {
+        // Black promoted Bishop (Horse) on center square.
+        let sfen = "4k4/9/9/9/4+B4/9/9/9/4K4 b - 1";
+        let pos = make_pos(sfen);
+        let result = position_to_sfen(&pos);
+        assert!(
+            result.contains("+B"),
+            "SFEN should contain promoted Bishop: {result}"
+        );
+    }
+
+    #[test]
+    fn sfen_has_four_fields() {
+        let sfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
+        let pos = make_pos(sfen);
+        let result = position_to_sfen(&pos);
+        assert_eq!(result.split(' ').count(), 4);
+    }
+}

@@ -19,8 +19,8 @@ mod types;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Parser;
 use rand::SeedableRng;

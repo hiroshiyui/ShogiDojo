@@ -182,10 +182,7 @@ impl<'a> Searcher<'a> {
 
         // Generate only capture moves (normal moves to occupied squares).
         let moves = movegen::generate_moves(pos);
-        let captures: Vec<Move> = moves
-            .into_iter()
-            .filter(|m| is_capture(pos, m))
-            .collect();
+        let captures: Vec<Move> = moves.into_iter().filter(|m| is_capture(pos, m)).collect();
 
         let scored = order_moves(pos, &captures);
 
@@ -272,5 +269,145 @@ fn piece_type_value(pt: PieceType) -> i32 {
         PieceType::Bishop | PieceType::ProBishop => 7,
         PieceType::Rook | PieceType::ProRook => 9,
         PieceType::King => 100, // Capturing king should never happen, but rank it high
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::eval::PstEvaluator;
+    use shogi::Square;
+    use shogi::bitboard::Factory as BBFactory;
+
+    fn init() {
+        BBFactory::init();
+    }
+
+    fn make_pos(sfen: &str) -> Position {
+        init();
+        let mut pos = Position::new();
+        pos.set_sfen(sfen).unwrap();
+        pos
+    }
+
+    // -----------------------------------------------------------------------
+    // piece_type_value — ordering sanity
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn piece_ordering_hierarchy() {
+        assert!(piece_type_value(PieceType::Rook) > piece_type_value(PieceType::Bishop));
+        assert!(piece_type_value(PieceType::Bishop) > piece_type_value(PieceType::Gold));
+        assert!(piece_type_value(PieceType::Gold) >= piece_type_value(PieceType::Silver));
+        assert!(piece_type_value(PieceType::Silver) > piece_type_value(PieceType::Knight));
+        assert!(piece_type_value(PieceType::Knight) > piece_type_value(PieceType::Lance));
+        assert!(piece_type_value(PieceType::Lance) > piece_type_value(PieceType::Pawn));
+        assert!(piece_type_value(PieceType::King) > piece_type_value(PieceType::Rook));
+    }
+
+    #[test]
+    fn promoted_pieces_equal_to_base() {
+        assert_eq!(
+            piece_type_value(PieceType::Pawn),
+            piece_type_value(PieceType::ProPawn)
+        );
+        assert_eq!(
+            piece_type_value(PieceType::Lance),
+            piece_type_value(PieceType::ProLance)
+        );
+        assert_eq!(
+            piece_type_value(PieceType::Bishop),
+            piece_type_value(PieceType::ProBishop)
+        );
+        assert_eq!(
+            piece_type_value(PieceType::Rook),
+            piece_type_value(PieceType::ProRook)
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // is_capture
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn drop_is_not_capture() {
+        let pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b P 1");
+        let m = Move::Drop {
+            to: Square::new(4, 4).unwrap(),
+            piece_type: PieceType::Pawn,
+        };
+        assert!(!is_capture(&pos, &m));
+    }
+
+    #[test]
+    fn move_to_empty_is_not_capture() {
+        let pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b - 1");
+        let m = Move::Normal {
+            from: Square::new(4, 8).unwrap(), // King at e1
+            to: Square::new(3, 8).unwrap(),   // Empty square
+            promote: false,
+        };
+        assert!(!is_capture(&pos, &m));
+    }
+
+    #[test]
+    fn move_to_occupied_is_capture() {
+        // Black King on 5i, White Pawn on 4i.
+        let pos = make_pos("4k4/9/9/9/9/9/9/9/3pK4 b - 1");
+        let m = Move::Normal {
+            from: Square::new(4, 8).unwrap(), // King at file 4, rank 8
+            to: Square::new(5, 8).unwrap(),   // White pawn at file 5, rank 8
+            promote: false,
+        };
+        assert!(is_capture(&pos, &m));
+    }
+
+    // -----------------------------------------------------------------------
+    // Searcher — integration tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn search_returns_a_move_from_startpos() {
+        let evaluator = PstEvaluator;
+        let mut searcher = Searcher::new(&evaluator);
+        let mut pos = make_pos("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        let (best_move, _score) = searcher.search(&mut pos, 2);
+        assert!(
+            best_move.is_some(),
+            "search should find a move from startpos"
+        );
+    }
+
+    #[test]
+    fn search_nodes_are_counted() {
+        let evaluator = PstEvaluator;
+        let mut searcher = Searcher::new(&evaluator);
+        let mut pos = make_pos("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        searcher.search(&mut pos, 2);
+        assert!(
+            searcher.nodes > 0,
+            "search should evaluate at least one node"
+        );
+    }
+
+    #[test]
+    fn search_depth_1_returns_valid_move() {
+        let evaluator = PstEvaluator;
+        let mut searcher = Searcher::new(&evaluator);
+        let mut pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b - 1");
+        let (best_move, _) = searcher.search(&mut pos, 1);
+        assert!(best_move.is_some());
+    }
+
+    #[test]
+    fn search_score_is_finite() {
+        let evaluator = PstEvaluator;
+        let mut searcher = Searcher::new(&evaluator);
+        let mut pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b - 1");
+        let (_, score) = searcher.search(&mut pos, 2);
+        assert!(
+            score.abs() < INFINITY,
+            "score should be finite, got {score}"
+        );
     }
 }

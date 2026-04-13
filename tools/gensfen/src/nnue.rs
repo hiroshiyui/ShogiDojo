@@ -163,8 +163,12 @@ pub struct NnueModel {
 }
 
 impl NnueModel {
-    pub fn ft_input_dim(&self) -> usize { self.ft_input_dim }
-    pub fn ft_out_dim(&self) -> usize { self.ft_out_dim }
+    pub fn ft_input_dim(&self) -> usize {
+        self.ft_input_dim
+    }
+    pub fn ft_out_dim(&self) -> usize {
+        self.ft_out_dim
+    }
 
     /// Load a model from a binary file exported by `scripts/export_nnue.py`.
     pub fn load(path: &Path) -> Result<Self, String> {
@@ -201,7 +205,7 @@ impl NnueModel {
         let l1_bias = read_f32_vec(&data, &mut cursor, l1_dim);
         let l2_weight = read_f32_vec(&data, &mut cursor, l2_dim * l1_dim);
         let l2_bias = read_f32_vec(&data, &mut cursor, l2_dim);
-        let l3_weight = read_f32_vec(&data, &mut cursor, 1 * l2_dim);
+        let l3_weight = read_f32_vec(&data, &mut cursor, l2_dim);
         let l3_bias = read_f32_vec(&data, &mut cursor, 1);
 
         if cursor != data.len() {
@@ -232,10 +236,10 @@ impl NnueModel {
     /// Evaluate a position using the NNUE model.
     ///
     /// Returns a score in centipawns from the side-to-move's perspective.
+    #[allow(clippy::needless_range_loop)] // Index loops match the Python reference implementation
     pub fn evaluate(&self, pos: &Position) -> i32 {
         // Step 1: Extract board state
-        let (pieces, side_to_move, hand, black_king_sq, white_king_sq) =
-            extract_position(pos);
+        let (pieces, side_to_move, hand, black_king_sq, white_king_sq) = extract_position(pos);
 
         // Step 2: Compute HalfKAv2 feature indices
         let (stm_indices, nstm_indices) =
@@ -331,7 +335,11 @@ fn extract_position(pos: &Position) -> (Vec<BoardPiece>, usize, Hand, usize, usi
                     Color::White => white_king_sq = py_sq,
                 }
             } else {
-                pieces.push((piece_type_id(piece.piece_type), color_id(piece.color), py_sq));
+                pieces.push((
+                    piece_type_id(piece.piece_type),
+                    color_id(piece.color),
+                    py_sq,
+                ));
             }
         }
     }
@@ -356,6 +364,7 @@ fn extract_position(pos: &Position) -> (Vec<BoardPiece>, usize, Hand, usize, usi
 ///
 /// Returns (stm_indices, nstm_indices) — two lists of active feature indices.
 /// This is a direct port of Python's `make_feature_indices()` in features.py.
+#[allow(clippy::needless_range_loop)] // Index loops match the Python reference implementation
 fn make_feature_indices(
     pieces: &[BoardPiece],
     side_to_move: usize,
@@ -446,4 +455,346 @@ fn read_f32_vec(data: &[u8], cursor: &mut usize, count: usize) -> Vec<f32> {
         .chunks_exact(4)
         .map(|chunk| f32::from_le_bytes(chunk.try_into().unwrap()))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use shogi::bitboard::Factory as BBFactory;
+
+    fn init() {
+        BBFactory::init();
+    }
+
+    // -----------------------------------------------------------------------
+    // square_to_python_index
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn python_index_corners() {
+        init();
+        // Top-left in Python is file 9 = shogi-rs file 8, rank 0 → index 0
+        let sq = Square::new(8, 0).unwrap();
+        assert_eq!(square_to_python_index(sq), 0);
+
+        // Top-right in Python is file 1 = shogi-rs file 0, rank 0 → index 8
+        let sq = Square::new(0, 0).unwrap();
+        assert_eq!(square_to_python_index(sq), 8);
+
+        // Bottom-left: shogi-rs file 8, rank 8 → index 72
+        let sq = Square::new(8, 8).unwrap();
+        assert_eq!(square_to_python_index(sq), 72);
+
+        // Bottom-right: shogi-rs file 0, rank 8 → index 80
+        let sq = Square::new(0, 8).unwrap();
+        assert_eq!(square_to_python_index(sq), 80);
+    }
+
+    #[test]
+    fn python_index_center() {
+        init();
+        // Center square: file 4, rank 4 → index 4*9 + (8-4) = 40
+        let sq = Square::new(4, 4).unwrap();
+        assert_eq!(square_to_python_index(sq), 40);
+    }
+
+    #[test]
+    fn python_index_range() {
+        init();
+        for i in 0..81u8 {
+            let sq = Square::from_index(i).unwrap();
+            let py_idx = square_to_python_index(sq);
+            assert!(py_idx < 81, "index out of range: {py_idx}");
+        }
+    }
+
+    #[test]
+    fn python_index_all_unique() {
+        init();
+        let mut seen = std::collections::HashSet::new();
+        for i in 0..81u8 {
+            let sq = Square::from_index(i).unwrap();
+            let py_idx = square_to_python_index(sq);
+            assert!(seen.insert(py_idx), "duplicate python index: {py_idx}");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // flip_square
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn flip_square_corners() {
+        assert_eq!(flip_square(0), 80);
+        assert_eq!(flip_square(80), 0);
+        assert_eq!(flip_square(8), 72);
+        assert_eq!(flip_square(72), 8);
+    }
+
+    #[test]
+    fn flip_square_center_unchanged() {
+        assert_eq!(flip_square(40), 40);
+    }
+
+    #[test]
+    fn flip_square_double_identity() {
+        for sq in 0..81 {
+            assert_eq!(flip_square(flip_square(sq)), sq);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // mirror_file
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn mirror_file_left_half_unchanged() {
+        // Files 0-4 (left half) should be unchanged.
+        for rank in 0..9 {
+            for file in 0..=4 {
+                let sq = rank * 9 + file;
+                assert_eq!(mirror_file(sq), sq, "sq={sq} should be unchanged");
+            }
+        }
+    }
+
+    #[test]
+    fn mirror_file_right_half_mirrors() {
+        for rank in 0..9 {
+            for file in 5..9 {
+                let sq = rank * 9 + file;
+                let mirrored = mirror_file(sq);
+                let expected_file = 8 - file;
+                let expected = rank * 9 + expected_file;
+                assert_eq!(mirrored, expected, "sq={sq} mirrored wrong");
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // king_square_to_bucket
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn bucket_equals_rank() {
+        for sq in 0..81 {
+            let expected_rank = sq / 9;
+            assert_eq!(king_square_to_bucket(sq), expected_rank);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // piece_type_id
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn piece_type_ids_match_python() {
+        assert_eq!(piece_type_id(PieceType::Pawn), 0);
+        assert_eq!(piece_type_id(PieceType::Lance), 1);
+        assert_eq!(piece_type_id(PieceType::Knight), 2);
+        assert_eq!(piece_type_id(PieceType::Silver), 3);
+        assert_eq!(piece_type_id(PieceType::Gold), 4);
+        assert_eq!(piece_type_id(PieceType::Bishop), 5);
+        assert_eq!(piece_type_id(PieceType::Rook), 6);
+        assert_eq!(piece_type_id(PieceType::ProPawn), 7);
+        assert_eq!(piece_type_id(PieceType::ProLance), 8);
+        assert_eq!(piece_type_id(PieceType::ProKnight), 9);
+        assert_eq!(piece_type_id(PieceType::ProSilver), 10);
+        assert_eq!(piece_type_id(PieceType::ProBishop), 11);
+        assert_eq!(piece_type_id(PieceType::ProRook), 12);
+    }
+
+    #[test]
+    #[should_panic(expected = "King should not be passed")]
+    fn piece_type_id_panics_on_king() {
+        piece_type_id(PieceType::King);
+    }
+
+    // -----------------------------------------------------------------------
+    // color_id
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn color_ids_match_python() {
+        assert_eq!(color_id(Color::Black), 0);
+        assert_eq!(color_id(Color::White), 1);
+    }
+
+    // -----------------------------------------------------------------------
+    // Constants match Python
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn dimension_constants_match_python() {
+        assert_eq!(BOARD_FEATURE_DIM, 13 * 2 * 81); // 2106
+        assert_eq!(HAND_FEATURES_PER_SIDE, 38);
+        assert_eq!(HALF_FEATURE_DIM, 2106 + 38 * 2); // 2182
+    }
+
+    // -----------------------------------------------------------------------
+    // extract_position — integration
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn extract_startpos_piece_count() {
+        init();
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .unwrap();
+        let (pieces, stm, hand, bk, wk) = extract_position(&pos);
+        // 40 pieces total, 2 kings excluded → 38 non-king pieces.
+        assert_eq!(pieces.len(), 38);
+        assert_eq!(stm, 0); // BLACK
+        // No hand pieces.
+        for color in 0..2 {
+            for i in 0..7 {
+                assert_eq!(hand[color][i], 0);
+            }
+        }
+        // Kings should be on their starting squares.
+        // Black King: rank 8, file 4 → python index = 8*9 + (8-4) = 76
+        assert_eq!(bk, 76);
+        // White King: rank 0, file 4 → python index = 0*9 + (8-4) = 4
+        assert_eq!(wk, 4);
+    }
+
+    #[test]
+    fn extract_position_with_hand_pieces() {
+        init();
+        let mut pos = Position::new();
+        pos.set_sfen("4k4/9/9/9/9/9/9/9/4K4 b 2PBg 1").unwrap();
+        let (_, stm, hand, _, _) = extract_position(&pos);
+        assert_eq!(stm, 0);
+        // Black: 2 Pawns (index 0), 1 Bishop (index 5)
+        assert_eq!(hand[0][0], 2); // Pawn
+        assert_eq!(hand[0][5], 1); // Bishop
+        // White: 1 Gold (index 4)
+        assert_eq!(hand[1][4], 1);
+    }
+
+    // -----------------------------------------------------------------------
+    // make_feature_indices — feature index bounds
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn feature_indices_in_bounds_startpos() {
+        init();
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .unwrap();
+        let (pieces, stm, hand, bk, wk) = extract_position(&pos);
+        let (stm_idx, nstm_idx) = make_feature_indices(&pieces, stm, &hand, bk, wk);
+
+        let max_dim = _NUM_KING_BUCKETS * HALF_FEATURE_DIM; // 19638
+        for &idx in stm_idx.iter().chain(nstm_idx.iter()) {
+            assert!(
+                idx < max_dim,
+                "feature index {idx} out of bounds (max {max_dim})"
+            );
+        }
+    }
+
+    #[test]
+    fn feature_indices_nonempty() {
+        init();
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .unwrap();
+        let (pieces, stm, hand, bk, wk) = extract_position(&pos);
+        let (stm_idx, nstm_idx) = make_feature_indices(&pieces, stm, &hand, bk, wk);
+        assert!(!stm_idx.is_empty());
+        assert!(!nstm_idx.is_empty());
+        // 38 board pieces → at least 38 features per perspective.
+        assert!(stm_idx.len() >= 38);
+        assert!(nstm_idx.len() >= 38);
+    }
+
+    #[test]
+    fn stm_swap_flips_perspectives() {
+        init();
+        let mut pos_b = Position::new();
+        pos_b
+            .set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .unwrap();
+        let mut pos_w = Position::new();
+        pos_w
+            .set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
+            .unwrap();
+
+        let (p_b, _, h_b, bk_b, wk_b) = extract_position(&pos_b);
+        let (p_w, _, h_w, bk_w, wk_w) = extract_position(&pos_w);
+
+        let (stm_b, nstm_b) = make_feature_indices(&p_b, 0, &h_b, bk_b, wk_b);
+        let (stm_w, nstm_w) = make_feature_indices(&p_w, 1, &h_w, bk_w, wk_w);
+
+        // Flipping side-to-move should swap STM ↔ NSTM.
+        let mut sorted_stm_b = stm_b.clone();
+        sorted_stm_b.sort();
+        let mut sorted_nstm_w = nstm_w.clone();
+        sorted_nstm_w.sort();
+        assert_eq!(sorted_stm_b, sorted_nstm_w);
+
+        let mut sorted_nstm_b = nstm_b.clone();
+        sorted_nstm_b.sort();
+        let mut sorted_stm_w = stm_w.clone();
+        sorted_stm_w.sort();
+        assert_eq!(sorted_nstm_b, sorted_stm_w);
+    }
+
+    // -----------------------------------------------------------------------
+    // Binary reading helpers
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn read_u32_little_endian() {
+        let data = [0x42, 0x00, 0x00, 0x00];
+        let mut cursor = 0;
+        assert_eq!(read_u32(&data, &mut cursor), 0x42);
+        assert_eq!(cursor, 4);
+    }
+
+    #[test]
+    fn read_f32_vec_values() {
+        // Encode two f32 values: 1.0 and -2.5
+        let mut data = Vec::new();
+        data.extend_from_slice(&1.0f32.to_le_bytes());
+        data.extend_from_slice(&(-2.5f32).to_le_bytes());
+        let mut cursor = 0;
+        let result = read_f32_vec(&data, &mut cursor, 2);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0], 1.0);
+        assert_eq!(result[1], -2.5);
+        assert_eq!(cursor, 8);
+    }
+
+    // -----------------------------------------------------------------------
+    // NnueModel::load — error cases
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn load_nonexistent_file_errors() {
+        let result = NnueModel::load(std::path::Path::new("/nonexistent/model.nnue"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn load_invalid_magic_errors() {
+        let dir = std::env::temp_dir();
+        let path = dir.join("bad_magic.nnue");
+        // Write wrong magic number.
+        let mut data = Vec::new();
+        data.extend_from_slice(&0xDEADBEEFu32.to_le_bytes());
+        std::fs::write(&path, &data).unwrap();
+        let result = NnueModel::load(&path);
+        assert!(result.is_err());
+        let err = match result {
+            Err(e) => e,
+            Ok(_) => unreachable!(),
+        };
+        assert!(
+            err.contains("Invalid magic"),
+            "error should mention invalid magic: {err}"
+        );
+        std::fs::remove_file(&path).ok();
+    }
 }

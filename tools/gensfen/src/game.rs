@@ -16,8 +16,8 @@
 
 use std::collections::HashSet;
 
-use rand::seq::SliceRandom;
 use rand::Rng;
+use rand::seq::SliceRandom;
 use shogi::{Color, Position};
 
 use crate::eval::Evaluator;
@@ -182,11 +182,145 @@ fn get_legal_moves(pos: &mut Position) -> Vec<shogi::Move> {
 ///   - If the side-to-move is in check with no legal moves → checkmate (they lose)
 ///   - If the side-to-move is NOT in check with no legal moves → stalemate (they lose)
 ///     (Unlike chess where stalemate is a draw, in Shogi the stalemated player loses.
-///      However, stalemate is extremely rare in practice.)
+///     However, stalemate is extremely rare in practice.)
 fn determine_outcome(pos: &Position) -> GameOutcome {
     // The side-to-move has no legal moves → they lose.
     match pos.side_to_move() {
         Color::Black => GameOutcome::WhiteWin,
         Color::White => GameOutcome::BlackWin,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use rand::rngs::SmallRng;
+    use shogi::bitboard::Factory as BBFactory;
+
+    fn init() {
+        BBFactory::init();
+    }
+
+    fn make_pos(sfen: &str) -> Position {
+        init();
+        let mut pos = Position::new();
+        pos.set_sfen(sfen).unwrap();
+        pos
+    }
+
+    // -----------------------------------------------------------------------
+    // determine_outcome
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn black_to_move_no_moves_white_wins() {
+        let pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b - 1");
+        assert_eq!(determine_outcome(&pos), GameOutcome::WhiteWin);
+    }
+
+    #[test]
+    fn white_to_move_no_moves_black_wins() {
+        let pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 w - 1");
+        assert_eq!(determine_outcome(&pos), GameOutcome::BlackWin);
+    }
+
+    // -----------------------------------------------------------------------
+    // get_legal_moves
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn startpos_has_30_legal_moves() {
+        let mut pos = make_pos(STARTPOS);
+        let moves = get_legal_moves(&mut pos);
+        assert_eq!(
+            moves.len(),
+            30,
+            "startpos should have 30 legal moves, got {}",
+            moves.len()
+        );
+    }
+
+    #[test]
+    fn bare_kings_have_limited_moves() {
+        let mut pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b - 1");
+        let moves = get_legal_moves(&mut pos);
+        // King in center of back rank has 5 moves (3 forward, 2 diagonal).
+        assert!(
+            moves.len() <= 5,
+            "bare king should have <= 5 moves, got {}",
+            moves.len()
+        );
+        assert!(!moves.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // play_game — smoke test
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn play_game_produces_samples() {
+        init();
+        let evaluator = crate::eval::PstEvaluator;
+        let mut rng = SmallRng::seed_from_u64(42);
+        let samples = play_game(2, 4, &mut rng, &evaluator);
+        assert!(
+            !samples.is_empty(),
+            "play_game should produce at least one sample"
+        );
+    }
+
+    #[test]
+    fn play_game_samples_have_valid_results() {
+        init();
+        let evaluator = crate::eval::PstEvaluator;
+        let mut rng = SmallRng::seed_from_u64(123);
+        let samples = play_game(2, 4, &mut rng, &evaluator);
+        for sample in &samples {
+            assert!(
+                sample.result == 0.0 || sample.result == 0.5 || sample.result == 1.0,
+                "result should be 0.0, 0.5, or 1.0, got {}",
+                sample.result
+            );
+            assert!(sample.sfen.len() > 10, "SFEN too short: {}", sample.sfen);
+        }
+    }
+
+    #[test]
+    fn play_game_different_seeds_produce_different_games() {
+        init();
+        let evaluator = crate::eval::PstEvaluator;
+        let mut rng1 = SmallRng::seed_from_u64(1);
+        let mut rng2 = SmallRng::seed_from_u64(999);
+        let samples1 = play_game(2, 6, &mut rng1, &evaluator);
+        let samples2 = play_game(2, 6, &mut rng2, &evaluator);
+        // Different seeds → (very likely) different games.
+        // Check first non-trivial position differs.
+        if !samples1.is_empty() && !samples2.is_empty() {
+            let sfens1: Vec<&str> = samples1.iter().map(|s| s.sfen.as_str()).collect();
+            let sfens2: Vec<&str> = samples2.iter().map(|s| s.sfen.as_str()).collect();
+            assert_ne!(
+                sfens1, sfens2,
+                "different seeds should produce different games"
+            );
+        }
+    }
+
+    #[test]
+    fn all_samples_have_sfen_prefix_in_to_line() {
+        init();
+        let evaluator = crate::eval::PstEvaluator;
+        let mut rng = SmallRng::seed_from_u64(777);
+        let samples = play_game(2, 4, &mut rng, &evaluator);
+        for sample in &samples {
+            let line = sample.to_line();
+            assert!(
+                line.starts_with("sfen "),
+                "line should start with 'sfen ': {line}"
+            );
+            // Verify tab-separated format is parseable.
+            let parts: Vec<&str> = line.split('\t').collect();
+            assert_eq!(parts.len(), 3, "expected 3 tab-separated fields: {line}");
+        }
     }
 }
