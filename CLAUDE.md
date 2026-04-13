@@ -40,6 +40,10 @@ Data flows linearly: **constants → features → dataset → model → trainer 
 - `configs/default.yaml` — All hyperparameters. Fully commented.
 - `tools/gensfen/` — Rust tool for training data generation via self-play. Uses shogi-rs for board/move generation, alpha-beta search with material eval, outputs text SFEN directly.
 
+## Testing Policy
+
+- **Every code addition or change must include corresponding tests.** If you add or modify functionality, add or update tests to cover the changes. Tests and implementation must stay aligned — never leave untested code behind.
+
 ## Git Workflow
 
 - **Do not commit directly to the `main` branch.** All work should be done on feature branches.
