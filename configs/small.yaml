@@ -9,28 +9,65 @@
 # =============================================================================
 
 data:
+  # Path to the training SFEN file.
   train_path: "data/train.sfen"
+
+  # Path to the validation SFEN file (optional — omit to use train loss for tracking).
   val_path: "data/val.sfen"
+
+  # Positions per training batch. Smaller than default since the model is lighter.
   batch_size: 4096
+
+  # Parallel data-loading processes. Set to 0 for single-process debugging.
   num_workers: 4
 
 model:
-  ft_out_dim: 64       # 64 per perspective (128 total, vs 512 default)
-  l1_dim: 16           # Smaller hidden layers
+  # Feature transformer output dimension per perspective.
+  # Both perspectives are concatenated, so the eval network input is ft_out_dim * 2 = 128.
+  # Smaller than default (256) to reduce parameter count.
+  ft_out_dim: 64
+
+  # Hidden layer dimensions for the evaluation network.
+  # Smaller than default (32) to match the reduced feature transformer.
+  l1_dim: 16
   l2_dim: 16
 
 training:
-  epochs: 50           # Fewer epochs (converges faster with smaller model)
+  # Fewer epochs than default — smaller models converge faster.
+  epochs: 50
+
+  # Adam learning rate. Same as default; works well for this model size.
   lr: 1.0e-3
+
+  # Learning rate schedule. "cosine" smoothly decays LR to ~0 over all epochs.
   lr_scheduler: "cosine"
+
+  # Step scheduler parameters (only used when lr_scheduler is "step").
   lr_step_size: 50
   lr_gamma: 0.5
+
+  # L2 regularization. Small value to prevent overfitting without slowing learning.
   weight_decay: 1.0e-6
+
+  # Loss weights: how much to prioritize engine-score accuracy vs game-result prediction.
   lambda_score: 1.0
   lambda_result: 0.5
+
+  # Divide raw centipawn scores by this before sigmoid. 600 means +600cp ~ 73% win prob.
   score_scaling: 600.0
+
+  # Maximum gradient norm. Gradients larger than this are scaled down.
   clip_grad_norm: 1.0
+
+  # Directory for saving checkpoints.
   checkpoint_dir: "checkpoints"
+
+  # TensorBoard log directory. Set to "" to disable.
   log_dir: "runs"
+
+  # Save a checkpoint every N epochs (and always at the final epoch).
   save_every: 10
+
+  # Stop training if no improvement for this many consecutive epochs.
+  # Lower than default (20) since smaller models converge faster.
   early_stopping_patience: 10
