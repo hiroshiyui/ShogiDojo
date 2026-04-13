@@ -8,8 +8,3 @@ Features: alpha-beta search with iterative deepening, three-phase eval
 multi-threaded generation (rayon), and text SFEN output directly consumable
 by `dataset.py`.
 
-## Other
-
-- [ ] Write a `scripts/convert_bin_to_sfen.py` for converting YaneuraOu PackedSfenValue binary to text SFEN (still useful if someone has existing `.bin` data)
-- [ ] Add pytest tests for feature extraction and model forward pass
-- [ ] Configure ruff linting rules in `pyproject.toml`
