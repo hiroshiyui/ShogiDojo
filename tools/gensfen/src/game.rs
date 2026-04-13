@@ -159,7 +159,7 @@ pub fn play_game(
 ///
 /// Generates pseudo-legal moves, then filters by actually trying each one.
 /// Moves that fail `make_move()` (leave king in check, nifu, etc.) are excluded.
-fn get_legal_moves(pos: &mut Position) -> Vec<shogi::Move> {
+pub fn get_legal_moves(pos: &mut Position) -> Vec<shogi::Move> {
     let pseudo_legal = movegen::generate_moves(pos);
     let mut legal = Vec::new();
 
@@ -183,7 +183,7 @@ fn get_legal_moves(pos: &mut Position) -> Vec<shogi::Move> {
 ///   - If the side-to-move is NOT in check with no legal moves → stalemate (they lose)
 ///     (Unlike chess where stalemate is a draw, in Shogi the stalemated player loses.
 ///     However, stalemate is extremely rare in practice.)
-fn determine_outcome(pos: &Position) -> GameOutcome {
+pub fn determine_outcome(pos: &Position) -> GameOutcome {
     // The side-to-move has no legal moves → they lose.
     match pos.side_to_move() {
         Color::Black => GameOutcome::WhiteWin,
