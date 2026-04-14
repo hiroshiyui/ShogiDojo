@@ -70,6 +70,14 @@ def parse_sfen(sfen: str) -> tuple[list[tuple[int, int, int]], int, list[list[in
       - Otherwise, a sequence like "S2P" means: 1 Silver + 2 Pawns in hand
       - Uppercase = Black's hand, lowercase = White's hand
 
+    === Validation ===
+
+    Malformed SFEN strings raise :class:`ValueError`. The parser enforces
+    Shogi-level invariants: both kings must be present, the board must
+    describe exactly 81 squares, only board pieces may be promoted, only
+    unpromoted non-king pieces may appear in hand, and hand counts must
+    not exceed the physical maximum (e.g., 18 Pawns, 2 Rooks).
+
     Args:
         sfen: The SFEN string (4 space-separated fields).
 
@@ -80,10 +88,24 @@ def parse_sfen(sfen: str) -> tuple[list[tuple[int, int, int]], int, list[list[in
         - hand: 2D list where hand[color][i] = count of HAND_PIECE_TYPES[i] in that player's hand
         - black_king_sq: square index (0-80) where Black's King sits
         - white_king_sq: square index (0-80) where White's King sits
+
+    Raises:
+        ValueError: if the SFEN string is malformed or violates a Shogi
+            invariant (missing kings, promoted-piece-in-hand, etc.).
     """
     parts = sfen.split()
+    if len(parts) < 3:
+        raise ValueError(
+            f"SFEN must have at least 3 space-separated fields "
+            f"(board, side-to-move, hand); got {len(parts)}: {sfen!r}"
+        )
     board_str = parts[0]
-    side_to_move = BLACK if parts[1] == 'b' else WHITE
+    side_str = parts[1]
+    if side_str not in ('b', 'w'):
+        raise ValueError(
+            f"side-to-move must be 'b' or 'w', got {side_str!r}"
+        )
+    side_to_move = BLACK if side_str == 'b' else WHITE
     hand_str = parts[2]
 
     # --- Parse the board string ---
@@ -98,34 +120,63 @@ def parse_sfen(sfen: str) -> tuple[list[tuple[int, int, int]], int, list[list[in
             # Row separator — just skip, sq is already at the right position
             continue
         if ch == '+':
+            if promoted:
+                raise ValueError(f"doubled '+' promotion prefix in board: {board_str!r}")
             # Next piece is promoted
             promoted = True
             continue
         if ch.isdigit():
             # Skip N empty squares
+            if promoted:
+                raise ValueError(f"'+' must precede a piece, not a digit in board: {board_str!r}")
             sq += int(ch)
             continue
 
         # It's a piece character
         upper = ch.upper()             # Normalize to uppercase for lookup
+        if upper not in SFEN_PIECE_MAP:
+            raise ValueError(f"unknown piece character {ch!r} in board: {board_str!r}")
         color = BLACK if ch.isupper() else WHITE  # Case determines color
 
         if upper == 'K':
+            if promoted:
+                raise ValueError(f"King cannot be promoted in board: {board_str!r}")
             # Kings are tracked separately (not added to pieces list)
             if color == BLACK:
+                if black_king_sq != -1:
+                    raise ValueError(f"more than one Black King in board: {board_str!r}")
                 black_king_sq = sq
             else:
+                if white_king_sq != -1:
+                    raise ValueError(f"more than one White King in board: {board_str!r}")
                 white_king_sq = sq
         else:
             # Look up the piece type, handling promotion
-            if promoted and upper in SFEN_PROMOTED_MAP:
+            if promoted:
+                if upper not in SFEN_PROMOTED_MAP:
+                    raise ValueError(
+                        f"piece {ch!r} cannot be promoted in board: {board_str!r}"
+                    )
                 piece_type = SFEN_PROMOTED_MAP[upper]
             else:
                 piece_type = SFEN_PIECE_MAP[upper]
             pieces.append((piece_type, color, sq))
 
         promoted = False
+        if sq >= NUM_SQUARES:
+            raise ValueError(
+                f"board describes more than {NUM_SQUARES} squares: {board_str!r}"
+            )
         sq += 1
+
+    if sq != NUM_SQUARES:
+        raise ValueError(
+            f"board describes {sq} squares, expected {NUM_SQUARES}: {board_str!r}"
+        )
+    if black_king_sq == -1:
+        raise ValueError(f"Black King missing from board: {board_str!r}")
+    if white_king_sq == -1:
+        raise ValueError(f"White King missing from board: {board_str!r}")
 
     # --- Parse the hand string ---
     # hand[color][i] = how many of HAND_PIECE_TYPES[i] that player holds
@@ -136,16 +187,40 @@ def parse_sfen(sfen: str) -> tuple[list[tuple[int, int, int]], int, list[list[in
             if ch.isdigit():
                 # Multi-digit counts: accumulate digits (e.g., "18" for 18 Pawns)
                 count = count * 10 + int(ch)
+            elif ch == '+':
+                # Promoted pieces revert to base form when captured, so '+' is
+                # never valid in the hand field.
+                raise ValueError(f"promoted piece not allowed in hand: {hand_str!r}")
             else:
                 # A piece character — if no preceding digit, count defaults to 1
                 if count == 0:
                     count = 1
                 upper = ch.upper()
-                color = BLACK if ch.isupper() else WHITE
+                if upper == 'K' or upper not in SFEN_PIECE_MAP:
+                    raise ValueError(
+                        f"invalid piece {ch!r} in hand: {hand_str!r}"
+                    )
                 piece_type = SFEN_PIECE_MAP[upper]
+                if piece_type not in HAND_PIECE_TYPES:
+                    raise ValueError(
+                        f"piece {ch!r} cannot be in hand: {hand_str!r}"
+                    )
+                color = BLACK if ch.isupper() else WHITE
                 idx = HAND_PIECE_TYPES.index(piece_type)
+                max_count = HAND_PIECE_MAX[piece_type]
+                if count > max_count:
+                    raise ValueError(
+                        f"hand count {count} for {ch!r} exceeds maximum "
+                        f"{max_count}: {hand_str!r}"
+                    )
+                if hand[color][idx] != 0:
+                    raise ValueError(
+                        f"piece {ch!r} listed twice in hand: {hand_str!r}"
+                    )
                 hand[color][idx] = count
                 count = 0
+        if count != 0:
+            raise ValueError(f"trailing digits without piece in hand: {hand_str!r}")
 
     return pieces, side_to_move, hand, black_king_sq, white_king_sq
 

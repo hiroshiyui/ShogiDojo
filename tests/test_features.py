@@ -1,5 +1,7 @@
 """Tests for shogi_dojo.features — SFEN parsing and HalfKAv2 feature extraction."""
 
+import pytest
+
 from shogi_dojo.constants import (
     BLACK,
     DRAGON,
@@ -291,3 +293,93 @@ class TestFeatureMaxIndex:
             stm, nstm, _ = sfen_to_features(sfen)
             for idx in stm + nstm:
                 assert 0 <= idx < max_dim, f"idx {idx} out of bounds for sfen: {sfen}"
+
+
+# ---------------------------------------------------------------------------
+# parse_sfen — malformed input rejected
+# ---------------------------------------------------------------------------
+
+class TestParseSfenValidation:
+    """Malformed SFEN strings must raise ValueError.
+
+    The parser is a system boundary (user-supplied text), so it enforces
+    basic Shogi invariants to fail loudly instead of silently producing
+    nonsensical feature indices.
+    """
+
+    def test_too_few_fields(self):
+        with pytest.raises(ValueError, match="space-separated fields"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K4 b")
+
+    def test_invalid_side_to_move(self):
+        with pytest.raises(ValueError, match="side-to-move"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K4 x - 1")
+
+    def test_missing_black_king(self):
+        with pytest.raises(ValueError, match="Black King missing"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/9 b - 1")
+
+    def test_missing_white_king(self):
+        with pytest.raises(ValueError, match="White King missing"):
+            parse_sfen("9/9/9/9/9/9/9/9/4K4 b - 1")
+
+    def test_two_black_kings(self):
+        with pytest.raises(ValueError, match="more than one Black King"):
+            parse_sfen("4k4/9/9/9/9/9/9/4K4/4K4 b - 1")
+
+    def test_board_too_short(self):
+        # 8 ranks instead of 9 → total squares != 81.
+        with pytest.raises(ValueError, match="expected 81"):
+            parse_sfen("4k4/9/9/9/9/9/9/4K4 b - 1")
+
+    def test_board_rank_too_wide(self):
+        # A rank with more than 9 squares overruns.
+        with pytest.raises(ValueError, match="squares"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K44 b - 1")
+
+    def test_unknown_piece_char(self):
+        with pytest.raises(ValueError, match="unknown piece"):
+            parse_sfen("4k4/9/9/9/4Z4/9/9/9/4K4 b - 1")
+
+    def test_promoted_king(self):
+        with pytest.raises(ValueError, match="King cannot be promoted"):
+            parse_sfen("4k4/9/9/9/4+K4/9/9/9/9 b - 1")
+
+    def test_promoted_gold(self):
+        # Gold cannot promote.
+        with pytest.raises(ValueError, match="cannot be promoted"):
+            parse_sfen("4k4/9/9/9/4+G4/9/9/9/4K4 b - 1")
+
+    def test_hand_contains_promoted_piece(self):
+        with pytest.raises(ValueError, match="promoted piece not allowed in hand"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K4 b +P 1")
+
+    def test_hand_contains_king(self):
+        with pytest.raises(ValueError, match="invalid piece"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K4 b K 1")
+
+    def test_hand_count_exceeds_max(self):
+        # Only 18 Pawns exist in a Shogi set.
+        with pytest.raises(ValueError, match="exceeds maximum"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K4 b 19P 1")
+
+    def test_hand_rook_exceeds_max(self):
+        with pytest.raises(ValueError, match="exceeds maximum"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K4 b 3R 1")
+
+    def test_hand_piece_listed_twice(self):
+        # Re-listing the same piece for the same side is malformed.
+        with pytest.raises(ValueError, match="listed twice"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K4 b 2P3P 1")
+
+    def test_trailing_digit_in_hand(self):
+        with pytest.raises(ValueError, match="trailing digits"):
+            parse_sfen("4k4/9/9/9/9/9/9/9/4K4 b 2P3 1")
+
+    def test_double_promotion_prefix(self):
+        with pytest.raises(ValueError, match="doubled '\\+'"):
+            parse_sfen("4k4/9/9/9/4++P4/9/9/9/4K4 b - 1")
+
+    def test_promotion_prefix_before_digit(self):
+        with pytest.raises(ValueError, match="'\\+' must precede a piece"):
+            parse_sfen("4k4/9/9/9/+4P4/9/9/9/4K4 b - 1")
