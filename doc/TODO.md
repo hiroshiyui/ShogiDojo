@@ -1,6 +1,21 @@
 # TODO
 
-No open items. See completed work below for reference.
+## Open — Shogi rule coverage gaps
+
+The 2026-04-14 rule-compliance audit surfaced three gaps that remain.
+None blocks training, but fixing them would improve data fidelity:
+
+- **Try rule (入玉宣言勝ち, "entering king")** — not detected. A king that
+  reaches the opponent's promotion zone under the usual point-count
+  conditions should be declared a winner; `game.rs` currently lets such
+  games drift to the `MAX_PLY` draw.
+- **Impasse / 持将棋 (jishōgi)** — not detected. When both kings enter
+  opposing promotion zones and neither side can mate, the game is
+  adjudicated by point count, not left to time out at ply 400.
+- **Defense-in-depth uchi-fu-zume** — currently delegated to shogi-rs
+  via `MoveError::Uchifuzume`. `game::tests::uchi_fu_zume_pawn_drop_is_filtered`
+  locks in the behaviour end-to-end, but we do not have a local,
+  shogi-rs-independent implementation.
 
 ---
 
