@@ -370,3 +370,85 @@ Modern Stockfish architectures forward part of the feature transformer output di
 ### Quantmoid4
 
 A piecewise quadratic approximation of `sigmoid(4x)` that can replace ClippedReLU in certain layers. It provides smoother gradients near the boundaries (0 and 1) while remaining cheap to compute in integer arithmetic.
+
+---
+
+## Applications Development
+
+Once a trained NNUE reaches acceptable strength, the next step is deploying it inside an end-user application — a desktop analysis tool, an online match engine, or a mobile Shogi game. This section collects practical guidance for shipping the model outside the training pipeline.
+
+### Mobile Shogi Game App
+
+Mobile deployment has two distinct goals: **small binary/memory footprint** and **fast inference on ARM CPUs** (the dominant mobile architecture). GPUs on phones are not useful here — NNUE is designed for CPU, and the PCIe-equivalent round-trip to a mobile GPU would erase any vector speedup.
+
+The levers below are listed in rough order of impact. A mobile port typically needs all of 1-3; steps 4-6 are for squeezing the last 20%.
+
+#### 1. Quantization (Mandatory — Biggest Win on Both Axes)
+
+This is the main reason ClippedReLU exists. Convert float32 weights to integers:
+
+- **Feature Transformer**: `int16` weights, scaled by 127. Maps the ClippedReLU range [0, 1] to integer [0, 127].
+- **Hidden layers**: `int8` weights scaled by 64, with `int32` accumulation to prevent overflow.
+- **Output layer**: additional scaling factor to map the final integer score back to centipawn units.
+
+Expected outcome: **~4× smaller model file, ~4× faster inference, negligible Elo loss** (<5 Elo if calibrated carefully). Covered in more detail under "Quantization for Engine Inference" above.
+
+#### 2. Incremental Accumulator Updates (the Core NNUE Idea)
+
+Do **not** re-evaluate the FeatureTransformer from scratch for every position. Keep a persistent 256-dim accumulator and update it when a move is made:
+
+- **Piece moved**: subtract the feature indices that no longer apply, add the new ones.
+- **Typical case**: ~4 index updates per move instead of ~40 full lookups.
+
+This is the "Efficiently Updatable" in NNUE's name. Without it, you lose 10× or more in evaluation throughput — the whole architectural advantage over a standard neural network evaluator.
+
+In practice, the accumulator lives inside the search stack: push/pop as the search makes and unmakes moves. Handle the rare full-refresh cases (a king move crosses a bucket boundary) by recomputing from scratch.
+
+#### 3. SIMD (ARM NEON)
+
+The hidden-layer `int8` matrix multiplications vectorize very well on NEON (the ARM SIMD instruction set). A hand-written NEON kernel is typically **4-8× faster** than naive scalar C++ on modern ARM cores.
+
+Stockfish already ships production-quality NEON kernels for NNUE — port and adapt them rather than writing from scratch. For iOS ARM64 and most Android devices (ARMv8-A), NEON is always available, so no runtime dispatch is needed.
+
+#### 4. Architecture Sizing
+
+The current ~5M parameters is already small by NNUE standards (Stockfish is ~40M+). If you still need a smaller model:
+
+- **FT width**: 256 → 128 halves the FeatureTransformer weights (which are the bulk of the model).
+- **King buckets**: 9 → 4 quarters one dimension of the FT table.
+- **Hidden layer sizes**: reduce proportionally.
+
+Expect measurable Elo loss from any of these — always validate with `eval_match` before shipping.
+
+#### 5. Search-Side Efficiency (Often More Important Than Eval Speed)
+
+On a phone, a move typically gets ~100ms of think time, not a full second. At that budget, the limiting factor is usually **how well the search uses its time**, not how fast each node evaluates. Invest effort in:
+
+- **Transposition table**: cached positions skip re-evaluation entirely.
+- **Iterative deepening** with a strict time budget.
+- **Good move ordering** (killer moves, history heuristic): better pruning, fewer nodes searched.
+- **Quiescence search**: avoid horizon-effect blunders at leaf nodes.
+
+A fast-but-weak search with a strong evaluator often plays worse than a well-tuned search with a slightly weaker evaluator.
+
+#### 6. Model File Format
+
+Ship the quantized model as **raw packed bytes** (the `.nnue` format used by Stockfish and YaneuraOu): a header followed by the weight arrays in memory-layout order. Benefits:
+
+- **Fast loading**: a single `mmap` or `read` call, no parsing.
+- **Zero runtime dependencies**: avoids bundling ONNX Runtime, Protobuf, or similar libraries (each typically adds several MB and non-trivial startup cost).
+- **Engine compatibility**: the same file can potentially be loaded by YaneuraOu-compatible engines.
+
+Avoid ONNX and Protobuf for the shipped asset. They are fine for interchange and debugging, not for production deployment.
+
+### Suggested Path for ShogiDojo → Mobile
+
+1. Train a solid NNUE with the current pipeline until `eval_match` stops improving.
+2. Implement int8/int16 quantization as a Python export script that reads `best_model.pt` and writes `.nnue`.
+3. Write a native inference library in C++ or Rust with incremental accumulator + NEON kernels. Ship as:
+   - **Android**: a native module via JNI, called from Kotlin.
+   - **iOS**: a static library with a Swift/Objective-C++ bridge.
+4. Build a lightweight search engine around the evaluator (or wrap an existing open-source Shogi engine that accepts custom evaluators).
+5. Integrate with the game UI, which drives moves through the search engine.
+
+The evaluator itself is the easy part — the search engine, mobile native integration, and UI account for most of the work. Expect a multi-month effort from a trained model to a shipped app.
