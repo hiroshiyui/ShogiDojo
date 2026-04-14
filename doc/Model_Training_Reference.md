@@ -241,6 +241,110 @@ Set to `0` to disable. The default of `1.0` is conservative and rarely needs adj
 
 ---
 
+## Measuring Model Strength
+
+The companion tool `eval_match` (built alongside `gensfen`) plays a configurable number of self-play games between two evaluators and reports win/loss/draw counts, win rates, and an estimated Elo difference. Games are played in color-swapped pairs so that opening-color advantage cancels out.
+
+### Baseline Comparison: Model vs. PST
+
+```bash
+./tools/gensfen/target/release/eval_match \
+    --model-a checkpoints/model_v1.nnue \
+    --games 200 --depth 4
+```
+
+Omitting `--model-b` makes Model A play against the built-in PST evaluator. This is the **absolute reference** — any reasonable NNUE should beat PST decisively (95%+ win rate). If it does not, something is wrong with training or with the exported `.nnue` file.
+
+### Regression Comparison: Model vs. Model
+
+```bash
+./tools/gensfen/target/release/eval_match \
+    --model-a model_v1.nnue --model-b model_v2.nnue \
+    --games 200 --depth 4
+```
+
+Use this after every training iteration to confirm the new model is actually stronger. A typical healthy gain is **+20 to +50 Elo per iteration** in early bootstrap rounds, diminishing later.
+
+### How Many Games Are Enough?
+
+Elo estimates from small samples are noisy. As a rough guide:
+
+- **100 games**: ±70 Elo confidence — only useful for large differences
+- **200 games**: ±50 Elo — adequate for routine regression checks
+- **1000 games**: ±20 Elo — needed to confirm small improvements
+
+If two models are within ~30 Elo of each other, you need many games to be sure which is stronger.
+
+---
+
+## Improvement Strategy
+
+When a trained model underperforms or you want to push it further, attack these levers in order. **Data quality dominates everything else early on** — do not tune hyperparameters or change architecture until data is no longer the bottleneck.
+
+### 1. More and Better Training Data (Biggest Lever)
+
+- **Quantity**: NNUE typically needs **100M–1B positions** to reach competitive strength. 100k positions is a sanity-check baseline; aim for at least 10M before judging the architecture.
+- **Search depth**: Depth-4 PST data is noisy. After the first model trains, regenerate data with `--model your_v1.nnue --depth 6` — stronger evaluation at deeper search produces higher-quality labels.
+- **Diversity**: Increase `--random_moves` (8 -> 12-16) so games cover more openings, not just the same standard lines.
+
+### 2. Iterative Training (the NNUE Flywheel)
+
+This is the **single most important workflow** in NNUE training:
+
+```
+PST -> generate data -> train v1 -> generate better data with v1
+                                               |
+                                               v
+                                  train v2 -> generate even better data with v2 -> ...
+```
+
+Each generation should produce measurable Elo gains via `eval_match`. Stop iterating when gains plateau — typically after 5-10 generations. Each generation takes longer than the last (deeper search is slower), so plan accordingly.
+
+### 3. Hyperparameter Tuning
+
+Only after data quality is exhausted:
+
+- **`lambda_result`** (currently 0.5): Try 0.3 (trust score more) or 0.7 (trust game outcome more). Compare via `eval_match`.
+- **Learning rate schedule**: Cosine annealing is the standard choice; start at 1e-3 and decay over training.
+- **Batch size**: Larger batches (8k-16k) often help NNUE convergence if GPU memory allows.
+- **Epochs**: The early-stopping mechanism handles this automatically — usually no need to tune.
+
+### 4. Architecture Changes (Last Resort)
+
+Change architecture only after the iterative loop has plateaued:
+
+- **More king buckets** (9 -> 16 or 32): finer per-king-position weights, more parameters.
+- **Wider FeatureTransformer** (256 -> 512 or 1024): Stockfish uses 1024+. Big quality gain, big size cost.
+- **Factorizer features**: virtual features that help generalization in early training, then folded into main weights at inference time. See "Feature Factorization" below.
+
+### 5. Engine-Side Improvements (Separate from Training)
+
+Stronger search makes the *same* NNUE play stronger games. But this is engine work (transposition tables, killer moves, late-move reductions in `gensfen`/an external engine), not training work — and it does not improve the evaluation function itself.
+
+---
+
+## Online Competition (Realistic Expectations)
+
+A common question: can a trained NNUE compete against online players, the way AlphaGo competed against professional Go players?
+
+**Short answer: not directly, and not as a like-for-like comparison.** Several reasons:
+
+- **You have an evaluator, not an engine.** NNUE is just the evaluation function. Competitive online play needs a full search engine: alpha-beta with quiescence search, transposition tables, move ordering, time management, and the **USI protocol** (the standard for Shogi engine communication). The current `gensfen` search is teaching-quality alpha-beta — far below production engines like YaneuraOu or Elmo.
+- **Strength gap**: Top Shogi engines reach **4400+ Elo**. A 5M-parameter HalfKAv2 trained on self-play data with depth-4 material seeding will land far below that. AlphaGo had massive compute, MCTS, and policy+value networks — a fundamentally different architecture.
+- **Different problem domain**: AlphaGo was a research breakthrough that combined MCTS with deep policy/value networks. NNUE is an engineering optimization for fast CPU evaluation in classical alpha-beta engines. They are not comparable approaches.
+
+### If You Want to Try Anyway
+
+The realistic path:
+
+1. Export the trained NNUE in a format compatible with **YaneuraOu** (HalfKAv2 is roughly compatible with their loader, with some conversion work).
+2. Let YaneuraOu's mature search drive your evaluator.
+3. Connect via USI to **floodgate** — the Japanese computer-Shogi server where amateur and professional engines compete. (This is the appropriate venue, not human-player servers like Shogi Wars.)
+
+This is a multi-month project on top of solid training results. For now, `eval_match` is the right yardstick.
+
+---
+
 ## Future Directions (from Stockfish NNUE Wiki)
 
 The following techniques are documented in the [Stockfish NNUE PyTorch Wiki](https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html) and could be adopted in ShogiDojo as the project matures:
