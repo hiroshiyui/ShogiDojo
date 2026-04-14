@@ -306,6 +306,62 @@ mod tests {
         }
     }
 
+    // -----------------------------------------------------------------------
+    // Shogi rule enforcement — nifu and uchi-fu-zume
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn legal_moves_never_include_nifu_pawn_drop() {
+        // Black already has an unpromoted Pawn on file 4 and another in hand.
+        // The nifu rule forbids dropping a second Pawn on file 4.
+        let mut pos = make_pos("4k4/9/9/9/9/9/4P4/9/4K4 b P 1");
+        let moves = get_legal_moves(&mut pos);
+        let blocked_file = shogi::Square::new(4, 6).unwrap().file();
+        for m in &moves {
+            if let shogi::Move::Drop {
+                to,
+                piece_type: shogi::PieceType::Pawn,
+            } = m
+            {
+                assert_ne!(
+                    to.file(),
+                    blocked_file,
+                    "nifu: illegal Pawn drop on file {blocked_file} leaked to legal moves"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn uchi_fu_zume_pawn_drop_is_filtered() {
+        // Known uchi-fu-zume position taken from shogi-rs's own test suite
+        // (shogi-0.12.2/src/position.rs::uchifuzume, NG case).
+        //
+        //   7nk/9/7S1/6b2/9/9/9/9/9 b P 1
+        //
+        // White King on 1a (file 0, rank 0), White Knight on 2a, Black Silver
+        // on 2c, White Bishop on 3d. Black has a Pawn in hand. Dropping the
+        // Pawn on 1b (file 0, rank 1) delivers checkmate — but that is
+        // uchi-fu-zume and therefore illegal.
+        let mut pos = make_pos("7nk/9/7S1/6b2/9/9/9/9/9 b P 1");
+        let moves = get_legal_moves(&mut pos);
+        // The forbidden Pawn drop is on 1b = Square::new(file=0, rank=1).
+        let forbidden = shogi::Square::new(0, 1).unwrap();
+        let violates = moves.iter().any(|m| {
+            matches!(
+                m,
+                shogi::Move::Drop {
+                    to,
+                    piece_type: shogi::PieceType::Pawn,
+                } if *to == forbidden
+            )
+        });
+        assert!(
+            !violates,
+            "uchi-fu-zume: mating Pawn drop on 1b leaked into legal moves"
+        );
+    }
+
     #[test]
     fn all_samples_have_sfen_prefix_in_to_line() {
         init();

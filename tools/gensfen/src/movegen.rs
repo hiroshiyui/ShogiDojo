@@ -95,6 +95,10 @@ fn generate_drop_moves(pos: &Position, stm: Color, moves: &mut Vec<Move>) {
         PieceType::Rook,
     ];
 
+    // Precompute the set of files that already contain an unpromoted friendly
+    // Pawn — these files are forbidden for Pawn drops ("nifu" rule).
+    let nifu_files = blocked_pawn_files(pos, stm);
+
     for &pt in &drop_types {
         let piece = Piece {
             piece_type: pt,
@@ -120,11 +124,39 @@ fn generate_drop_moves(pos: &Position, stm: Color, moves: &mut Vec<Move>) {
                 continue;
             }
 
-            // Note: the "nifu" rule (no two unpromoted Pawns on the same file)
-            // is NOT checked here — make_move() catches it and returns an error.
+            // "Nifu" rule: you may not have two unpromoted Pawns on the same
+            // file. shogi-rs's make_move() also rejects this, but filtering
+            // here keeps the pseudo-legal move list smaller and makes the
+            // rule explicit in our own code.
+            if pt == PieceType::Pawn && nifu_files[to.file() as usize] {
+                continue;
+            }
+
+            // Note: the "uchi-fu-zume" rule (a Pawn drop that delivers
+            // checkmate is illegal) is NOT checked here. It is enforced by
+            // shogi-rs's make_move(), which returns MoveError::Uchifuzume,
+            // so get_legal_moves() in game.rs filters it out.
             moves.push(Move::Drop { to, piece_type: pt });
         }
     }
+}
+
+/// Return a per-file bitmap of files that already contain an unpromoted
+/// friendly Pawn. Used to enforce the "nifu" rule when generating Pawn drops.
+fn blocked_pawn_files(pos: &Position, color: Color) -> [bool; 9] {
+    let mut blocked = [false; 9];
+    for i in 0..81 {
+        let sq = Square::from_index(i).unwrap();
+        // Promoted Pawns (Tokin) do not count for the nifu rule, so only
+        // the unpromoted PieceType::Pawn is checked.
+        if let Some(p) = pos.piece_at(sq)
+            && p.color == color
+            && p.piece_type == PieceType::Pawn
+        {
+            blocked[sq.file() as usize] = true;
+        }
+    }
+    blocked
 }
 
 /// Can this piece type promote? Kings and Golds cannot. Already-promoted
@@ -353,5 +385,77 @@ mod tests {
                 assert_ne!(to.rank(), 0, "Pawn should not be droppable on rank 0");
             }
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Nifu rule — no two unpromoted Pawns on the same file
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn pawn_drop_rejected_on_file_with_unpromoted_pawn() {
+        init();
+        // Black already has a Pawn on file 4 (rank 6), and holds another in
+        // hand. No Pawn drop should be generated on file 4.
+        let mut pos = Position::new();
+        pos.set_sfen("4k4/9/9/9/9/9/4P4/9/4K4 b P 1").unwrap();
+        let moves = generate_moves(&pos);
+        let blocked_file = Square::new(4, 6).unwrap().file();
+        for m in &moves {
+            if let Move::Drop {
+                to,
+                piece_type: PieceType::Pawn,
+            } = m
+            {
+                assert_ne!(
+                    to.file(),
+                    blocked_file,
+                    "nifu: Pawn drop on file {blocked_file} should be filtered, got {to}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn pawn_drop_allowed_on_file_with_promoted_pawn() {
+        init();
+        // A promoted Pawn (Tokin) does NOT count for the nifu rule, so we
+        // can still drop an unpromoted Pawn on the same file.
+        let mut pos = Position::new();
+        pos.set_sfen("4k4/9/9/9/9/9/4+P4/9/4K4 b P 1").unwrap();
+        let moves = generate_moves(&pos);
+        let tokin_file = Square::new(4, 6).unwrap().file();
+        let found = moves.iter().any(|m| {
+            matches!(
+                m,
+                Move::Drop { to, piece_type: PieceType::Pawn } if to.file() == tokin_file
+            )
+        });
+        assert!(
+            found,
+            "promoted Pawns do not trigger nifu; a Pawn drop on file \
+             {tokin_file} should be available"
+        );
+    }
+
+    #[test]
+    fn blocked_pawn_files_detects_own_pawn_only() {
+        init();
+        let mut pos = Position::new();
+        // SFEN ranks are written file 9 → file 1. "4P4" places Black's Pawn
+        // at file index 4 (Shogi file 5), "6p2" places White's Pawn at file
+        // index 2 (Shogi file 3).
+        pos.set_sfen("4k4/9/9/9/9/9/4P4/6p2/4K4 b - 1").unwrap();
+        let black_blocked = blocked_pawn_files(&pos, Color::Black);
+        let white_blocked = blocked_pawn_files(&pos, Color::White);
+        assert!(
+            black_blocked[4],
+            "Black's Pawn on file 4 should be detected"
+        );
+        assert!(!black_blocked[2], "White's Pawn should not block Black");
+        assert!(
+            white_blocked[2],
+            "White's Pawn on file 2 should be detected"
+        );
+        assert!(!white_blocked[4], "Black's Pawn should not block White");
     }
 }
