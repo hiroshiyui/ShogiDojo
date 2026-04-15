@@ -26,11 +26,21 @@ Phased plan:
   distributed self-play architecture, resource estimates, common
   failure modes, improvement strategy, side-by-side comparison with
   NNUE training, and realistic expectations for the survey.
-- **Phase 2.4 — Encoding code + tests** *(planned)*:
-  `src/shogi_dojo/alphazero/encoding.py` (board → input planes,
-  move ↔ policy index) with round-trip tests under
-  `tests/alphazero/`. Reuse `shogi-rs` bindings for legality where
-  possible rather than reimplementing rules.
+- **Phase 2.4 — Encoding code + tests** *(done)*:
+  `src/shogi_dojo/alphazero/encoding.py` provides `Position` and
+  `Move` dataclasses, `encode_position` (45-channel input tensor
+  from the side-to-move's perspective), `encode_move` /
+  `decode_move` over the paper's 9×9×139 = 11,259 action space,
+  `legal_move_mask` for masking illegal logits before softmax, and
+  a `position_from_sfen` convenience wrapper. Tests under
+  `tests/alphazero/test_encoding.py` cover constants, shape,
+  scalar planes, per-piece/hand planes, perspective flip,
+  round-tripping for queen/knight/drop/promoting moves under both
+  sides, error handling, legal-move mask shape/contents, and
+  cross-color plane consistency (69 tests total). Shogi facts
+  (piece type IDs, board dimensions) are imported from
+  `shogi_dojo.nnue.constants`; the SFEN parser is shared via a
+  local import to avoid duplicating 200 lines.
 - **Phase 2.5 — Network code + tests** *(planned)*:
   `src/shogi_dojo/alphazero/network.py` — small ResNet with policy and
   value heads, sized for laptop training (configurable via
