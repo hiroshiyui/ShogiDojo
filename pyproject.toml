@@ -7,6 +7,12 @@ dependencies = [
     "torch>=2.0",
     "numpy",
     "pyyaml",
+    # python-shogi is used only by the AlphaZero survey (src/shogi_dojo/alphazero/
+    # rules.py) for legal-move generation and terminal detection. The NNUE
+    # pipeline has no Python-side Shogi rule requirements and does not import
+    # it. Kept in the main dependency list rather than an extra because a
+    # future default AlphaZero training run would need it.
+    "python-shogi",
 ]
 
 [project.optional-dependencies]

@@ -80,11 +80,38 @@ Phased plan:
   Dirichlet noise spreading visits averaged over 30 seeds in a
   flat-Q variant game, and the helpers (visit_counts, policy_target
   at multiple temperatures, sample_move greedy/stochastic).
-- **Phase 2.7 — Self-play + trainer + smoke test** *(planned)*:
-  `self_play.py`, `trainer.py`, `scripts/alphazero/selfplay.py`,
-  `scripts/alphazero/train.py` (top-level entry point becomes
-  `train_alphazero.py`), `configs/alphazero/{tiny,default}.yaml`, and an
-  end-to-end smoke test.
+- **Phase 2.7 — Self-play + trainer + smoke test** *(in progress)*:
+
+  - **2.7a — python-shogi adapter** *(done)*:
+    `src/shogi_dojo/alphazero/rules.py` wires python-shogi to the
+    game-agnostic MCTS interface. `python-shogi` added to
+    `pyproject.toml`. Provides piece-type translation (python-shogi
+    uses 1-indexed IDs starting at PAWN=1; we use 0-indexed from
+    PAWN=0), `board_to_position` / `shogi_move_to_move` /
+    `move_to_shogi_move`, the four MCTS callables (`legal_moves_fn`,
+    `apply_fn` via SFEN round-trip since python-shogi lacks `.copy()`,
+    `is_terminal_fn` with a 512-ply default limit and sennichite →
+    draw), and `make_evaluate_fn` that bridges an `AlphaZeroNetwork`
+    into an MCTS-compatible evaluator (forward pass under
+    `torch.no_grad()`, legal-move masking, log-softmax, keyed by
+    original `shogi.Move`). Tests under `tests/alphazero/test_rules.py`
+    (30 tests) cover piece-type bijection, starting-position
+    translation, move round-trip (ordinary / promoting / drop),
+    ``legal_moves_fn``, ``apply_fn`` purity, terminal detection
+    (including a verified two-gold corner checkmate), and the
+    evaluator's plumbing (keys, sum-to-one, value range, training-
+    mode restoration, no grad leaks).
+  - **2.7b — self-play + replay buffer** *(planned)*:
+    `src/shogi_dojo/alphazero/self_play.py` — `play_game` runs one
+    full self-play game, recording `(state_tensor, π, z)` tuples
+    with sign-correct terminal backfill; small in-memory replay
+    buffer.
+  - **2.7c — trainer + configs + scripts + smoke test** *(planned)*:
+    `src/shogi_dojo/alphazero/trainer.py`, `configs/alphazero/
+    {tiny,default}.yaml`, `scripts/alphazero/{selfplay,train}.py`,
+    top-level `train_alphazero.py` entry point, and a short
+    end-to-end smoke test that runs a few iterations and asserts
+    loss decreases on average.
 - **Phase 2.8 — Comparison and reading list** *(planned)*:
   `doc/alphazero/AlphaZero_vs_NNUE.md` (operational comparison with
   numbers from §10 of the reference) and `doc/alphazero/AlphaZero_Reading_List.md`
