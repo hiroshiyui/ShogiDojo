@@ -1,0 +1,7 @@
+# Compile with native CPU instructions. NNUE inference (eval_net dot products)
+# vectorizes very well on AVX2 / AVX-512 and benefits from FMA. The cost is
+# that the produced binary is non-portable: only run it on a machine with at
+# least the same instruction set as the build host. For portable CI builds,
+# override with `--config build.rustflags='[]'`.
+[build]
+rustflags = ["-C", "target-cpu=native"]

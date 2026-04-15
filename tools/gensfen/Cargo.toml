@@ -9,3 +9,12 @@ shogi = "0.12"
 clap = { version = "4", features = ["derive"] }
 rayon = "1"
 rand = { version = "0.8", features = ["small_rng"] }
+
+# Aggressive release profile. NNUE inference is dominated by tight dot-product
+# loops in eval_net; LTO + a single codegen unit lets LLVM inline and vectorize
+# across module boundaries, which typically buys ~1.5x on this workload.
+# (Ship with `RUSTFLAGS="-C target-cpu=native"` for another 1.5-2x from AVX2
+# auto-vectorization on the developer's specific CPU.)
+[profile.release]
+lto = true
+codegen-units = 1
