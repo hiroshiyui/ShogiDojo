@@ -33,15 +33,18 @@ pub const INFINITY: i32 = 100_000;
 ///
 /// Each thread in the rayon pool creates its own Searcher. There is no
 /// shared state between searchers — this avoids synchronization overhead.
+///
+/// The evaluator is borrowed mutably so that stateful evaluators (NNUE)
+/// can keep an incremental accumulator in sync with make/unmake.
 pub struct Searcher<'a> {
     /// Number of positions (nodes) evaluated during the current search.
     pub nodes: u64,
     /// The evaluation function to use (PST or NNUE).
-    evaluator: &'a dyn Evaluator,
+    evaluator: &'a mut dyn Evaluator,
 }
 
 impl<'a> Searcher<'a> {
-    pub fn new(evaluator: &'a dyn Evaluator) -> Self {
+    pub fn new(evaluator: &'a mut dyn Evaluator) -> Self {
         Self {
             nodes: 0,
             evaluator,
@@ -59,6 +62,9 @@ impl<'a> Searcher<'a> {
     /// legal moves exist (checkmate or stalemate).
     pub fn search(&mut self, pos: &mut Position, max_depth: i32) -> (Option<Move>, i32) {
         self.nodes = 0;
+        // Resync the evaluator's accumulator with the current root position.
+        // Stateless evaluators (PST) ignore this.
+        self.evaluator.refresh(pos);
         let mut best_move = None;
         let mut best_score = -INFINITY;
 
@@ -99,9 +105,16 @@ impl<'a> Searcher<'a> {
         let mut best_score = -INFINITY;
 
         for (_, m) in &scored_moves {
+            // Snapshot the evaluator state and pre-compute the forward
+            // accumulator delta, *before* make_move. Stateless evaluators
+            // (PST) ignore this.
+            self.evaluator.on_make(pos, m);
+
             // Try to make the move. If it's illegal (e.g., leaves king in
             // check, nifu, uchifuzume), make_move returns an error and we skip.
             if pos.make_move(*m).is_err() {
+                // Roll back the speculative on_make.
+                self.evaluator.on_unmake();
                 continue;
             }
             legal_move_count += 1;
@@ -114,9 +127,12 @@ impl<'a> Searcher<'a> {
             // Undo the move to restore the position for the next candidate.
             if pos.unmake_move().is_err() {
                 // shogi-rs hit an internal inconsistency — abort this node.
-                // This can happen in rare edge cases with the library.
+                // Force a full evaluator resync since we can no longer trust
+                // the snapshot stack to match the position's true history.
+                self.evaluator.refresh(pos);
                 return best_score.max(alpha);
             }
+            self.evaluator.on_unmake();
 
             if score > best_score {
                 best_score = score;
@@ -187,15 +203,19 @@ impl<'a> Searcher<'a> {
         let scored = order_moves(pos, &captures);
 
         for (_, m) in &scored {
+            self.evaluator.on_make(pos, m);
             if pos.make_move(*m).is_err() {
+                self.evaluator.on_unmake();
                 continue;
             }
 
             let score = -self.quiescence(pos, -beta, -alpha);
 
             if pos.unmake_move().is_err() {
+                self.evaluator.refresh(pos);
                 return alpha;
             }
+            self.evaluator.on_unmake();
 
             if score >= beta {
                 return beta; // Beta cutoff
@@ -368,8 +388,8 @@ mod tests {
 
     #[test]
     fn search_returns_a_move_from_startpos() {
-        let evaluator = PstEvaluator;
-        let mut searcher = Searcher::new(&evaluator);
+        let mut evaluator = PstEvaluator;
+        let mut searcher = Searcher::new(&mut evaluator);
         let mut pos = make_pos("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         let (best_move, _score) = searcher.search(&mut pos, 2);
         assert!(
@@ -380,8 +400,8 @@ mod tests {
 
     #[test]
     fn search_nodes_are_counted() {
-        let evaluator = PstEvaluator;
-        let mut searcher = Searcher::new(&evaluator);
+        let mut evaluator = PstEvaluator;
+        let mut searcher = Searcher::new(&mut evaluator);
         let mut pos = make_pos("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         searcher.search(&mut pos, 2);
         assert!(
@@ -392,8 +412,8 @@ mod tests {
 
     #[test]
     fn search_depth_1_returns_valid_move() {
-        let evaluator = PstEvaluator;
-        let mut searcher = Searcher::new(&evaluator);
+        let mut evaluator = PstEvaluator;
+        let mut searcher = Searcher::new(&mut evaluator);
         let mut pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b - 1");
         let (best_move, _) = searcher.search(&mut pos, 1);
         assert!(best_move.is_some());
@@ -401,8 +421,8 @@ mod tests {
 
     #[test]
     fn search_score_is_finite() {
-        let evaluator = PstEvaluator;
-        let mut searcher = Searcher::new(&evaluator);
+        let mut evaluator = PstEvaluator;
+        let mut searcher = Searcher::new(&mut evaluator);
         let mut pos = make_pos("4k4/9/9/9/9/9/9/9/4K4 b - 1");
         let (_, score) = searcher.search(&mut pos, 2);
         assert!(

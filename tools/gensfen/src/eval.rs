@@ -29,7 +29,7 @@
 //! Values are in centipawns. Positive = good position for the piece.
 //! These are intentionally rough — the NNUE will learn precise values.
 
-use shogi::{Color, Piece, PieceType, Position, Square};
+use shogi::{Color, Move, Piece, PieceType, Position, Square};
 
 // ============================================================================
 // Evaluator trait
@@ -37,19 +37,51 @@ use shogi::{Color, Piece, PieceType, Position, Square};
 
 /// Trait for position evaluation functions.
 ///
-/// This allows the search to use either the built-in PST evaluator (Phase 2)
-/// or a trained NNUE model (Phase 3) interchangeably.
-pub trait Evaluator: Send + Sync {
-    /// Evaluate a position from the side-to-move's perspective.
+/// This trait is designed so that evaluators that maintain incremental state
+/// (like NNUE's accumulator) can update cheaply as the search makes and
+/// unmakes moves. Stateless evaluators (like PST) simply ignore the hooks.
+///
+/// Contract expected by the search driver:
+///
+/// 1. `evaluate(pos)` must return the correct score for the current `pos`.
+/// 2. Before every `pos.make_move(m)`, the search calls
+///    `on_make(pos_before, m)`. The evaluator may snapshot any internal
+///    state and apply a forward update.
+/// 3. If `make_move` fails (e.g. illegal move), the search calls
+///    `on_unmake()` immediately to roll back the pre-emptive update.
+/// 4. If `make_move` succeeds and the search later `unmake_move`s, it
+///    calls `on_unmake()` to restore the evaluator to the pre-move state.
+/// 5. `refresh(pos)` discards all incremental state and resyncs to `pos`.
+///    The search uses this at the root of each new position (e.g. the start
+///    of a game, or when re-entering the searcher after a move was played
+///    on the game board).
+pub trait Evaluator: Send {
+    /// Evaluate the current position from the side-to-move's perspective.
     /// Returns centipawns (positive = good for side-to-move).
-    fn evaluate(&self, pos: &Position) -> i32;
+    fn evaluate(&mut self, pos: &Position) -> i32;
+
+    /// Hook called before `pos.make_move(m)` is executed.
+    /// Default: no-op (for stateless evaluators).
+    fn on_make(&mut self, _pos_before: &Position, _m: &Move) {}
+
+    /// Hook called after `pos.unmake_move()` (or after a failed make_move,
+    /// to roll back a pre-emptive `on_make`). Default: no-op.
+    fn on_unmake(&mut self) {}
+
+    /// Discard all incremental state and resync to `pos` from scratch.
+    /// Default: no-op (for stateless evaluators).
+    fn refresh(&mut self, _pos: &Position) {}
 }
 
 /// The built-in material + piece-square-table evaluator (Phase 2).
+///
+/// PST evaluation is stateless — every call recomputes from the position,
+/// so the make/unmake hooks are no-ops.
+#[derive(Default, Clone, Copy)]
 pub struct PstEvaluator;
 
 impl Evaluator for PstEvaluator {
-    fn evaluate(&self, pos: &Position) -> i32 {
+    fn evaluate(&mut self, pos: &Position) -> i32 {
         evaluate(pos)
     }
 }
@@ -497,7 +529,8 @@ mod tests {
     fn pst_evaluator_trait_matches_fn() {
         let pos = make_pos("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         let eval_fn = evaluate(&pos);
-        let eval_trait = PstEvaluator.evaluate(&pos);
+        let mut pst = PstEvaluator;
+        let eval_trait = pst.evaluate(&pos);
         assert_eq!(eval_fn, eval_trait);
     }
 }

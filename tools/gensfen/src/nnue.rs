@@ -3,7 +3,19 @@
 //! This module loads a pre-trained NNUE model exported from ShogiDojo's Python
 //! training pipeline and evaluates positions using the learned weights.
 //!
-//! The evaluation pipeline:
+//! Two inference paths are provided:
+//!
+//!   * [`NnueModel::evaluate`] — stateless "full recompute" from an SFEN.
+//!     Re-runs the Feature Transformer from scratch every call. Correct
+//!     but slow. Used as a reference implementation in tests.
+//!
+//!   * [`NnueEvaluator`] — stateful evaluator with an incremental
+//!     accumulator. Maintains the FT output across moves so that each
+//!     `evaluate()` at a search leaf skips the FT recompute entirely. This
+//!     is the "Efficiently Updatable" half of NNUE and is what the search
+//!     uses in production.
+//!
+//! The evaluation pipeline (both paths):
 //!   1. Parse the board position
 //!   2. Compute HalfKAv2 sparse feature indices (matching Python's features.py)
 //!   3. Feature Transformer: sum up weight vectors for active features
@@ -19,8 +31,9 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
 
-use shogi::{Color, Piece, PieceType, Position, Square};
+use shogi::{Color, Move, Piece, PieceType, Position, Square};
 
 use crate::eval::Evaluator;
 
@@ -136,7 +149,11 @@ const MAGIC: u32 = 0x4E4E5545;
 /// NNUE model loaded from a binary file.
 ///
 /// The model contains all weight matrices and biases needed for inference.
-/// Weights are stored as flat Vec<f32> arrays.
+/// Weights are stored as flat `Vec<f32>` arrays and are read-only after
+/// loading, so many search threads can share one [`Arc<NnueModel>`].
+///
+/// Per-thread mutable state (accumulator, snapshot stack) lives in
+/// [`NnueEvaluator`], which borrows the model via `Arc`.
 pub struct NnueModel {
     // Dimensions
     ft_input_dim: usize,
@@ -233,7 +250,13 @@ impl NnueModel {
         })
     }
 
-    /// Evaluate a position using the NNUE model.
+    /// Evaluate a position using a full FT recompute.
+    ///
+    /// This is the **reference implementation** — it rebuilds the Feature
+    /// Transformer output from scratch on every call, which is correct but
+    /// slow. Production search uses [`NnueEvaluator`] which keeps an
+    /// incremental accumulator instead. Tests compare the two to catch
+    /// drift.
     ///
     /// Returns a score in centipawns from the side-to-move's perspective.
     #[allow(clippy::needless_range_loop)] // Index loops match the Python reference implementation
@@ -301,9 +324,697 @@ impl NnueModel {
     }
 }
 
-impl Evaluator for NnueModel {
-    fn evaluate(&self, pos: &Position) -> i32 {
-        NnueModel::evaluate(self, pos)
+// ============================================================================
+// Incremental accumulator — the "Efficiently Updatable" half of NNUE
+// ============================================================================
+
+/// Per-perspective Feature Transformer output.
+///
+/// This is the core state that makes NNUE fast. Instead of recomputing the
+/// FT sum from scratch every leaf, we keep the running sum here and patch
+/// it when the search makes or unmakes a move. Only a handful of features
+/// change per move (one piece leaves a square, one piece arrives, possibly
+/// a capture and a hand update) — orders of magnitude less work than
+/// re-summing ~40 features across two perspectives.
+///
+/// Two perspectives are kept:
+///
+/// * `black_acc`: the FT output from Black's perspective (board seen
+///   directly, colors preserved, king bucket based on Black's king).
+/// * `white_acc`: the FT output from White's perspective (board rotated
+///   180°, colors swapped, king bucket based on White's king).
+///
+/// At evaluate-time we pick whichever corresponds to the side-to-move
+/// first in the concatenated eval-net input.
+#[derive(Clone)]
+struct Accumulator {
+    black_acc: Vec<f32>,
+    white_acc: Vec<f32>,
+    black_bucket: usize,
+    white_bucket: usize,
+}
+
+impl Accumulator {
+    fn new(ft_out_dim: usize) -> Self {
+        Self {
+            black_acc: vec![0.0; ft_out_dim],
+            white_acc: vec![0.0; ft_out_dim],
+            black_bucket: 0,
+            white_bucket: 0,
+        }
+    }
+
+    /// Add `weight[index]` into `acc`.
+    fn add_feature(acc: &mut [f32], model: &NnueModel, index: usize) {
+        let base = index * model.ft_out_dim;
+        let w = &model.ft_weight[base..base + model.ft_out_dim];
+        for (a, &v) in acc.iter_mut().zip(w.iter()) {
+            *a += v;
+        }
+    }
+
+    /// Subtract `weight[index]` from `acc`.
+    fn sub_feature(acc: &mut [f32], model: &NnueModel, index: usize) {
+        let base = index * model.ft_out_dim;
+        let w = &model.ft_weight[base..base + model.ft_out_dim];
+        for (a, &v) in acc.iter_mut().zip(w.iter()) {
+            *a -= v;
+        }
+    }
+
+    /// Rebuild both perspectives from scratch for `pos`. Called once before
+    /// search starts, and whenever we can't safely patch (e.g. after a
+    /// shogi-rs internal error or when we enter a fresh root position).
+    #[allow(clippy::needless_range_loop)] // Indexed loops mirror the Python reference implementation
+    fn refresh_from(&mut self, model: &NnueModel, pos: &Position) {
+        let (pieces, _stm, hand, black_king_sq, white_king_sq) = extract_position(pos);
+
+        self.black_bucket = king_square_to_bucket(mirror_file(black_king_sq));
+        self.white_bucket = king_square_to_bucket(mirror_file(flip_square(white_king_sq)));
+
+        self.black_acc.copy_from_slice(&model.ft_bias);
+        self.white_acc.copy_from_slice(&model.ft_bias);
+
+        // Board pieces
+        for &(pt, color, sq) in &pieces {
+            let (b_idx, w_idx) =
+                board_feature_indices(self.black_bucket, self.white_bucket, pt, color, sq);
+            Self::add_feature(&mut self.black_acc, model, b_idx);
+            Self::add_feature(&mut self.white_acc, model, w_idx);
+        }
+
+        // Hand pieces (thermometer)
+        for color in 0..NUM_COLORS {
+            let mut offset = 0usize;
+            for i in 0..HAND_PIECE_TYPES.len() {
+                let count = hand[color][i] as usize;
+                let max_count = HAND_PIECE_MAX[i];
+                for slot in 0..count {
+                    let (b_idx, w_idx) = hand_feature_indices(
+                        self.black_bucket,
+                        self.white_bucket,
+                        color,
+                        offset,
+                        slot,
+                    );
+                    Self::add_feature(&mut self.black_acc, model, b_idx);
+                    Self::add_feature(&mut self.white_acc, model, w_idx);
+                }
+                offset += max_count;
+            }
+        }
+    }
+}
+
+/// Return the (Black-perspective, White-perspective) feature indices for a
+/// non-king board piece at `py_sq`.
+fn board_feature_indices(
+    black_bucket: usize,
+    white_bucket: usize,
+    piece_type: usize,
+    color: usize,
+    py_sq: usize,
+) -> (usize, usize) {
+    let b_sq = mirror_file(py_sq);
+    let b_idx =
+        black_bucket * HALF_FEATURE_DIM + (piece_type * NUM_COLORS + color) * NUM_SQUARES + b_sq;
+    let w_sq = mirror_file(flip_square(py_sq));
+    let w_color = 1 - color;
+    let w_idx =
+        white_bucket * HALF_FEATURE_DIM + (piece_type * NUM_COLORS + w_color) * NUM_SQUARES + w_sq;
+    (b_idx, w_idx)
+}
+
+/// Return the (Black-perspective, White-perspective) feature indices for a
+/// single hand-piece thermometer slot. `holder_color` is the color that
+/// holds the piece (0=Black, 1=White); `section_offset` is the cumulative
+/// offset up to this piece-type's section (0 for Pawn, 18 for Lance, ...);
+/// `slot` is the zero-indexed thermometer position (0..max_count).
+fn hand_feature_indices(
+    black_bucket: usize,
+    white_bucket: usize,
+    holder_color: usize,
+    section_offset: usize,
+    slot: usize,
+) -> (usize, usize) {
+    let b_idx = black_bucket * HALF_FEATURE_DIM
+        + BOARD_FEATURE_DIM
+        + holder_color * HAND_FEATURES_PER_SIDE
+        + section_offset
+        + slot;
+    let w_color = 1 - holder_color;
+    let w_idx = white_bucket * HALF_FEATURE_DIM
+        + BOARD_FEATURE_DIM
+        + w_color * HAND_FEATURES_PER_SIDE
+        + section_offset
+        + slot;
+    (b_idx, w_idx)
+}
+
+/// Cumulative hand-section offset for `HAND_PIECE_TYPES[i]`.
+fn hand_section_offset(hand_type_idx: usize) -> usize {
+    HAND_PIECE_MAX.iter().take(hand_type_idx).sum()
+}
+
+/// Position of `pt` in `HAND_PIECE_TYPES`, or `None` if `pt` can't be in hand
+/// (Kings, promoted pieces after they've been unpromoted are handled by the
+/// caller — this expects an already-unpromoted base type).
+fn hand_type_index(pt: PieceType) -> Option<usize> {
+    HAND_PIECE_TYPES.iter().position(|&p| p == pt)
+}
+
+/// Unpromote a piece type to its base form (the form it takes in hand).
+/// Non-promoted types are returned unchanged.
+fn unpromote(pt: PieceType) -> PieceType {
+    match pt {
+        PieceType::ProPawn => PieceType::Pawn,
+        PieceType::ProLance => PieceType::Lance,
+        PieceType::ProKnight => PieceType::Knight,
+        PieceType::ProSilver => PieceType::Silver,
+        PieceType::ProBishop => PieceType::Bishop,
+        PieceType::ProRook => PieceType::Rook,
+        other => other,
+    }
+}
+
+/// Promoted form of a promotable piece type. Panics on un-promotable types
+/// (King, Gold) or types that are already promoted — the caller is
+/// responsible for only calling this when `promote == true`.
+fn promote(pt: PieceType) -> PieceType {
+    match pt {
+        PieceType::Pawn => PieceType::ProPawn,
+        PieceType::Lance => PieceType::ProLance,
+        PieceType::Knight => PieceType::ProKnight,
+        PieceType::Silver => PieceType::ProSilver,
+        PieceType::Bishop => PieceType::ProBishop,
+        PieceType::Rook => PieceType::ProRook,
+        other => panic!("promote() called on non-promotable type {:?}", other),
+    }
+}
+
+// ============================================================================
+// Stateful evaluator — the search-facing entry point
+// ============================================================================
+
+/// NNUE evaluator with an incremental accumulator.
+///
+/// Each search thread owns one. The `Arc<NnueModel>` holds the read-only
+/// weights (shared across threads); the mutable state — the current
+/// accumulator plus a stack of pre-move snapshots — lives here.
+///
+/// Lifecycle:
+///
+/// * On first `evaluate`, the accumulator is refreshed from the position.
+///   Subsequent evaluates in the same search path reuse the live accumulator.
+/// * `on_make` snapshots the current accumulator onto the undo stack, then
+///   patches it forward for the move.
+/// * `on_unmake` pops the snapshot back into the live accumulator — O(1)
+///   in logical cost, a single `Vec` swap in practice.
+/// * `refresh` is called when returning to the game root (e.g. between
+///   searches at different real game positions) so the accumulator resyncs
+///   to the new board state rather than drifting from cumulative edits.
+pub struct NnueEvaluator {
+    model: Arc<NnueModel>,
+    acc: Accumulator,
+    /// Snapshot stack. Uses a pool of pre-allocated `Accumulator` slots so
+    /// that `on_make` is a `copy_from_slice` (constant memory bandwidth,
+    /// no heap allocation). `stack_depth` is the logical top of the stack;
+    /// the pool itself (`stack_pool.len()`) grows monotonically to the
+    /// deepest recursion seen so far.
+    stack_pool: Vec<Accumulator>,
+    stack_depth: usize,
+    /// Reusable scratch buffers for `eval_net`. Allocating three `Vec`s per
+    /// leaf would dwarf the actual math; these grow to the right size on
+    /// first use and then stay put.
+    eval_x: Vec<f32>,
+    eval_l1: Vec<f32>,
+    eval_l2: Vec<f32>,
+    initialized: bool,
+}
+
+impl NnueEvaluator {
+    /// Build a fresh evaluator around a shared model.
+    pub fn new(model: Arc<NnueModel>) -> Self {
+        let ft_out_dim = model.ft_out_dim;
+        let l1_dim = model.l1_dim;
+        let l2_dim = model.l2_dim;
+        Self {
+            acc: Accumulator::new(ft_out_dim),
+            stack_pool: Vec::with_capacity(64),
+            stack_depth: 0,
+            eval_x: vec![0.0; ft_out_dim * 2],
+            eval_l1: vec![0.0; l1_dim],
+            eval_l2: vec![0.0; l2_dim],
+            model,
+            initialized: false,
+        }
+    }
+
+    /// Push the current accumulator onto the undo stack. Reuses an existing
+    /// slot if the pool has capacity; otherwise allocates one fresh slot
+    /// (amortized O(1) over the search).
+    fn push_snapshot(&mut self) {
+        let ft_out_dim = self.model.ft_out_dim;
+        if self.stack_depth == self.stack_pool.len() {
+            self.stack_pool.push(Accumulator::new(ft_out_dim));
+        }
+        let slot = &mut self.stack_pool[self.stack_depth];
+        slot.black_acc.copy_from_slice(&self.acc.black_acc);
+        slot.white_acc.copy_from_slice(&self.acc.white_acc);
+        slot.black_bucket = self.acc.black_bucket;
+        slot.white_bucket = self.acc.white_bucket;
+        self.stack_depth += 1;
+    }
+
+    /// Restore the accumulator from the top of the undo stack.
+    fn pop_snapshot(&mut self) {
+        debug_assert!(
+            self.stack_depth > 0,
+            "pop_snapshot on empty stack (unbalanced on_make/on_unmake)"
+        );
+        self.stack_depth -= 1;
+        let slot = &self.stack_pool[self.stack_depth];
+        self.acc.black_acc.copy_from_slice(&slot.black_acc);
+        self.acc.white_acc.copy_from_slice(&slot.white_acc);
+        self.acc.black_bucket = slot.black_bucket;
+        self.acc.white_bucket = slot.white_bucket;
+    }
+
+    /// Apply the forward accumulator update for a move that is about to be
+    /// executed. Caller is responsible for invoking this *before*
+    /// `pos.make_move(m)` so that `pos_before` is accurate.
+    ///
+    /// For king moves that change the bucket of the moving side, the
+    /// moving side's accumulator is refreshed from the post-move state
+    /// rather than patched. Non-king moves are pure add/subtract deltas.
+    fn apply_make_forward(&mut self, pos_before: &Position, m: &Move) {
+        let model = self.model.clone();
+        match *m {
+            Move::Normal {
+                from,
+                to,
+                promote: promoted,
+            } => {
+                // If `from` has no piece, the move is illegal and the caller's
+                // `make_move` will fail. The snapshot on the undo stack will
+                // be popped by the matching `on_unmake`, restoring the valid
+                // accumulator — so we can safely bail out instead of patching
+                // with nonsense data.
+                let Some(moving) = pos_before.piece_at(from) else {
+                    return;
+                };
+                let victim = pos_before.piece_at(to);
+                let from_py = square_to_python_index(from);
+                let to_py = square_to_python_index(to);
+
+                // --- Step 1: remove the captured piece, if any ---
+                if let Some(v) = victim {
+                    // Kings are never captured in a legal game; guard anyway.
+                    if v.piece_type != PieceType::King {
+                        let v_pt = piece_type_id(v.piece_type);
+                        let v_color = color_id(v.color);
+                        let (b_idx, w_idx) = board_feature_indices(
+                            self.acc.black_bucket,
+                            self.acc.white_bucket,
+                            v_pt,
+                            v_color,
+                            to_py,
+                        );
+                        Accumulator::sub_feature(&mut self.acc.black_acc, &model, b_idx);
+                        Accumulator::sub_feature(&mut self.acc.white_acc, &model, w_idx);
+
+                        // The victim enters the mover's hand as its base
+                        // (unpromoted) type. The thermometer slot to activate
+                        // is the current hand count (pre-move), since we are
+                        // about to add one more.
+                        let base = unpromote(v.piece_type);
+                        if let Some(h_idx) = hand_type_index(base) {
+                            let old_count = pos_before.hand(Piece {
+                                piece_type: base,
+                                color: moving.color,
+                            }) as usize;
+                            let offset = hand_section_offset(h_idx);
+                            let (b_idx, w_idx) = hand_feature_indices(
+                                self.acc.black_bucket,
+                                self.acc.white_bucket,
+                                color_id(moving.color),
+                                offset,
+                                old_count,
+                            );
+                            Accumulator::add_feature(&mut self.acc.black_acc, &model, b_idx);
+                            Accumulator::add_feature(&mut self.acc.white_acc, &model, w_idx);
+                        }
+                    }
+                }
+
+                // --- Step 2: remove the moving piece from `from` ---
+                // Kings aren't features, so we only touch non-king pieces
+                // here. The king's effect is purely via its bucket.
+                if moving.piece_type != PieceType::King {
+                    let m_pt = piece_type_id(moving.piece_type);
+                    let m_color = color_id(moving.color);
+                    let (b_idx, w_idx) = board_feature_indices(
+                        self.acc.black_bucket,
+                        self.acc.white_bucket,
+                        m_pt,
+                        m_color,
+                        from_py,
+                    );
+                    Accumulator::sub_feature(&mut self.acc.black_acc, &model, b_idx);
+                    Accumulator::sub_feature(&mut self.acc.white_acc, &model, w_idx);
+                }
+
+                // --- Step 3: handle king bucket change (if any) ---
+                // A king move may put the king on a different rank, which
+                // shifts every feature index for that perspective. In that
+                // case we refresh the moving side's accumulator from the
+                // post-move state; the opposite side's bucket is unchanged
+                // so we simply continue patching it below.
+                if moving.piece_type == PieceType::King {
+                    let new_king_py = to_py;
+                    let new_bucket = match moving.color {
+                        Color::Black => king_square_to_bucket(mirror_file(new_king_py)),
+                        Color::White => {
+                            king_square_to_bucket(mirror_file(flip_square(new_king_py)))
+                        }
+                    };
+                    let old_bucket = match moving.color {
+                        Color::Black => self.acc.black_bucket,
+                        Color::White => self.acc.white_bucket,
+                    };
+                    if new_bucket != old_bucket {
+                        // Refresh just the mover's side from the post-move
+                        // board state (derived from pos_before + m). We skip
+                        // step 4 for this perspective because the refresh
+                        // already accounts for the arriving piece, the
+                        // vacated square, and any victim / hand change.
+                        self.refresh_side_post_move(pos_before, m, moving.color);
+                        // The opposite perspective still needs step 4's
+                        // "add moving piece at `to`" if the moving piece is
+                        // non-king — but kings aren't features, so nothing
+                        // to add there. Done.
+                        return;
+                    }
+                }
+
+                // --- Step 4: add the moving piece at `to` (possibly
+                // promoted). Skipped for kings (not a feature). ---
+                if moving.piece_type != PieceType::King {
+                    let new_pt = if promoted {
+                        promote(moving.piece_type)
+                    } else {
+                        moving.piece_type
+                    };
+                    let m_pt = piece_type_id(new_pt);
+                    let m_color = color_id(moving.color);
+                    let (b_idx, w_idx) = board_feature_indices(
+                        self.acc.black_bucket,
+                        self.acc.white_bucket,
+                        m_pt,
+                        m_color,
+                        to_py,
+                    );
+                    Accumulator::add_feature(&mut self.acc.black_acc, &model, b_idx);
+                    Accumulator::add_feature(&mut self.acc.white_acc, &model, w_idx);
+                }
+            }
+
+            Move::Drop { to, piece_type } => {
+                // A drop: one hand thermometer slot goes away, one board
+                // feature appears. No captures are possible in a drop.
+                let mover = pos_before.side_to_move();
+                let to_py = square_to_python_index(to);
+
+                // Remove the topmost thermometer slot of the dropped type
+                // from the mover's hand. Slot to remove = new count after
+                // drop = old_count - 1.
+                if let Some(h_idx) = hand_type_index(piece_type) {
+                    let old_count = pos_before.hand(Piece {
+                        piece_type,
+                        color: mover,
+                    }) as usize;
+                    if old_count == 0 {
+                        // Illegal drop (empty hand). `make_move` will reject
+                        // it; the snapshot-restore on `on_unmake` undoes
+                        // anything we touched below, so just skip the sub.
+                        return;
+                    }
+                    let slot_to_remove = old_count - 1;
+                    let offset = hand_section_offset(h_idx);
+                    let (b_idx, w_idx) = hand_feature_indices(
+                        self.acc.black_bucket,
+                        self.acc.white_bucket,
+                        color_id(mover),
+                        offset,
+                        slot_to_remove,
+                    );
+                    Accumulator::sub_feature(&mut self.acc.black_acc, &model, b_idx);
+                    Accumulator::sub_feature(&mut self.acc.white_acc, &model, w_idx);
+                }
+
+                // Add the dropped piece to the board. Drops never deliver a
+                // promoted piece (shogi rule) so `piece_type` is already the
+                // base form.
+                let m_pt = piece_type_id(piece_type);
+                let m_color = color_id(mover);
+                let (b_idx, w_idx) = board_feature_indices(
+                    self.acc.black_bucket,
+                    self.acc.white_bucket,
+                    m_pt,
+                    m_color,
+                    to_py,
+                );
+                Accumulator::add_feature(&mut self.acc.black_acc, &model, b_idx);
+                Accumulator::add_feature(&mut self.acc.white_acc, &model, w_idx);
+            }
+        }
+    }
+
+    /// Recompute the Black or White half of the accumulator from the
+    /// logical post-move board/hand state, without cloning `Position`.
+    /// Called only when a king move changes that side's bucket.
+    ///
+    /// The post-move state is derived by taking `pos_before`'s pieces and
+    /// applying the move in-place to a small local view. This avoids a
+    /// `Position::clone` (shogi-rs does not expose cheap cloning).
+    #[allow(clippy::needless_range_loop)] // Indexed loops mirror the Python reference implementation
+    fn refresh_side_post_move(&mut self, pos_before: &Position, m: &Move, side: Color) {
+        let model = self.model.clone();
+        let (mut pieces, _stm, mut hand, mut black_king, mut white_king) =
+            extract_position(pos_before);
+
+        match *m {
+            Move::Normal {
+                from,
+                to,
+                promote: promoted,
+            } => {
+                let moving = pos_before
+                    .piece_at(from)
+                    .expect("Normal move with no piece at `from`");
+                let victim = pos_before.piece_at(to);
+                let from_py = square_to_python_index(from);
+                let to_py = square_to_python_index(to);
+
+                // Remove victim from pieces + add to mover's hand.
+                if let Some(v) = victim
+                    && v.piece_type != PieceType::King
+                {
+                    let v_pt = piece_type_id(v.piece_type);
+                    let v_color = color_id(v.color);
+                    pieces.retain(|&(pt, col, sq)| !(pt == v_pt && col == v_color && sq == to_py));
+                    let base = unpromote(v.piece_type);
+                    if let Some(h_idx) = hand_type_index(base) {
+                        hand[color_id(moving.color)][h_idx] += 1;
+                    }
+                }
+
+                // Move the piece (king, in this branch's caller).
+                if moving.piece_type == PieceType::King {
+                    match moving.color {
+                        Color::Black => black_king = to_py,
+                        Color::White => white_king = to_py,
+                    }
+                } else {
+                    // Non-king (shouldn't be reached from refresh_side_post_move's
+                    // only caller, which gates on King, but handle for
+                    // completeness / future use).
+                    pieces.retain(|&(pt, col, sq)| {
+                        !(pt == piece_type_id(moving.piece_type)
+                            && col == color_id(moving.color)
+                            && sq == from_py)
+                    });
+                    let new_pt = if promoted {
+                        promote(moving.piece_type)
+                    } else {
+                        moving.piece_type
+                    };
+                    pieces.push((piece_type_id(new_pt), color_id(moving.color), to_py));
+                }
+            }
+            Move::Drop { to, piece_type } => {
+                let mover = pos_before.side_to_move();
+                let to_py = square_to_python_index(to);
+                if let Some(h_idx) = hand_type_index(piece_type) {
+                    hand[color_id(mover)][h_idx] = hand[color_id(mover)][h_idx].saturating_sub(1);
+                }
+                pieces.push((piece_type_id(piece_type), color_id(mover), to_py));
+            }
+        }
+
+        // Recompute the requested side's bucket and accumulator from the
+        // post-move logical state. We leave the opposite side's accumulator
+        // alone — its bucket did not change; the caller patches it via
+        // the normal add/sub path.
+        match side {
+            Color::Black => {
+                let new_bucket = king_square_to_bucket(mirror_file(black_king));
+                self.acc.black_bucket = new_bucket;
+                self.acc.black_acc.copy_from_slice(&model.ft_bias);
+                for &(pt, color, sq) in &pieces {
+                    let b_sq = mirror_file(sq);
+                    let idx = new_bucket * HALF_FEATURE_DIM
+                        + (pt * NUM_COLORS + color) * NUM_SQUARES
+                        + b_sq;
+                    Accumulator::add_feature(&mut self.acc.black_acc, &model, idx);
+                }
+                for color in 0..NUM_COLORS {
+                    let mut offset = 0usize;
+                    for i in 0..HAND_PIECE_TYPES.len() {
+                        let count = hand[color][i] as usize;
+                        let max_count = HAND_PIECE_MAX[i];
+                        for slot in 0..count {
+                            let idx = new_bucket * HALF_FEATURE_DIM
+                                + BOARD_FEATURE_DIM
+                                + color * HAND_FEATURES_PER_SIDE
+                                + offset
+                                + slot;
+                            Accumulator::add_feature(&mut self.acc.black_acc, &model, idx);
+                        }
+                        offset += max_count;
+                    }
+                }
+
+                // Also patch the opposite (White) side for victim removal &
+                // hand gain, since step 3 returned early before step 4. The
+                // caller already handled victim removal and hand add for the
+                // opposite perspective in step 1. But our caller returns
+                // before step 4, which for a king move is a no-op anyway
+                // (king isn't a feature), so nothing more to do here.
+            }
+            Color::White => {
+                let new_bucket = king_square_to_bucket(mirror_file(flip_square(white_king)));
+                self.acc.white_bucket = new_bucket;
+                self.acc.white_acc.copy_from_slice(&model.ft_bias);
+                for &(pt, color, sq) in &pieces {
+                    let w_sq = mirror_file(flip_square(sq));
+                    let w_color = 1 - color;
+                    let idx = new_bucket * HALF_FEATURE_DIM
+                        + (pt * NUM_COLORS + w_color) * NUM_SQUARES
+                        + w_sq;
+                    Accumulator::add_feature(&mut self.acc.white_acc, &model, idx);
+                }
+                for color in 0..NUM_COLORS {
+                    let mut offset = 0usize;
+                    for i in 0..HAND_PIECE_TYPES.len() {
+                        let count = hand[color][i] as usize;
+                        let max_count = HAND_PIECE_MAX[i];
+                        for slot in 0..count {
+                            let w_color = 1 - color;
+                            let idx = new_bucket * HALF_FEATURE_DIM
+                                + BOARD_FEATURE_DIM
+                                + w_color * HAND_FEATURES_PER_SIDE
+                                + offset
+                                + slot;
+                            Accumulator::add_feature(&mut self.acc.white_acc, &model, idx);
+                        }
+                        offset += max_count;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Run the eval-net half (ClippedReLU + L1 + L2 + L3) against the
+    /// current accumulator, pick the perspective ordering from `stm`, and
+    /// return a centipawn score. Reuses persistent scratch buffers to keep
+    /// the hot path allocation-free.
+    #[allow(clippy::needless_range_loop)] // Indexed loops mirror the Python reference implementation
+    fn eval_net(&mut self, stm: Color) -> i32 {
+        let model = self.model.clone();
+        let (stm_acc, nstm_acc) = match stm {
+            Color::Black => (&self.acc.black_acc, &self.acc.white_acc),
+            Color::White => (&self.acc.white_acc, &self.acc.black_acc),
+        };
+
+        let concat_dim = model.ft_out_dim * 2;
+        // Concat + ClippedReLU into the persistent scratch buffer.
+        for (dst, src) in self
+            .eval_x
+            .iter_mut()
+            .zip(stm_acc.iter().chain(nstm_acc.iter()))
+        {
+            *dst = src.clamp(0.0, 1.0);
+        }
+
+        // L1
+        self.eval_l1.copy_from_slice(&model.l1_bias);
+        for i in 0..model.l1_dim {
+            let row_base = i * concat_dim;
+            let mut acc = self.eval_l1[i];
+            for j in 0..concat_dim {
+                acc += model.l1_weight[row_base + j] * self.eval_x[j];
+            }
+            self.eval_l1[i] = acc.clamp(0.0, 1.0);
+        }
+
+        // L2
+        self.eval_l2.copy_from_slice(&model.l2_bias);
+        for i in 0..model.l2_dim {
+            let row_base = i * model.l1_dim;
+            let mut acc = self.eval_l2[i];
+            for j in 0..model.l1_dim {
+                acc += model.l2_weight[row_base + j] * self.eval_l1[j];
+            }
+            self.eval_l2[i] = acc.clamp(0.0, 1.0);
+        }
+
+        // L3
+        let mut raw = model.l3_bias[0];
+        for j in 0..model.l2_dim {
+            raw += model.l3_weight[j] * self.eval_l2[j];
+        }
+
+        (raw * model.score_scaling) as i32
+    }
+}
+
+impl Evaluator for NnueEvaluator {
+    fn evaluate(&mut self, pos: &Position) -> i32 {
+        if !self.initialized {
+            self.acc.refresh_from(&self.model, pos);
+            self.initialized = true;
+        }
+        self.eval_net(pos.side_to_move())
+    }
+
+    fn on_make(&mut self, pos_before: &Position, m: &Move) {
+        if !self.initialized {
+            self.acc.refresh_from(&self.model, pos_before);
+            self.initialized = true;
+        }
+        self.push_snapshot();
+        self.apply_make_forward(pos_before, m);
+    }
+
+    fn on_unmake(&mut self) {
+        self.pop_snapshot();
+    }
+
+    fn refresh(&mut self, pos: &Position) {
+        self.acc.refresh_from(&self.model, pos);
+        self.stack_depth = 0;
+        self.initialized = true;
     }
 }
 
@@ -796,5 +1507,346 @@ mod tests {
             "error should mention invalid magic: {err}"
         );
         std::fs::remove_file(&path).ok();
+    }
+
+    // -----------------------------------------------------------------------
+    // Incremental accumulator — correctness vs. full recompute
+    //
+    // The strategy: build a small synthetic NnueModel with deterministic
+    // weights, then assert that NnueEvaluator (which maintains an
+    // incremental accumulator across make/unmake) returns the same score
+    // as NnueModel::evaluate (full recompute) at every point in a move
+    // sequence. Any divergence means the forward update or the snapshot
+    // stack has a bug.
+    //
+    // We keep `ft_out_dim` small (8) and hand-craft reproducible weights
+    // via a linear-congruential formula so the test is hermetic (no
+    // model.nnue dependency).
+    // -----------------------------------------------------------------------
+
+    use shogi::Move;
+    use std::sync::Arc;
+
+    /// Build a synthetic NnueModel with deterministic weights for testing.
+    /// Same dimensions as production (19,638 × ft_out_dim) so feature
+    /// indices match Python exactly; smaller ft_out_dim keeps tests fast.
+    fn synthetic_model(ft_out_dim: usize, l1_dim: usize, l2_dim: usize) -> NnueModel {
+        let ft_input_dim = 9 * HALF_FEATURE_DIM; // 19638
+        let mut seed: u32 = 0x1234_5678;
+        let mut next = || {
+            seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+            // Map to a small symmetric range so activations stay in [0, 1]-ish
+            // after summing ~40 features.
+            (seed as i32 as f32) * 1e-11
+        };
+
+        let ft_weight: Vec<f32> = (0..ft_input_dim * ft_out_dim).map(|_| next()).collect();
+        let ft_bias: Vec<f32> = (0..ft_out_dim).map(|_| next()).collect();
+
+        let concat_dim = ft_out_dim * 2;
+        let l1_weight: Vec<f32> = (0..l1_dim * concat_dim).map(|_| next() * 100.0).collect();
+        let l1_bias: Vec<f32> = (0..l1_dim).map(|_| next() * 100.0).collect();
+        let l2_weight: Vec<f32> = (0..l2_dim * l1_dim).map(|_| next() * 100.0).collect();
+        let l2_bias: Vec<f32> = (0..l2_dim).map(|_| next() * 100.0).collect();
+        let l3_weight: Vec<f32> = (0..l2_dim).map(|_| next() * 100.0).collect();
+        let l3_bias: Vec<f32> = vec![next() * 100.0];
+
+        NnueModel {
+            ft_input_dim,
+            ft_out_dim,
+            l1_dim,
+            l2_dim,
+            ft_weight,
+            ft_bias,
+            l1_weight,
+            l1_bias,
+            l2_weight,
+            l2_bias,
+            l3_weight,
+            l3_bias,
+            score_scaling: 600.0,
+        }
+    }
+
+    fn assert_incremental_matches_full(
+        eval: &mut NnueEvaluator,
+        model: &NnueModel,
+        pos: &Position,
+        label: &str,
+    ) {
+        let incr = eval.evaluate(pos);
+        let full = model.evaluate(pos);
+        assert_eq!(
+            incr, full,
+            "{label}: incremental eval {incr} != full recompute {full}"
+        );
+    }
+
+    #[test]
+    fn evaluator_matches_full_on_startpos() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .unwrap();
+        eval.refresh(&pos);
+        assert_incremental_matches_full(&mut eval, &model, &pos, "startpos");
+    }
+
+    #[test]
+    fn evaluator_matches_full_on_complex_midgame() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        // Position with captures in hand on both sides and a promoted piece.
+        let mut pos = Position::new();
+        pos.set_sfen(
+            "ln1gk2nl/1r1s2gb1/p1+Pppp1pp/2p4P1/9/2P6/PP1PPPP1P/1B1S2R2/LN1GKGSNL w S2P 1",
+        )
+        .unwrap();
+        eval.refresh(&pos);
+        assert_incremental_matches_full(&mut eval, &model, &pos, "complex midgame");
+    }
+
+    #[test]
+    fn evaluator_tracks_through_simple_move_sequence() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .unwrap();
+        eval.refresh(&pos);
+        assert_incremental_matches_full(&mut eval, &model, &pos, "before any move");
+
+        // Play: 7g7f (Black pawn) — a plain forward move.
+        let m = Move::Normal {
+            from: Square::new(2, 6).unwrap(), // 7g (shogi-rs file 2 = Shogi file 7)
+            to: Square::new(2, 5).unwrap(),   // 7f
+            promote: false,
+        };
+        eval.on_make(&pos, &m);
+        pos.make_move(m).unwrap();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after 7g7f");
+
+        // Unmake and verify we're back to startpos eval.
+        pos.unmake_move().unwrap();
+        eval.on_unmake();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after unmake 7g7f");
+    }
+
+    #[test]
+    fn evaluator_tracks_through_capture_and_hand_gain() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        // Position where Black's rook can capture an undefended White pawn
+        // and gain a pawn in hand.
+        let mut pos = Position::new();
+        pos.set_sfen("4k4/9/4p4/9/9/9/4R4/9/4K4 b - 1").unwrap();
+        eval.refresh(&pos);
+        assert_incremental_matches_full(&mut eval, &model, &pos, "before capture");
+
+        // Rook captures pawn: 5g5c (file 4, rank 6 → file 4, rank 2).
+        let m = Move::Normal {
+            from: Square::new(4, 6).unwrap(),
+            to: Square::new(4, 2).unwrap(),
+            promote: false,
+        };
+        eval.on_make(&pos, &m);
+        pos.make_move(m).unwrap();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after capture");
+
+        pos.unmake_move().unwrap();
+        eval.on_unmake();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after unmake capture");
+    }
+
+    #[test]
+    fn evaluator_tracks_promotion() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        // Black pawn on 7c can step to 7b and promote.
+        let mut pos = Position::new();
+        pos.set_sfen("4k4/9/2P6/9/9/9/9/9/4K4 b - 1").unwrap();
+        eval.refresh(&pos);
+        assert_incremental_matches_full(&mut eval, &model, &pos, "pre-promotion");
+
+        // Pawn is at Shogi file 7, rank 3. shogi-rs file 0 = Shogi file 1,
+        // so Shogi file 7 = shogi-rs file 6. Rank 3 = shogi-rs rank 2.
+        // Moving to Shogi file 7, rank 2 (shogi-rs rank 1) promotes (rank ≤ 2).
+        let m = Move::Normal {
+            from: Square::new(6, 2).unwrap(),
+            to: Square::new(6, 1).unwrap(),
+            promote: true,
+        };
+        eval.on_make(&pos, &m);
+        pos.make_move(m).unwrap();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after promoting pawn");
+
+        pos.unmake_move().unwrap();
+        eval.on_unmake();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after unmake promotion");
+    }
+
+    #[test]
+    fn evaluator_tracks_drop() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        // Black has a Pawn in hand and an empty central square to drop on.
+        let mut pos = Position::new();
+        pos.set_sfen("4k4/9/9/9/9/9/9/9/4K4 b P 1").unwrap();
+        eval.refresh(&pos);
+        assert_incremental_matches_full(&mut eval, &model, &pos, "before drop");
+
+        let m = Move::Drop {
+            to: Square::new(4, 4).unwrap(), // center
+            piece_type: PieceType::Pawn,
+        };
+        eval.on_make(&pos, &m);
+        pos.make_move(m).unwrap();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after drop");
+
+        pos.unmake_move().unwrap();
+        eval.on_unmake();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after unmake drop");
+    }
+
+    #[test]
+    fn evaluator_tracks_king_move_without_bucket_change() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        // Black king shuffles on its own back rank (stays in bucket 8).
+        let mut pos = Position::new();
+        pos.set_sfen("4k4/9/9/9/9/9/9/9/3K5 b - 1").unwrap();
+        eval.refresh(&pos);
+        assert_incremental_matches_full(&mut eval, &model, &pos, "before king shuffle");
+
+        // Black king: file 5 rank 8 → file 4 rank 8 (same rank = same bucket).
+        let m = Move::Normal {
+            from: Square::new(5, 8).unwrap(),
+            to: Square::new(4, 8).unwrap(),
+            promote: false,
+        };
+        eval.on_make(&pos, &m);
+        pos.make_move(m).unwrap();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after king same-rank move");
+
+        pos.unmake_move().unwrap();
+        eval.on_unmake();
+        assert_incremental_matches_full(&mut eval, &model, &pos, "after unmake king shuffle");
+    }
+
+    #[test]
+    fn evaluator_tracks_king_move_that_changes_bucket() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        // Black king advances from rank 8 to rank 7 — different bucket.
+        let mut pos = Position::new();
+        pos.set_sfen("4k4/9/9/9/9/9/9/9/4K4 b - 1").unwrap();
+        eval.refresh(&pos);
+        assert_incremental_matches_full(&mut eval, &model, &pos, "before bucket-crossing king");
+
+        let m = Move::Normal {
+            from: Square::new(4, 8).unwrap(), // rank 8
+            to: Square::new(4, 7).unwrap(),   // rank 7 — different bucket
+            promote: false,
+        };
+        eval.on_make(&pos, &m);
+        pos.make_move(m).unwrap();
+        assert_incremental_matches_full(
+            &mut eval,
+            &model,
+            &pos,
+            "after king move that crosses bucket",
+        );
+
+        pos.unmake_move().unwrap();
+        eval.on_unmake();
+        assert_incremental_matches_full(
+            &mut eval,
+            &model,
+            &pos,
+            "after unmake bucket-crossing king",
+        );
+    }
+
+    #[test]
+    fn evaluator_tracks_failed_make_rollback() {
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .unwrap();
+        eval.refresh(&pos);
+        let pre = eval.evaluate(&pos);
+
+        // Attempt a clearly illegal move (pawn drop on a file that already
+        // has an unpromoted pawn). `on_make` is called speculatively; then
+        // make_move fails; then `on_unmake` rolls back.
+        let illegal = Move::Drop {
+            to: Square::new(0, 4).unwrap(),
+            piece_type: PieceType::Pawn,
+        };
+        eval.on_make(&pos, &illegal);
+        // Depending on hand state, make_move may fail. For this position
+        // Black has no pawn in hand, so make_move must fail — but our
+        // accumulator was already patched. Roll back.
+        assert!(pos.make_move(illegal).is_err());
+        eval.on_unmake();
+
+        let post = eval.evaluate(&pos);
+        assert_eq!(pre, post, "rollback of failed make should restore eval");
+    }
+
+    #[test]
+    fn evaluator_tracks_through_random_legal_sequence() {
+        // Play a few random legal ply from startpos using PST-chosen moves,
+        // asserting at every position that incremental == full.
+        init();
+        let model = Arc::new(synthetic_model(8, 4, 4));
+        let mut eval = NnueEvaluator::new(Arc::clone(&model));
+        let mut pos = Position::new();
+        pos.set_sfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+            .unwrap();
+        eval.refresh(&pos);
+
+        use rand::SeedableRng;
+        use rand::rngs::SmallRng;
+        use rand::seq::SliceRandom;
+        let mut rng = SmallRng::seed_from_u64(0xF00D_BEEF);
+
+        for ply in 0..20 {
+            // Find a legal move (non-exhaustive; just the first we can make).
+            let pseudo = crate::movegen::generate_moves(&pos);
+            let mut ordered: Vec<Move> = pseudo.into_iter().collect();
+            ordered.shuffle(&mut rng);
+            let mut played = false;
+            for m in ordered {
+                eval.on_make(&pos, &m);
+                if pos.make_move(m).is_err() {
+                    eval.on_unmake();
+                    continue;
+                }
+                played = true;
+                assert_incremental_matches_full(
+                    &mut eval,
+                    &model,
+                    &pos,
+                    &format!("after ply {ply}"),
+                );
+                break;
+            }
+            if !played {
+                // No legal moves — game over; nothing more to assert.
+                break;
+            }
+        }
     }
 }

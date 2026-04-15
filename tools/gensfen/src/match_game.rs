@@ -28,8 +28,8 @@ const STARTPOS: &str = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSN
 /// A random opening of `random_moves` moves is played first for diversity,
 /// then each side uses its own evaluator for the remainder of the game.
 pub fn play_match_game(
-    black_eval: &dyn Evaluator,
-    white_eval: &dyn Evaluator,
+    black_eval: &mut dyn Evaluator,
+    white_eval: &mut dyn Evaluator,
     depth: i32,
     random_moves: usize,
     rng: &mut impl Rng,
@@ -66,8 +66,10 @@ pub fn play_match_game(
             return GameOutcome::Draw;
         }
 
-        // Pick the evaluator for the current side to move.
-        let evaluator: &dyn Evaluator = match pos.side_to_move() {
+        // Pick the evaluator for the current side to move. Split borrows so
+        // we can hand out a fresh `&mut dyn Evaluator` each turn without
+        // aliasing.
+        let evaluator: &mut dyn Evaluator = match pos.side_to_move() {
             Color::Black => black_eval,
             Color::White => white_eval,
         };
@@ -118,10 +120,10 @@ mod tests {
     #[test]
     fn pst_vs_pst_completes() {
         init();
-        let eval_a = PstEvaluator;
-        let eval_b = PstEvaluator;
+        let mut eval_a = PstEvaluator;
+        let mut eval_b = PstEvaluator;
         let mut rng = SmallRng::seed_from_u64(42);
-        let outcome = play_match_game(&eval_a, &eval_b, 2, 4, &mut rng);
+        let outcome = play_match_game(&mut eval_a, &mut eval_b, 2, 4, &mut rng);
         // Should be one of the three valid outcomes.
         assert!(
             outcome == GameOutcome::BlackWin
@@ -133,13 +135,13 @@ mod tests {
     #[test]
     fn different_seeds_different_outcomes_possible() {
         init();
-        let eval_a = PstEvaluator;
-        let eval_b = PstEvaluator;
+        let mut eval_a = PstEvaluator;
+        let mut eval_b = PstEvaluator;
         // Play several games and collect outcomes.
         let mut outcomes = Vec::new();
         for seed in 0..5 {
             let mut rng = SmallRng::seed_from_u64(seed);
-            outcomes.push(play_match_game(&eval_a, &eval_b, 2, 6, &mut rng));
+            outcomes.push(play_match_game(&mut eval_a, &mut eval_b, 2, 6, &mut rng));
         }
         // At least one game should have finished (not all identical outcomes
         // would be a very unlikely coincidence, but we just check they complete).

@@ -46,7 +46,7 @@ pub fn play_game(
     depth: i32,
     random_moves: usize,
     rng: &mut impl Rng,
-    evaluator: &dyn Evaluator,
+    evaluator: &mut dyn Evaluator,
 ) -> Vec<TrainingSample> {
     let mut pos = Position::new();
     pos.set_sfen(STARTPOS).expect("invalid startpos SFEN");
@@ -261,9 +261,9 @@ mod tests {
     #[test]
     fn play_game_produces_samples() {
         init();
-        let evaluator = crate::eval::PstEvaluator;
+        let mut evaluator = crate::eval::PstEvaluator;
         let mut rng = SmallRng::seed_from_u64(42);
-        let samples = play_game(2, 4, &mut rng, &evaluator);
+        let samples = play_game(2, 4, &mut rng, &mut evaluator);
         assert!(
             !samples.is_empty(),
             "play_game should produce at least one sample"
@@ -273,9 +273,9 @@ mod tests {
     #[test]
     fn play_game_samples_have_valid_results() {
         init();
-        let evaluator = crate::eval::PstEvaluator;
+        let mut evaluator = crate::eval::PstEvaluator;
         let mut rng = SmallRng::seed_from_u64(123);
-        let samples = play_game(2, 4, &mut rng, &evaluator);
+        let samples = play_game(2, 4, &mut rng, &mut evaluator);
         for sample in &samples {
             assert!(
                 sample.result == 0.0 || sample.result == 0.5 || sample.result == 1.0,
@@ -289,11 +289,11 @@ mod tests {
     #[test]
     fn play_game_different_seeds_produce_different_games() {
         init();
-        let evaluator = crate::eval::PstEvaluator;
+        let mut evaluator = crate::eval::PstEvaluator;
         let mut rng1 = SmallRng::seed_from_u64(1);
         let mut rng2 = SmallRng::seed_from_u64(999);
-        let samples1 = play_game(2, 6, &mut rng1, &evaluator);
-        let samples2 = play_game(2, 6, &mut rng2, &evaluator);
+        let samples1 = play_game(2, 6, &mut rng1, &mut evaluator);
+        let samples2 = play_game(2, 6, &mut rng2, &mut evaluator);
         // Different seeds → (very likely) different games.
         // Check first non-trivial position differs.
         if !samples1.is_empty() && !samples2.is_empty() {
@@ -365,9 +365,9 @@ mod tests {
     #[test]
     fn all_samples_have_sfen_prefix_in_to_line() {
         init();
-        let evaluator = crate::eval::PstEvaluator;
+        let mut evaluator = crate::eval::PstEvaluator;
         let mut rng = SmallRng::seed_from_u64(777);
-        let samples = play_game(2, 4, &mut rng, &evaluator);
+        let samples = play_game(2, 4, &mut rng, &mut evaluator);
         for sample in &samples {
             let line = sample.to_line();
             assert!(

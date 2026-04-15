@@ -11,11 +11,14 @@
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Parser;
-use gensfen::{eval, game, nnue};
+use gensfen::eval::{Evaluator, PstEvaluator};
+use gensfen::game;
+use gensfen::nnue::{NnueEvaluator, NnueModel};
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
 use rayon::prelude::*;
@@ -73,18 +76,28 @@ fn main() {
         .build_global()
         .expect("failed to build rayon thread pool");
 
-    // Create the evaluator: NNUE model if --model is provided, otherwise PST
-    let evaluator: Box<dyn eval::Evaluator> = match &args.model {
+    // Load a shared NNUE model once (if requested). The `Arc` is handed to
+    // each worker thread, which wraps it in its own `NnueEvaluator` with a
+    // thread-local accumulator.
+    let shared_model: Option<Arc<NnueModel>> = match &args.model {
         Some(model_path) => {
             eprintln!("Loading NNUE model: {}", model_path);
-            let model = nnue::NnueModel::load(Path::new(model_path))
+            let model = NnueModel::load(Path::new(model_path))
                 .unwrap_or_else(|e| panic!("Failed to load model: {}", e));
             eprintln!("  FT: {} → {}", model.ft_input_dim(), model.ft_out_dim());
-            Box::new(model)
+            Some(Arc::new(model))
         }
         None => {
             eprintln!("Using built-in PST evaluator (no --model specified)");
-            Box::new(eval::PstEvaluator)
+            None
+        }
+    };
+
+    // Factory closure run inside each worker to build its own evaluator.
+    let make_evaluator = || -> Box<dyn Evaluator> {
+        match &shared_model {
+            Some(m) => Box::new(NnueEvaluator::new(Arc::clone(m))),
+            None => Box::new(PstEvaluator),
         }
     };
 
@@ -108,6 +121,10 @@ fn main() {
         // Each thread gets its own RNG seeded differently.
         let mut rng = SmallRng::seed_from_u64(thread_id as u64 ^ 0xDEAD_BEEF_CAFE);
 
+        // Per-thread evaluator. For NNUE this owns the thread-local
+        // accumulator; for PST it is trivial.
+        let mut evaluator = make_evaluator();
+
         loop {
             // Check if we've already generated enough positions
             let current = total_positions.load(Ordering::Relaxed);
@@ -116,7 +133,7 @@ fn main() {
             }
 
             // Play one complete game
-            let samples = game::play_game(args.depth, args.random_moves, &mut rng, &*evaluator);
+            let samples = game::play_game(args.depth, args.random_moves, &mut rng, &mut *evaluator);
 
             if samples.is_empty() {
                 continue; // Game produced no useful data, try again

@@ -9,13 +9,14 @@
 //!   eval_match --model-a model_v1.nnue --model-b model_v2.nnue --games 200
 
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::Parser;
 use gensfen::eval::{Evaluator, PstEvaluator};
 use gensfen::match_game::play_match_game;
-use gensfen::nnue::NnueModel;
+use gensfen::nnue::{NnueEvaluator, NnueModel};
 use gensfen::types::GameOutcome;
 use rand::SeedableRng;
 use rand::rngs::SmallRng;
@@ -100,26 +101,41 @@ fn main() {
         .build_global()
         .expect("failed to build rayon thread pool");
 
-    // Load evaluators.
-    let eval_a: Box<dyn Evaluator> = {
-        eprintln!("Model A: {}", args.model_a);
-        let model = NnueModel::load(Path::new(&args.model_a))
-            .unwrap_or_else(|e| panic!("Failed to load model A: {e}"));
-        eprintln!("  FT: {} → {}", model.ft_input_dim(), model.ft_out_dim());
-        Box::new(model)
-    };
+    // Load models once; each worker thread builds its own stateful evaluator
+    // wrapping the shared Arc so that accumulators don't alias across threads.
+    eprintln!("Model A: {}", args.model_a);
+    let model_a = Arc::new(
+        NnueModel::load(Path::new(&args.model_a))
+            .unwrap_or_else(|e| panic!("Failed to load model A: {e}")),
+    );
+    eprintln!(
+        "  FT: {} → {}",
+        model_a.ft_input_dim(),
+        model_a.ft_out_dim()
+    );
 
-    let eval_b: Box<dyn Evaluator> = match &args.model_b {
+    let model_b: Option<Arc<NnueModel>> = match &args.model_b {
         Some(path) => {
             eprintln!("Model B: {}", path);
-            let model = NnueModel::load(Path::new(path))
-                .unwrap_or_else(|e| panic!("Failed to load model B: {e}"));
-            eprintln!("  FT: {} → {}", model.ft_input_dim(), model.ft_out_dim());
-            Box::new(model)
+            let m = Arc::new(
+                NnueModel::load(Path::new(path))
+                    .unwrap_or_else(|e| panic!("Failed to load model B: {e}")),
+            );
+            eprintln!("  FT: {} → {}", m.ft_input_dim(), m.ft_out_dim());
+            Some(m)
         }
         None => {
             eprintln!("Model B: built-in PST evaluator");
-            Box::new(PstEvaluator)
+            None
+        }
+    };
+
+    let make_eval_a =
+        || -> Box<dyn Evaluator> { Box::new(NnueEvaluator::new(Arc::clone(&model_a))) };
+    let make_eval_b = || -> Box<dyn Evaluator> {
+        match &model_b {
+            Some(m) => Box::new(NnueEvaluator::new(Arc::clone(m))),
+            None => Box::new(PstEvaluator),
         }
     };
 
@@ -141,8 +157,21 @@ fn main() {
     (0..num_pairs).into_par_iter().for_each(|pair_id| {
         let mut rng = SmallRng::seed_from_u64(pair_id as u64 ^ 0xBEEF_CAFE_1234);
 
+        // Per-pair (effectively per-worker) evaluators. A fresh pair is
+        // cheaper than keeping them thread-local because rayon doesn't
+        // expose a clean way to do that without extra machinery, and the
+        // model weights are shared via Arc so construction is O(ft_out_dim).
+        let mut a_side = make_eval_a();
+        let mut b_side = make_eval_b();
+
         // Game 1: A plays Black, B plays White.
-        let outcome1 = play_match_game(&*eval_a, &*eval_b, args.depth, args.random_moves, &mut rng);
+        let outcome1 = play_match_game(
+            &mut *a_side,
+            &mut *b_side,
+            args.depth,
+            args.random_moves,
+            &mut rng,
+        );
         match outcome1 {
             GameOutcome::BlackWin => results.a_wins.fetch_add(1, Ordering::Relaxed),
             GameOutcome::WhiteWin => results.b_wins.fetch_add(1, Ordering::Relaxed),
@@ -150,7 +179,13 @@ fn main() {
         };
 
         // Game 2: A plays White, B plays Black.
-        let outcome2 = play_match_game(&*eval_b, &*eval_a, args.depth, args.random_moves, &mut rng);
+        let outcome2 = play_match_game(
+            &mut *b_side,
+            &mut *a_side,
+            args.depth,
+            args.random_moves,
+            &mut rng,
+        );
         match outcome2 {
             GameOutcome::BlackWin => results.b_wins.fetch_add(1, Ordering::Relaxed),
             GameOutcome::WhiteWin => results.a_wins.fetch_add(1, Ordering::Relaxed),
