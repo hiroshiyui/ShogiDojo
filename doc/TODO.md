@@ -59,10 +59,27 @@ Phased plan:
   value-range/finiteness under several batch sizes, train vs eval
   BatchNorm behavior, gradient flow to every parameter, and the
   mask/loss helpers.
-- **Phase 2.6 — MCTS code + tests** *(planned)*:
-  `src/shogi_dojo/alphazero/mcts.py` — readable PUCT MCTS over fast.
-  Tests cover invariants (visit-sum conservation, perspective sign-flip
-  on backup, Dirichlet noise application).
+- **Phase 2.6 — MCTS code + tests** *(done)*:
+  `src/shogi_dojo/alphazero/mcts.py` implements readable PUCT MCTS:
+  `Edge` (prior/N/W/Q/child), `Node` (state + dict of edges +
+  terminal flag), `puct_score`, `select_child`, `apply_dirichlet_noise`,
+  `MCTS.search(root_state, num_simulations, dirichlet_alpha,
+  dirichlet_epsilon, rng)` with the standard four-phase simulation
+  (select → expand → evaluate → backup with sign flip), plus helpers
+  `visit_counts`, `policy_target(root, temperature)`, and
+  `sample_move(root, temperature, greedy)`. The search is
+  game-agnostic: the caller passes `evaluate_fn`, `legal_moves_fn`,
+  `apply_fn`, and `is_terminal_fn` callables. Default `c_puct=1.5`,
+  no subtree carryover between searches. Tests under
+  `tests/alphazero/test_mcts.py` (30 tests) use a hand-built 2-ply
+  zero-sum toy game with hardcoded terminal values to verify PUCT
+  math, select_child behavior, Dirichlet noise (priors still sum to
+  1, ε=0 is a no-op, ε=1 replaces priors), search basics (terminal
+  root, root expansion, visit-sum = num_simulations, visits
+  concentrate on higher-Q move), the perspective sign-flip on backup,
+  Dirichlet noise spreading visits averaged over 30 seeds in a
+  flat-Q variant game, and the helpers (visit_counts, policy_target
+  at multiple temperatures, sample_move greedy/stochastic).
 - **Phase 2.7 — Self-play + trainer + smoke test** *(planned)*:
   `self_play.py`, `trainer.py`, `scripts/alphazero/selfplay.py`,
   `scripts/alphazero/train.py` (top-level entry point becomes
