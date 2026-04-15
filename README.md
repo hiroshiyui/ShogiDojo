@@ -110,6 +110,12 @@ Requires the [Rust toolchain](https://rustup.rs/).
 cd tools/gensfen && cargo build --release
 ```
 
+The release profile enables LTO and `target-cpu=native` (see `tools/gensfen/.cargo/config.toml`) for ~20% faster NNUE inference. The resulting binary is **non-portable** — only run it on a machine with at least the same CPU feature set as the build host. For portable CI builds:
+
+```bash
+RUSTFLAGS="" cargo build --release
+```
+
 ### Running gensfen
 
 ```bash
@@ -127,6 +133,21 @@ cd tools/gensfen && cargo build --release
 | `--model` | (none) | Path to `.nnue` model file for NNUE-powered self-play. |
 
 Without `--model`, gensfen uses the built-in PST evaluator (material + piece-square tables). With `--model`, it uses the trained NNUE for stronger self-play, producing higher-quality training data.
+
+#### Picking a Depth
+
+`gensfen` runtime grows roughly 5× per extra ply at NNUE inference cost. A position is only written *after the whole game it belongs to finishes*, so the per-game wall time below is also the time before any output appears.
+
+Indicative numbers on a 6-core CPU (LTO + native build, `--threads 8`, NNUE evaluator):
+
+| `--depth` | Per-game wall time | 100k-position ETA |
+|-----------|-------------------:|------------------:|
+| 3         | ~3 min             | ~3-4 hours        |
+| 4         | ~30 min            | overnight (~15-20 h) |
+| 5         | ~3 hours           | ~3-4 days         |
+| 6         | ~15 hours          | weeks             |
+
+For limited-resource setups, see ["Limited Resources / Constrained Search Depth"](doc/Model_Training_Reference.md#0-limited-resources--constrained-search-depth) in the training reference — iterating at depth 4-5 typically beats a single shot at depth 6+.
 
 ### Output Format
 
