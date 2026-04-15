@@ -1,9 +1,9 @@
-"""Tests for shogi_dojo.model — FeatureTransformer and NnueNetwork."""
+"""Tests for shogi_dojo.nnue.model — FeatureTransformer and NnueNetwork."""
 
 import torch
 
-from shogi_dojo.constants import FEATURE_TRANSFORMER_INPUT_DIM
-from shogi_dojo.model import FeatureTransformer, NnueNetwork
+from shogi_dojo.nnue.constants import FEATURE_TRANSFORMER_INPUT_DIM
+from shogi_dojo.nnue.model import FeatureTransformer, NnueNetwork
 
 
 # ---------------------------------------------------------------------------

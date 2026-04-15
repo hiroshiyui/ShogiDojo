@@ -3,30 +3,31 @@
 
 Usage:
     # Start training from scratch with default config:
-    python train.py
+    python train_nnue.py
 
     # Use a custom config file:
-    python train.py --config configs/my_config.yaml
+    python train_nnue.py --config configs/nnue/my_config.yaml
 
     # Resume training from a checkpoint:
-    python train.py --resume checkpoints/epoch_0050.pt
+    python train_nnue.py --resume checkpoints/epoch_0050.pt
 
 Before running, make sure your training data is placed in the data/ directory
-(or wherever your config points to). See dataset.py for the expected format.
+(or wherever your config points to). See src/shogi_dojo/nnue/dataset.py for the
+expected format.
 """
 
 import argparse
 import logging
 import yaml
 
-from shogi_dojo.trainer import Trainer
+from shogi_dojo.nnue.trainer import Trainer
 
 
 def main():
     parser = argparse.ArgumentParser(description="ShogiDojo NNUE Trainer")
     parser.add_argument(
-        "--config", type=str, default="configs/default.yaml",
-        help="Path to training config YAML (default: configs/default.yaml)",
+        "--config", type=str, default="configs/nnue/default.yaml",
+        help="Path to training config YAML (default: configs/nnue/default.yaml)",
     )
     parser.add_argument(
         "--resume", type=str, default=None,

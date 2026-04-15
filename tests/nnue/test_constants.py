@@ -1,6 +1,6 @@
-"""Tests for shogi_dojo.constants — board geometry helpers."""
+"""Tests for shogi_dojo.nnue.constants — board geometry helpers."""
 
-from shogi_dojo.constants import (
+from shogi_dojo.nnue.constants import (
     NUM_FILES,
     NUM_SQUARES,
     king_square_to_bucket,

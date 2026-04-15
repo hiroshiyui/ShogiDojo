@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: tools/gensfen
+        working-directory: tools/nnue/gensfen
     steps:
       - uses: actions/checkout@v4
 
@@ -42,7 +42,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: tools/gensfen
+          workspaces: tools/nnue/gensfen
 
       - name: Check formatting
         run: cargo fmt --check

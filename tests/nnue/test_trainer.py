@@ -1,11 +1,11 @@
-"""Tests for shogi_dojo.trainer — loss functions, Trainer init, and checkpointing."""
+"""Tests for shogi_dojo.nnue.trainer — loss functions, Trainer init, and checkpointing."""
 
 import os
 import tempfile
 
 import torch
 
-from shogi_dojo.trainer import Trainer, result_loss, sigmoid_loss
+from shogi_dojo.nnue.trainer import Trainer, result_loss, sigmoid_loss
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-"""Tests for scripts/export_nnue_quantized.py — quantized NNUE export."""
+"""Tests for scripts/nnue/export_nnue_quantized.py — quantized NNUE export."""
 
 import struct
 import tempfile
@@ -9,7 +9,7 @@ import torch
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts" / "nnue"))
 from export_nnue_quantized import (
     FT_SCALE,
     MAGIC,
@@ -22,7 +22,7 @@ from export_nnue_quantized import (
     quantize_weight_i8,
 )
 
-from shogi_dojo.model import NnueNetwork
+from shogi_dojo.nnue.model import NnueNetwork
 
 
 # ---------------------------------------------------------------------------

@@ -6,6 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Shogi Dojo is the repository for the Computer Shogi Studies Research Group. It contains resources for studying and experimenting with NNUE (Efficiently Updatable Neural Network) evaluation in Shogi, including a HalfKAv2 training implementation (~5M parameters) built with PyTorch. The team is junior in computer Shogi — code and comments should be thorough and beginner-friendly.
 
+## Repository Layout
+
+The repo is split by evaluation paradigm. NNUE assets live under `nnue/`
+subdirectories everywhere (`src/shogi_dojo/nnue/`, `configs/nnue/`,
+`scripts/nnue/`, `tests/nnue/`, `doc/nnue/`, `tools/nnue/gensfen/`). When
+AlphaZero-style work is added, it will mirror this layout under `alphazero/`
+subdirectories. Top-level entry points are paradigm-prefixed
+(`train_nnue.py`, future `train_alphazero.py`).
+
 ## Commands
 
 ```bash
@@ -14,15 +23,15 @@ source virtualenv/bin/activate
 pip install -e .
 
 # Training
-python train.py                                    # default config
-python train.py --config configs/my_config.yaml    # custom config
-python train.py --resume checkpoints/epoch_0050.pt # resume from checkpoint
+python train_nnue.py                                       # default config
+python train_nnue.py --config configs/nnue/my_config.yaml  # custom config
+python train_nnue.py --resume checkpoints/epoch_0050.pt    # resume from checkpoint
 
 # Build the Rust gensfen tool for training data generation
-cd tools/gensfen && cargo build --release && cd ../..
+cd tools/nnue/gensfen && cargo build --release && cd ../../..
 
 # Generate training data (self-play)
-./tools/gensfen/target/release/gensfen --depth 4 --threads 4 --positions 100000 --output data/train.sfen
+./tools/nnue/gensfen/target/release/gensfen --depth 4 --threads 4 --positions 100000 --output data/train.sfen
 
 # Tests and linting
 pip install -e ".[dev]"
@@ -32,16 +41,16 @@ ruff check .
 
 ## Architecture
 
-Data flows linearly: **constants → features → dataset → model → trainer → train.py**
+Data flows linearly inside the NNUE package: **constants → features → dataset → model → trainer → train_nnue.py**
 
-- `constants.py` — Shogi piece types, board geometry, and HalfKAv2 feature dimensions. Defines the 19,638-dimensional sparse input space (9 king buckets x 2,182 features per perspective).
-- `features.py` — SFEN text parsing and sparse feature index computation. Produces two sets of ~40 active indices (out of 19,638) per position: one per perspective.
-- `dataset.py` — Streaming `IterableDataset` for large SFEN files. Custom `collate_fn` pads variable-length index tensors.
-- `model.py` — `FeatureTransformer` (sparse lookup + sum, ~5M params) and `NnueNetwork` (3-layer eval net, ~18K params). Uses ClippedReLU throughout.
-- `trainer.py` — Training loop with dual loss (score + result), best-model tracking, early stopping, LR scheduling, gradient clipping, and checkpointing.
-- `train.py` — CLI entry point.
-- `configs/default.yaml` — All hyperparameters. Fully commented.
-- `tools/gensfen/` — Rust tool for training data generation via self-play. Uses shogi-rs for board/move generation, alpha-beta search with material eval, outputs text SFEN directly.
+- `src/shogi_dojo/nnue/constants.py` — Shogi piece types, board geometry, and HalfKAv2 feature dimensions. Defines the 19,638-dimensional sparse input space (9 king buckets x 2,182 features per perspective).
+- `src/shogi_dojo/nnue/features.py` — SFEN text parsing and sparse feature index computation. Produces two sets of ~40 active indices (out of 19,638) per position: one per perspective.
+- `src/shogi_dojo/nnue/dataset.py` — Streaming `IterableDataset` for large SFEN files. Custom `collate_fn` pads variable-length index tensors.
+- `src/shogi_dojo/nnue/model.py` — `FeatureTransformer` (sparse lookup + sum, ~5M params) and `NnueNetwork` (3-layer eval net, ~18K params). Uses ClippedReLU throughout.
+- `src/shogi_dojo/nnue/trainer.py` — Training loop with dual loss (score + result), best-model tracking, early stopping, LR scheduling, gradient clipping, and checkpointing.
+- `train_nnue.py` — CLI entry point at the repository root.
+- `configs/nnue/default.yaml` — All hyperparameters. Fully commented.
+- `tools/nnue/gensfen/` — Rust tool for training data generation via self-play. Uses shogi-rs for board/move generation, alpha-beta search with material eval, outputs text SFEN directly.
 
 ## Testing Policy
 

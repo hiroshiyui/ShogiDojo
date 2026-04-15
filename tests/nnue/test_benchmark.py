@@ -1,14 +1,14 @@
-"""Tests for scripts/benchmark.py — NNUE model benchmarking."""
+"""Tests for scripts/nnue/benchmark.py — NNUE model benchmarking."""
 
 import torch
 
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts" / "nnue"))
 from benchmark import benchmark_inference, benchmark_training_step, make_dummy_batch, model_stats
 
-from shogi_dojo.model import NnueNetwork
+from shogi_dojo.nnue.model import NnueNetwork
 
 
 class TestModelStats:

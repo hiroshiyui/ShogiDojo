@@ -3,7 +3,7 @@
 
 Automates the self-improvement cycle:
   1. Generate training data via self-play (gensfen)
-  2. Train the NNUE model (train.py)
+  2. Train the NNUE model (train_nnue.py)
   3. Export the trained weights to binary format (export_nnue.py)
   4. Repeat with the stronger NNUE model driving the next round of self-play
 
@@ -13,9 +13,9 @@ uses the built-in PST (material + piece-square table) evaluator since no
 trained model exists yet.
 
 Usage:
-    python scripts/train_loop.py --iterations 3 --positions 100000
-    python scripts/train_loop.py --iterations 5 --positions 500000 --depth 5
-    python scripts/train_loop.py --resume-from 2  # resume from iteration 2
+    python scripts/nnue/train_loop.py --iterations 3 --positions 100000
+    python scripts/nnue/train_loop.py --iterations 5 --positions 500000 --depth 5
+    python scripts/nnue/train_loop.py --resume-from 2  # resume from iteration 2
 
 All intermediate data, checkpoints, and models are saved under a timestamped
 output directory (e.g., loop_output/20260413_143000/) so that multiple runs
@@ -39,12 +39,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Project root (one level up from scripts/)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-GENSFEN_BIN = PROJECT_ROOT / "tools" / "gensfen" / "target" / "release" / "gensfen"
-TRAIN_SCRIPT = PROJECT_ROOT / "train.py"
-EXPORT_SCRIPT = PROJECT_ROOT / "scripts" / "export_nnue.py"
-DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "default.yaml"
+# Project root (this file lives at scripts/nnue/train_loop.py, so the root
+# is three parents up).
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+GENSFEN_BIN = PROJECT_ROOT / "tools" / "nnue" / "gensfen" / "target" / "release" / "gensfen"
+TRAIN_SCRIPT = PROJECT_ROOT / "train_nnue.py"
+EXPORT_SCRIPT = PROJECT_ROOT / "scripts" / "nnue" / "export_nnue.py"
+DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "nnue" / "default.yaml"
 
 
 def parse_args() -> argparse.Namespace:
@@ -75,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--config", type=str, default=str(DEFAULT_CONFIG),
-        help="Training config YAML (default: configs/default.yaml).",
+        help="Training config YAML (default: configs/nnue/default.yaml).",
     )
     parser.add_argument(
         "--output-dir", type=str, default=None,

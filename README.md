@@ -8,42 +8,53 @@ This repository provides a **HalfKAv2** training implementation built with PyTor
 
 NNUE is a neural network architecture designed for fast board-game evaluation. It was originally invented for Shogi by Yu Nasu in 2018. The key insight: instead of evaluating the entire board from scratch every time, NNUE uses an "accumulator" that can be **incrementally updated** when a single piece moves, making it fast enough for real-time game-tree search (millions of evaluations per second).
 
-For a deeper dive into the architecture, see [doc/NNUE_Reference.md](doc/NNUE_Reference.md).
-For training concepts, see [doc/Model_Training_Reference.md](doc/Model_Training_Reference.md).
+For a deeper dive into the architecture, see [doc/nnue/NNUE_Reference.md](doc/nnue/NNUE_Reference.md).
+For training concepts, see [doc/nnue/Model_Training_Reference.md](doc/nnue/Model_Training_Reference.md).
 
 ## Project Structure
 
+The repository is organized so that each evaluation paradigm (currently NNUE,
+with AlphaZero-style work planned) lives under its own `nnue/` / `alphazero/`
+subdirectory. Code, configs, scripts, tests, docs, and Rust tooling all follow
+the same split.
+
 ```
 ShogiDojo/
-├── train.py                     # CLI entry point for training
+├── train_nnue.py                # CLI entry point for NNUE training
 ├── pyproject.toml               # Project metadata and dependencies
 ├── configs/
-│   ├── default.yaml             # Default training hyperparameters (~5M params)
-│   ├── small.yaml               # Small model for quick experiments (~640K params)
-│   └── large.yaml               # Large model for maximum strength (~20M params)
+│   └── nnue/
+│       ├── default.yaml         # Default training hyperparameters (~5M params)
+│       ├── small.yaml           # Small model for quick experiments (~640K params)
+│       └── large.yaml           # Large model for maximum strength (~20M params)
 ├── data/                        # Place training data here (.sfen files)
 ├── src/shogi_dojo/
-│   ├── constants.py             # Board, piece, and feature-space constants
-│   ├── features.py              # SFEN parsing and HalfKAv2 feature extraction
-│   ├── model.py                 # Neural network (FeatureTransformer + eval net)
-│   ├── dataset.py               # Streaming data loader for SFEN files
-│   └── trainer.py               # Training loop, loss functions, checkpointing, TensorBoard
+│   └── nnue/
+│       ├── constants.py         # Board, piece, and feature-space constants
+│       ├── features.py          # SFEN parsing and HalfKAv2 feature extraction
+│       ├── model.py             # Neural network (FeatureTransformer + eval net)
+│       ├── dataset.py           # Streaming data loader for SFEN files
+│       └── trainer.py           # Training loop, loss functions, checkpointing, TensorBoard
 ├── scripts/
-│   ├── export_nnue.py           # Export trained model to binary NNUE (float32)
-│   ├── export_nnue_quantized.py # Export quantized NNUE (int8/int16)
-│   ├── train_loop.py            # Iterative training loop orchestration
-│   ├── validate_sfen.py         # Training data validation and statistics
-│   └── benchmark.py             # Inference and training throughput benchmarks
-├── tests/                       # Python test suite (pytest)
+│   └── nnue/
+│       ├── export_nnue.py           # Export trained model to binary NNUE (float32)
+│       ├── export_nnue_quantized.py # Export quantized NNUE (int8/int16)
+│       ├── train_loop.py            # Iterative training loop orchestration
+│       ├── validate_sfen.py         # Training data validation and statistics
+│       └── benchmark.py             # Inference and training throughput benchmarks
+├── tests/
+│   └── nnue/                    # Python test suite (pytest)
 ├── tools/
-│   └── gensfen/                 # Rust tool: training data generation + model evaluation
-│       ├── src/main.rs          # gensfen binary (data generation)
-│       └── src/bin/eval_match.rs # eval_match binary (model strength evaluation)
+│   └── nnue/
+│       └── gensfen/             # Rust tool: training data generation + model evaluation
+│           ├── src/main.rs           # gensfen binary (data generation)
+│           └── src/bin/eval_match.rs # eval_match binary (model strength evaluation)
 ├── .github/workflows/ci.yml    # CI: Python (ruff + pytest) and Rust (fmt + clippy + test)
 ├── doc/
-│   ├── NNUE_Reference.md        # Architecture deep-dive
-│   ├── Model_Training_Reference.md # Training concepts and techniques
-│   └── TODO.md                  # Project roadmap
+│   ├── nnue/
+│   │   ├── NNUE_Reference.md           # Architecture deep-dive
+│   │   └── Model_Training_Reference.md # Training concepts and techniques
+│   └── TODO.md                  # Project roadmap (shared across paradigms)
 └── virtualenv/                  # Python virtual environment
 ```
 
@@ -72,18 +83,18 @@ pip install -e ".[viz]"     # tensorboard
 
 ```bash
 # 1. Build the Rust tools
-cd tools/gensfen && cargo build --release && cd ../..
+cd tools/nnue/gensfen && cargo build --release && cd ../../..
 
 # 2. Generate training data (~100K positions via self-play)
 mkdir -p data
-./tools/gensfen/target/release/gensfen \
+./tools/nnue/gensfen/target/release/gensfen \
     --depth 4 --threads 4 --positions 100000 --output data/train.sfen
 
 # 3. Train the NNUE model
-python train.py
+python train_nnue.py
 
 # 4. Export the trained model
-python scripts/export_nnue.py checkpoints/best_model.pt model.nnue
+python scripts/nnue/export_nnue.py checkpoints/best_model.pt model.nnue
 ```
 
 ### Iterative Training Loop
@@ -91,26 +102,26 @@ python scripts/export_nnue.py checkpoints/best_model.pt model.nnue
 For stronger models, use the automated iterative loop — each iteration generates better data using the previously trained model:
 
 ```bash
-python scripts/train_loop.py --iterations 3 --positions 100000
+python scripts/nnue/train_loop.py --iterations 3 --positions 100000
 ```
 
 This runs: gensfen (PST eval) -> train -> export -> gensfen (NNUE eval) -> train -> export -> ...
 
-See `python scripts/train_loop.py --help` for all options.
+See `python scripts/nnue/train_loop.py --help` for all options.
 
 ## Generating Training Data
 
-Training data is generated by the `gensfen` tool (`tools/gensfen/`), a Rust program that plays Shogi games against itself and records positions.
+Training data is generated by the `gensfen` tool (`tools/nnue/gensfen/`), a Rust program that plays Shogi games against itself and records positions.
 
 ### Building gensfen
 
 Requires the [Rust toolchain](https://rustup.rs/).
 
 ```bash
-cd tools/gensfen && cargo build --release
+cd tools/nnue/gensfen && cargo build --release
 ```
 
-The release profile enables LTO and `target-cpu=native` (see `tools/gensfen/.cargo/config.toml`) for ~20% faster NNUE inference. The resulting binary is **non-portable** — only run it on a machine with at least the same CPU feature set as the build host. For portable CI builds:
+The release profile enables LTO and `target-cpu=native` (see `tools/nnue/gensfen/.cargo/config.toml`) for ~20% faster NNUE inference. The resulting binary is **non-portable** — only run it on a machine with at least the same CPU feature set as the build host. For portable CI builds:
 
 ```bash
 RUSTFLAGS="" cargo build --release
@@ -119,7 +130,7 @@ RUSTFLAGS="" cargo build --release
 ### Running gensfen
 
 ```bash
-./tools/gensfen/target/release/gensfen \
+./tools/nnue/gensfen/target/release/gensfen \
     --depth 4 --threads 4 --positions 1000000 --output data/train.sfen
 ```
 
@@ -147,7 +158,7 @@ Indicative numbers on a 6-core CPU (LTO + native build, `--threads 8`, NNUE eval
 | 5         | ~3 hours           | ~3-4 days         |
 | 6         | ~15 hours          | weeks             |
 
-For limited-resource setups, see ["Limited Resources / Constrained Search Depth"](doc/Model_Training_Reference.md#0-limited-resources--constrained-search-depth) in the training reference — iterating at depth 4-5 typically beats a single shot at depth 6+.
+For limited-resource setups, see ["Limited Resources / Constrained Search Depth"](doc/nnue/Model_Training_Reference.md#0-limited-resources--constrained-search-depth) in the training reference — iterating at depth 4-5 typically beats a single shot at depth 6+.
 
 ### Output Format
 
@@ -169,8 +180,8 @@ sfen <board> <side> <hand> <move#>\t<score>\t<result>
 ### Validating Training Data
 
 ```bash
-python scripts/validate_sfen.py data/train.sfen
-python scripts/validate_sfen.py data/*.sfen --check-duplicates --summary
+python scripts/nnue/validate_sfen.py data/train.sfen
+python scripts/nnue/validate_sfen.py data/*.sfen --check-duplicates --summary
 ```
 
 Reports malformed lines, score distribution, result balance (W/D/L), and duplicates.
@@ -193,16 +204,16 @@ data/
 
 ```bash
 # Train with default configuration (~5M params)
-python train.py
+python train_nnue.py
 
 # Use a smaller model for quick experiments (~640K params)
-python train.py --config configs/small.yaml
+python train_nnue.py --config configs/nnue/small.yaml
 
 # Use a larger model for maximum strength (~20M params)
-python train.py --config configs/large.yaml
+python train_nnue.py --config configs/nnue/large.yaml
 
 # Resume from a checkpoint
-python train.py --resume checkpoints/epoch_0050.pt
+python train_nnue.py --resume checkpoints/epoch_0050.pt
 ```
 
 Training logs are printed to the terminal. If `log_dir` is set in the config (default: `runs`), metrics are also logged to TensorBoard:
@@ -218,13 +229,13 @@ Checkpoints are saved to `checkpoints/` every 10 epochs (configurable). The best
 ### Float32 Export (for gensfen iterative training)
 
 ```bash
-python scripts/export_nnue.py checkpoints/best_model.pt model.nnue
+python scripts/nnue/export_nnue.py checkpoints/best_model.pt model.nnue
 ```
 
 ### Quantized Export (for game engine integration)
 
 ```bash
-python scripts/export_nnue_quantized.py checkpoints/best_model.pt model_q.nnue
+python scripts/nnue/export_nnue_quantized.py checkpoints/best_model.pt model_q.nnue
 ```
 
 Exports int16 (Feature Transformer, scale=127) and int8 (hidden layers, scale=64) weights following the [Stockfish NNUE convention](https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html).
@@ -235,14 +246,14 @@ The `eval_match` tool plays games between two models and reports win rates and E
 
 ```bash
 # Build
-cd tools/gensfen && cargo build --release && cd ../..
+cd tools/nnue/gensfen && cargo build --release && cd ../../..
 
 # Model vs. PST baseline
-./tools/gensfen/target/release/eval_match \
+./tools/nnue/gensfen/target/release/eval_match \
     --model-a model.nnue --games 100 --depth 4
 
 # Model vs. model
-./tools/gensfen/target/release/eval_match \
+./tools/nnue/gensfen/target/release/eval_match \
     --model-a model_v2.nnue --model-b model_v1.nnue --games 200 --depth 4
 ```
 
@@ -251,8 +262,8 @@ Games are played in color-swapped pairs for fairness. Output includes win/loss/d
 ## Benchmarking
 
 ```bash
-python scripts/benchmark.py
-python scripts/benchmark.py --config configs/small.yaml --device cpu
+python scripts/nnue/benchmark.py
+python scripts/nnue/benchmark.py --config configs/nnue/small.yaml --device cpu
 ```
 
 Measures inference speed (positions/sec), training throughput (samples/sec), parameter count, and GPU memory usage.
@@ -263,9 +274,9 @@ All hyperparameters are set in YAML config files. Three variants are provided:
 
 | Config | Parameters | Use Case |
 |--------|-----------|----------|
-| `configs/default.yaml` | ~5M | Standard training |
-| `configs/small.yaml` | ~640K | Quick experiments, debugging |
-| `configs/large.yaml` | ~20M | Maximum strength |
+| `configs/nnue/default.yaml` | ~5M | Standard training |
+| `configs/nnue/small.yaml` | ~640K | Quick experiments, debugging |
+| `configs/nnue/large.yaml` | ~20M | Maximum strength |
 
 Key options in the default config:
 
@@ -290,7 +301,7 @@ training:
   log_dir: "runs"        # TensorBoard log directory
 ```
 
-See `configs/default.yaml` for the full list with detailed comments.
+See `configs/nnue/default.yaml` for the full list with detailed comments.
 
 ## Model Architecture
 
@@ -316,7 +327,7 @@ Linear 32 -> 1  ->  Evaluation Score
 - **NSTM** = Not-Side-To-Move (the opponent)
 - **ClippedReLU** = `clamp(x, 0, 1)` — bounded activations for quantization compatibility
 
-For a full explanation of HalfKAv2, king buckets, feature encoding, and loss functions, see [doc/NNUE_Reference.md](doc/NNUE_Reference.md).
+For a full explanation of HalfKAv2, king buckets, feature encoding, and loss functions, see [doc/nnue/NNUE_Reference.md](doc/nnue/NNUE_Reference.md).
 
 ## Disk Space Requirements
 
@@ -342,7 +353,7 @@ pytest tests/ -v
 ruff check .
 
 # Rust tests
-cd tools/gensfen
+cd tools/nnue/gensfen
 cargo test
 cargo clippy -- -D warnings
 ```

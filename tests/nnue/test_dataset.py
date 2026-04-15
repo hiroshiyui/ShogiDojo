@@ -1,11 +1,11 @@
-"""Tests for shogi_dojo.dataset — training data parsing and batch collation."""
+"""Tests for shogi_dojo.nnue.dataset — training data parsing and batch collation."""
 
 import tempfile
 import os
 
 import torch
 
-from shogi_dojo.dataset import SfenDataset, collate_fn
+from shogi_dojo.nnue.dataset import SfenDataset, collate_fn
 
 
 # A valid training data line (starting position, score=100cp, result=1.0 win).

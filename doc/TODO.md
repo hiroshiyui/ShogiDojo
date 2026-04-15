@@ -21,7 +21,7 @@ None blocks training, but fixing them would improve data fidelity:
 
 ## Completed
 
-### Rust gensfen Tool — `tools/gensfen/`
+### Rust gensfen Tool — `tools/nnue/gensfen/`
 
 Standalone Rust tool for NNUE training data generation via self-play.
 Alpha-beta search with iterative deepening, PST and NNUE evaluation,
@@ -32,7 +32,7 @@ opening randomization, multi-threaded generation (rayon), text SFEN output.
 GitHub Actions on every push/PR to `main`:
 Python (ruff + pytest) and Rust (fmt + clippy + test).
 
-### End-to-End Orchestration Script — `scripts/train_loop.py`
+### End-to-End Orchestration Script — `scripts/nnue/train_loop.py`
 
 Automates the iterative self-improvement loop:
 gensfen -> train -> export -> regenerate with NNUE eval.
@@ -43,17 +43,17 @@ Configurable iterations, positions, depth, train/val split, resume support.
 Plays games between two NNUE models (or model vs. PST baseline) with
 color swapping for fairness. Reports win/loss/draw and estimated Elo difference.
 
-### Data Validation Utilities — `scripts/validate_sfen.py`
+### Data Validation Utilities — `scripts/nnue/validate_sfen.py`
 
 Validates SFEN training data: malformed line detection, score distribution
 histogram, result balance (W/D/L), duplicate detection, multi-file summary.
 
-### NNUE Quantization Export — `scripts/export_nnue_quantized.py`
+### NNUE Quantization Export — `scripts/nnue/export_nnue_quantized.py`
 
 Exports int16 (FT, scale=127) and int8 (hidden layers, scale=64) quantized
 weights following the Stockfish NNUE convention. ~2x smaller than float32.
 
-### Experiment Config Variants — `configs/small.yaml`, `configs/large.yaml`
+### Experiment Config Variants — `configs/nnue/small.yaml`, `configs/nnue/large.yaml`
 
 Small (~640K params, ft_out_dim=64) for quick experiments.
 Large (~20M params, ft_out_dim=512) for maximum strength.
@@ -63,7 +63,7 @@ Large (~20M params, ft_out_dim=512) for maximum strength.
 Logs train/val loss and learning rate per epoch. Enabled when `log_dir` is
 set in config. Install with `pip install -e ".[viz]"`.
 
-### Benchmarking Suite — `scripts/benchmark.py`
+### Benchmarking Suite — `scripts/nnue/benchmark.py`
 
 Measures inference speed (positions/sec), training throughput (samples/sec),
 model parameter count, and GPU memory usage.

@@ -1,6 +1,6 @@
 # Model Training Reference
 
-This document explains key concepts behind NNUE training in ShogiDojo. For architecture details (HalfKAv2 encoding, network diagram, parameter counts), see [`doc/NNUE_Reference.md`](NNUE_Reference.md). For hyperparameter descriptions, see [`configs/default.yaml`](../configs/default.yaml).
+This document explains key concepts behind NNUE training in ShogiDojo. For architecture details (HalfKAv2 encoding, network diagram, parameter counts), see [`doc/nnue/NNUE_Reference.md`](NNUE_Reference.md). For hyperparameter descriptions, see [`configs/nnue/default.yaml`](../../configs/nnue/default.yaml).
 
 See also: [Stockfish NNUE PyTorch Wiki](https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html) — comprehensive reference on NNUE architecture, quantization, and training techniques. Written for chess but the core concepts apply directly to Shogi.
 
@@ -18,14 +18,14 @@ The full data flow ensures color-agnostic training through four stages:
 
 #### 1. Training Data Is Already STM-Relative
 
-In `gensfen` (`tools/gensfen/src/types.rs`), both the search score and game result are recorded from the **side-to-move's perspective**:
+In `gensfen` (`tools/nnue/gensfen/src/types.rs`), both the search score and game result are recorded from the **side-to-move's perspective**:
 
 - **Score**: positive = good for whoever is about to move
 - **Result**: 1.0 = the side-to-move won, 0.5 = draw, 0.0 = the side-to-move lost
 
 #### 2. Feature Extraction Normalizes Perspectives Automatically
 
-`sfen_to_features()` in `src/shogi_dojo/features.py` checks who the side-to-move is and returns indices accordingly:
+`sfen_to_features()` in `src/shogi_dojo/nnue/features.py` checks who the side-to-move is and returns indices accordingly:
 
 ```python
 if side_to_move == BLACK:
@@ -38,7 +38,7 @@ So `stm_indices` always means "the current player's view" and `nstm_indices` alw
 
 #### 3. The Model Sees a Color-Agnostic Input
 
-`FeatureTransformer.forward_dense()` in `src/shogi_dojo/model.py` concatenates:
+`FeatureTransformer.forward_dense()` in `src/shogi_dojo/nnue/model.py` concatenates:
 
 ```
 [STM_features (256-dim) || NSTM_features (256-dim)] -> 512-dim
@@ -48,7 +48,7 @@ The network always interprets the first 256 dims as "my pieces" and the second 2
 
 #### 4. Training Targets Match This Convention
 
-In `src/shogi_dojo/trainer.py`, the loss functions compare the model output directly against the STM-relative score and result. No flipping is needed.
+In `src/shogi_dojo/nnue/trainer.py`, the loss functions compare the model output directly against the STM-relative score and result. No flipping is needed.
 
 ### Why This Design Works
 
@@ -185,7 +185,7 @@ Whenever the tracked loss (validation if available, else training) reaches a new
 ### Resuming from Checkpoint
 
 ```bash
-python train.py --resume checkpoints/epoch_0050.pt
+python train_nnue.py --resume checkpoints/epoch_0050.pt
 ```
 
 This restores the model weights, optimizer state, and best-loss tracking. Training continues from the saved epoch.
@@ -248,7 +248,7 @@ The companion tool `eval_match` (built alongside `gensfen`) plays a configurable
 ### Baseline Comparison: Model vs. PST
 
 ```bash
-./tools/gensfen/target/release/eval_match \
+./tools/nnue/gensfen/target/release/eval_match \
     --model-a checkpoints/model_v1.nnue \
     --games 200 --depth 4
 ```
@@ -258,7 +258,7 @@ Omitting `--model-b` makes Model A play against the built-in PST evaluator. This
 ### Regression Comparison: Model vs. Model
 
 ```bash
-./tools/gensfen/target/release/eval_match \
+./tools/nnue/gensfen/target/release/eval_match \
     --model-a model_v1.nnue --model-b model_v2.nnue \
     --games 200 --depth 4
 ```
@@ -283,7 +283,7 @@ When a trained model underperforms or you want to push it further, attack these 
 
 ### 0. Limited Resources / Constrained Search Depth
 
-If you cannot run gensfen at depth 6+ (e.g. on a 6-core CPU at depth 6 a single self-play game takes ~15 hours, putting 100k positions into "weeks" territory — see [`gensfen`'s search and accumulator design](../tools/gensfen/src/nnue.rs) for why), do **not** simply train on whatever shallow data you happen to have. Instead, lean harder on the levers below. The compound effect of iterating + tuning at depth 5 typically beats one shot at depth 7.
+If you cannot run gensfen at depth 6+ (e.g. on a 6-core CPU at depth 6 a single self-play game takes ~15 hours, putting 100k positions into "weeks" territory — see [`gensfen`'s search and accumulator design](../../tools/nnue/gensfen/src/nnue.rs) for why), do **not** simply train on whatever shallow data you happen to have. Instead, lean harder on the levers below. The compound effect of iterating + tuning at depth 5 typically beats one shot at depth 7.
 
 Realistic per-game wall times on a 6-core CPU (LTO + native build, NNUE evaluator):
 
@@ -303,7 +303,7 @@ Recommended recipe when stuck at depth ≤ 5:
    lambda_score: 0.7      # was 1.0 — depth-5 scores are noisier
    lambda_result: 0.8     # was 0.5 — final outcomes are more reliable
    ```
-4. **Switch to `configs/small.yaml`** until you have ≥10M positions. The default 5M-parameter model overfits on small datasets; the ~640K small model fits the available signal better. Switch back to default once data is plentiful.
+4. **Switch to `configs/nnue/small.yaml`** until you have ≥10M positions. The default 5M-parameter model overfits on small datasets; the ~640K small model fits the available signal better. Switch back to default once data is plentiful.
 5. **Filter junk positions**: drop any line with `|score| > 1500` from the training file. Already-decided positions teach "this is winning, duh" and burn capacity that should be learning the close decisions.
 6. **Bump opening diversity**: `--random-moves 12 → 16` and run multiple seeded gensfen batches (different `thread_id` seed in `main.rs`, or just split positions across sequential runs with different seeds).
 7. **Validate every iteration with `eval_match` against the previous one** (200+ games). If iter N+1 doesn't beat iter N by ≥+30 Elo, stop iterating — you've plateaued and further iterations waste compute.

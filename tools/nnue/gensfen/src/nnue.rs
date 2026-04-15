@@ -25,8 +25,8 @@
 //!
 //! The feature extraction MUST match the Python implementation exactly,
 //! otherwise the trained weights will produce garbage. Key reference files:
-//!   - `src/shogi_dojo/constants.py` — dimensions, piece type IDs
-//!   - `src/shogi_dojo/features.py` — index computation logic
+//!   - `src/shogi_dojo/nnue/constants.py` — dimensions, piece type IDs
+//!   - `src/shogi_dojo/nnue/features.py` — index computation logic
 
 use std::fs::File;
 use std::io::Read;
@@ -187,7 +187,7 @@ impl NnueModel {
         self.ft_out_dim
     }
 
-    /// Load a model from a binary file exported by `scripts/export_nnue.py`.
+    /// Load a model from a binary file exported by `scripts/nnue/export_nnue.py`.
     pub fn load(path: &Path) -> Result<Self, String> {
         let mut file =
             File::open(path).map_err(|e| format!("Failed to open {}: {}", path.display(), e))?;

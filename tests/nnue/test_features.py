@@ -1,8 +1,8 @@
-"""Tests for shogi_dojo.features — SFEN parsing and HalfKAv2 feature extraction."""
+"""Tests for shogi_dojo.nnue.features — SFEN parsing and HalfKAv2 feature extraction."""
 
 import pytest
 
-from shogi_dojo.constants import (
+from shogi_dojo.nnue.constants import (
     BLACK,
     DRAGON,
     FEATURE_TRANSFORMER_INPUT_DIM,
@@ -12,7 +12,7 @@ from shogi_dojo.constants import (
     PAWN,
     WHITE,
 )
-from shogi_dojo.features import _flip_square, parse_sfen, sfen_to_features
+from shogi_dojo.nnue.features import _flip_square, parse_sfen, sfen_to_features
 
 # The standard Shogi starting position in SFEN.
 STARTPOS = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"

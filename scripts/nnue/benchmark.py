@@ -20,9 +20,9 @@ import time
 import torch
 import yaml
 
-from shogi_dojo.constants import FEATURE_TRANSFORMER_INPUT_DIM
-from shogi_dojo.model import NnueNetwork
-from shogi_dojo.trainer import sigmoid_loss
+from shogi_dojo.nnue.constants import FEATURE_TRANSFORMER_INPUT_DIM
+from shogi_dojo.nnue.model import NnueNetwork
+from shogi_dojo.nnue.trainer import sigmoid_loss
 
 
 def parse_args() -> argparse.Namespace:

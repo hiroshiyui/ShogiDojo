@@ -1,13 +1,13 @@
-"""Tests for scripts/validate_sfen.py — SFEN training data validation."""
+"""Tests for scripts/nnue/validate_sfen.py — SFEN training data validation."""
 
 import os
 import tempfile
 
-# Import from the script (add scripts/ to path).
+# Import from the script (add scripts/nnue/ to path).
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts" / "nnue"))
 from validate_sfen import validate_file, validate_line
 
 

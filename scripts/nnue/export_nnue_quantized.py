@@ -21,7 +21,7 @@ import sys
 import numpy as np
 import torch
 
-from shogi_dojo.model import NnueNetwork
+from shogi_dojo.nnue.model import NnueNetwork
 
 # Binary format identifiers.
 MAGIC = 0x4E4E5545  # "NNUE" in ASCII
