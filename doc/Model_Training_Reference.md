@@ -281,6 +281,33 @@ If two models are within ~30 Elo of each other, you need many games to be sure w
 
 When a trained model underperforms or you want to push it further, attack these levers in order. **Data quality dominates everything else early on** — do not tune hyperparameters or change architecture until data is no longer the bottleneck.
 
+### 0. Limited Resources / Constrained Search Depth
+
+If you cannot run gensfen at depth 6+ (e.g. on a 6-core CPU at depth 6 a single self-play game takes ~15 hours, putting 100k positions into "weeks" territory — see [`gensfen`'s search and accumulator design](../tools/gensfen/src/nnue.rs) for why), do **not** simply train on whatever shallow data you happen to have. Instead, lean harder on the levers below. The compound effect of iterating + tuning at depth 5 typically beats one shot at depth 7.
+
+Realistic per-game wall times on a 6-core CPU (LTO + native build, NNUE evaluator):
+
+| Depth | Per-game wall time | 100k-position ETA (8 threads) |
+|-------|-------------------:|------------------------------:|
+| 3     | ~3 min             | ~3-4 hours                    |
+| 4     | ~30 min            | overnight (~15-20 h)          |
+| 5     | ~3 hours           | ~3-4 days                     |
+| 6     | ~15 hours          | weeks                         |
+
+Recommended recipe when stuck at depth ≤ 5:
+
+1. **Iterate aggressively** (item 2 below). The teacher upgrade from PST → NNUE in iteration 2 is worth more than +2 plies of search depth in iteration 1.
+2. **Spread positions across iterations**: 5 × 200k beats 1 × 1M at the same total budget, because each iteration uses a stronger teacher than the last.
+3. **Trust the game result more than the engine score** when scores are noisy at low depth. In the YAML config:
+   ```yaml
+   lambda_score: 0.7      # was 1.0 — depth-5 scores are noisier
+   lambda_result: 0.8     # was 0.5 — final outcomes are more reliable
+   ```
+4. **Switch to `configs/small.yaml`** until you have ≥10M positions. The default 5M-parameter model overfits on small datasets; the ~640K small model fits the available signal better. Switch back to default once data is plentiful.
+5. **Filter junk positions**: drop any line with `|score| > 1500` from the training file. Already-decided positions teach "this is winning, duh" and burn capacity that should be learning the close decisions.
+6. **Bump opening diversity**: `--random-moves 12 → 16` and run multiple seeded gensfen batches (different `thread_id` seed in `main.rs`, or just split positions across sequential runs with different seeds).
+7. **Validate every iteration with `eval_match` against the previous one** (200+ games). If iter N+1 doesn't beat iter N by ≥+30 Elo, stop iterating — you've plateaued and further iterations waste compute.
+
 ### 1. More and Better Training Data (Biggest Lever)
 
 - **Quantity**: NNUE typically needs **100M–1B positions** to reach competitive strength. 100k positions is a sanity-check baseline; aim for at least 10M before judging the architecture.
