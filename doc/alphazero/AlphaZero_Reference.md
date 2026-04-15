@@ -647,6 +647,9 @@ ShogiDojo implementation.
 - [`doc/nnue/Model_Training_Reference.md`](../nnue/Model_Training_Reference.md)
   — training methodology for NNUE, useful for contrast with the
   AlphaZero training loop described in §8 above.
-- `doc/alphazero/AlphaZero_Training_Reference.md` (planned) — a deeper
-  treatment of training methodology, hyperparameter ranges, and
-  resource estimates, parallel to the NNUE training reference.
+- [`doc/alphazero/AlphaZero_Training_Reference.md`](AlphaZero_Training_Reference.md)
+  — deeper treatment of training methodology, replay-buffer dynamics,
+  hyperparameter ranges (Dirichlet noise, c_puct, temperature), the
+  training loop in detail, evaluation/promotion gating, distributed
+  self-play, resource estimates, common failure modes, and a side-by-side
+  comparison with NNUE training.

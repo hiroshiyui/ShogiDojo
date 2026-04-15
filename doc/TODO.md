@@ -17,12 +17,15 @@ Phased plan:
   covers history, architecture (ResNet + policy/value heads), Shogi input
   and move encoding, MCTS+PUCT, the self-play loop, the loss function,
   comparison with NNUE, glossary, and references.
-- **Phase 2.3 — Training reference** *(planned)*:
-  `doc/alphazero/AlphaZero_Training_Reference.md` will mirror
+- **Phase 2.3 — Training reference** *(done)*:
+  `doc/alphazero/AlphaZero_Training_Reference.md` mirrors
   `doc/nnue/Model_Training_Reference.md` — self-play methodology,
-  hyperparameter ranges (Dirichlet noise, temperature schedule, c_puct),
-  replay-buffer dynamics, distributed self-play overview, resource
-  estimates, common failure modes.
+  replay-buffer dynamics, loss decomposition, hyperparameter ranges
+  (Dirichlet noise, temperature schedule, c_puct, MCTS simulations),
+  the training loop step by step, evaluation/promotion gating,
+  distributed self-play architecture, resource estimates, common
+  failure modes, improvement strategy, side-by-side comparison with
+  NNUE training, and realistic expectations for the survey.
 - **Phase 2.4 — Encoding code + tests** *(planned)*:
   `src/shogi_dojo/alphazero/encoding.py` (board → input planes,
   move ↔ policy index) with round-trip tests under
