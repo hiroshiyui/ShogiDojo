@@ -41,10 +41,24 @@ Phased plan:
   (piece type IDs, board dimensions) are imported from
   `shogi_dojo.nnue.constants`; the SFEN parser is shared via a
   local import to avoid duplicating 200 lines.
-- **Phase 2.5 — Network code + tests** *(planned)*:
-  `src/shogi_dojo/alphazero/network.py` — small ResNet with policy and
-  value heads, sized for laptop training (configurable via
-  `configs/alphazero/tiny.yaml`).
+- **Phase 2.5 — Network code + tests** *(done)*:
+  `src/shogi_dojo/alphazero/network.py` implements `ResidualBlock`
+  and `AlphaZeroNetwork`: stem 3×3 conv (45 → F filters) → N
+  residual blocks (each BN + ReLU + skip) → policy head (1×1 conv
+  to 139 planes, raw logits) + value head (1×1 conv → flatten → FC →
+  tanh scalar). Defaults (`num_blocks=4`, `num_filters=64`,
+  `value_head_hidden=64`) give ~336K parameters — tiny by AlphaZero
+  standards but trainable on a single CPU. Helpers
+  `masked_log_softmax` (apply legal-move mask before softmax with
+  ``-1e9`` fill) and `alphazero_loss` (value-MSE + policy
+  cross-entropy with configurable term weights) round out the module.
+  Kaiming-normal init mirrors the NNUE code style. Tests under
+  `tests/alphazero/test_network.py` (19 tests) cover residual-block
+  shape preservation, identity-path representability, default
+  construction, parameter-count sanity, forward-pass shape/dtype/
+  value-range/finiteness under several batch sizes, train vs eval
+  BatchNorm behavior, gradient flow to every parameter, and the
+  mask/loss helpers.
 - **Phase 2.6 — MCTS code + tests** *(planned)*:
   `src/shogi_dojo/alphazero/mcts.py` — readable PUCT MCTS over fast.
   Tests cover invariants (visit-sum conservation, perspective sign-flip
