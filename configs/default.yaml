@@ -77,7 +77,10 @@ training:
   # Directory where model checkpoints are saved.
   checkpoint_dir: "checkpoints"
 
-  # Directory for TensorBoard logs (reserved for future use).
+  # Directory for TensorBoard logs. Set to "" (or remove) to disable.
+  # When set, per-epoch train/val loss and learning rate are logged.
+  # View with: tensorboard --logdir runs
+  # Requires: pip install -e ".[viz]"
   log_dir: "runs"
 
   # Save a checkpoint every N epochs (and always at the final epoch).

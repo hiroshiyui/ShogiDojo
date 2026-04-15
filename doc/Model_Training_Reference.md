@@ -1,6 +1,6 @@
 # Model Training Reference
 
-This document explains key concepts behind NNUE training in ShogiDojo. For architecture details, see `CLAUDE.md`. For hyperparameter descriptions, see `configs/default.yaml`.
+This document explains key concepts behind NNUE training in ShogiDojo. For architecture details (HalfKAv2 encoding, network diagram, parameter counts), see [`doc/NNUE_Reference.md`](NNUE_Reference.md). For hyperparameter descriptions, see [`configs/default.yaml`](../configs/default.yaml).
 
 See also: [Stockfish NNUE PyTorch Wiki](https://official-stockfish.github.io/docs/nnue-pytorch-wiki/docs/nnue.html) — comprehensive reference on NNUE architecture, quantization, and training techniques. Written for chess but the core concepts apply directly to Shogi.
 
@@ -285,7 +285,7 @@ When a trained model underperforms or you want to push it further, attack these 
 
 - **Quantity**: NNUE typically needs **100M–1B positions** to reach competitive strength. 100k positions is a sanity-check baseline; aim for at least 10M before judging the architecture.
 - **Search depth**: Depth-4 PST data is noisy. After the first model trains, regenerate data with `--model your_v1.nnue --depth 6` — stronger evaluation at deeper search produces higher-quality labels.
-- **Diversity**: Increase `--random_moves` (8 -> 12-16) so games cover more openings, not just the same standard lines.
+- **Diversity**: Increase `--random-moves` (8 -> 12-16) so games cover more openings, not just the same standard lines.
 
 ### 2. Iterative Training (the NNUE Flywheel)
 

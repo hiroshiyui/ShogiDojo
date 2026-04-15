@@ -204,14 +204,20 @@ A Pawn on square 40 (center) means very different things depending on king safet
 
 **King buckets** let the network learn separate piece-value patterns for different king positions. Instead of a single set of 2,182 features, we have one set **per bucket**.
 
-ShogiDojo uses **9 king buckets** (one per rank):
+ShogiDojo uses **9 king buckets** (one per rank, 0-indexed from the top of the raw board):
 
 ```
-King on Rank 1 (back rank)   → Bucket 0   — typical defensive position
-King on Rank 2               → Bucket 1   — common castled position
-King on Rank 3               → Bucket 2
+Bucket = rank_index_of_own_king_after_perspective_flip
+```
+
+Because each perspective flips the board so the player's own pieces sit at the bottom (see [Two-Perspective Computation](#two-perspective-computation) below), the bucket always describes the **own king's distance from the player's back rank**:
+
+```
+Bucket 0  — own king at opponent's back rank (very aggressive / "entering king")
+Bucket 1  — own king deep in opponent's territory
 ...
-King on Rank 9 (opponent's back rank) → Bucket 8  — very aggressive king
+Bucket 7  — own king one step off own back rank (common castled position)
+Bucket 8  — own king at own back rank (typical defensive position)
 ```
 
 This means each perspective selects one bucket, and uses that bucket's feature offset:
