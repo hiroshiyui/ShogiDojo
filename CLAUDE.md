@@ -10,10 +10,18 @@ Shogi Dojo is the repository for the Computer Shogi Studies Research Group. It c
 
 The repo is split by evaluation paradigm. NNUE assets live under `nnue/`
 subdirectories everywhere (`src/shogi_dojo/nnue/`, `configs/nnue/`,
-`scripts/nnue/`, `tests/nnue/`, `doc/nnue/`, `tools/nnue/gensfen/`). When
-AlphaZero-style work is added, it will mirror this layout under `alphazero/`
-subdirectories. Top-level entry points are paradigm-prefixed
-(`train_nnue.py`, future `train_alphazero.py`).
+`scripts/nnue/`, `tests/nnue/`, `doc/nnue/`, `tools/nnue/gensfen/`).
+
+A parallel **AlphaZero research survey** is being built up under matching
+`alphazero/` subdirectories (`src/shogi_dojo/alphazero/`,
+`doc/alphazero/`, `configs/alphazero/`, `tests/alphazero/`,
+`scripts/alphazero/`, `tools/alphazero/`). The survey is educational —
+docs lead, code follows, no competitive engine is targeted. See
+[`doc/alphazero/AlphaZero_Reference.md`](doc/alphazero/AlphaZero_Reference.md)
+for the foundational document and `doc/TODO.md` for the phased roadmap.
+
+Top-level entry points are paradigm-prefixed (`train_nnue.py`, future
+`train_alphazero.py`).
 
 ## Commands
 
