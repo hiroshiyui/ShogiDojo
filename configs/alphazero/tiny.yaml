@@ -17,6 +17,12 @@ model:
   num_filters: 64
   value_head_hidden: 64
 
+  # Optional: path to a checkpoint to warm-start from. A Bonanza-trained
+  # network (from train_bonanza.py) works here directly because both
+  # paradigms use the same AlphaZeroNetwork architecture. Set to null
+  # or omit to train from random initialization.
+  # warm_start: "checkpoints/bonanza/bonanza_epoch_0050.pt"
+
 self_play:
   # Games generated per iteration. Each game runs MCTS at every move, so
   # this is the dominant cost. Fewer games → faster iterations, less data.

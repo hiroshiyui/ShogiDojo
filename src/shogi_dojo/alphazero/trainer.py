@@ -83,6 +83,16 @@ class AlphaZeroTrainer:
             value_head_hidden=model_cfg.get("value_head_hidden", 64),
         ).to(self.device)
 
+        # Optional warm-start: load weights from a prior checkpoint
+        # (e.g., a Bonanza-trained supervised network). Because Bonanza
+        # uses the same AlphaZeroNetwork architecture, its state_dict
+        # is directly compatible — no conversion needed.
+        warm_start_path = model_cfg.get("warm_start")
+        if warm_start_path:
+            logger.info("Warm-starting from checkpoint: %s", warm_start_path)
+            ckpt = torch.load(warm_start_path, weights_only=True, map_location=self.device)
+            self.network.load_state_dict(ckpt["model_state_dict"])
+
         param_count = sum(p.numel() for p in self.network.parameters())
         logger.info("Network parameters: %s", f"{param_count:,}")
 

@@ -48,17 +48,41 @@ Phased plan:
   legal masks), dataset construction, and an end-to-end smoke test
   (loop runs, checkpoint saved, parameters change, both YAML configs
   parse).
-- **Phase 3.4 — Move-ordering integration**: use the trained policy
-  network to order moves in the existing gensfen alpha-beta search.
-  Measure search efficiency (nodes-to-same-depth) with vs without
-  neural move ordering.
-- **Phase 3.5 — AlphaZero warm-start**: initialize
-  `AlphaZeroNetwork` weights from the supervised policy network
-  before self-play begins. Compare training speed (iterations-to-
-  strength) against cold-start AlphaZero.
-- **Phase 3.6 — Three-way comparison**: run all three paradigms on
-  the same compute budget; plot Elo vs wall-clock for each. This
-  is the survey's flagship quantitative output.
+- **Phase 3.4 — Move-ordering integration** *(deferred — significant
+  Rust infrastructure)*: use the trained policy network to order moves
+  in the existing gensfen alpha-beta search. Would require implementing
+  ResNet forward pass in Rust (convolutions, BatchNorm, residual
+  blocks) plus a serialization format for the two-headed model.
+  Estimated scope: ~500–1,000 lines of Rust, comparable to the
+  existing NNUE inference code. Pedagogically valuable but infra-heavy;
+  skipped for the Python-first survey. If pursued later, the simplest
+  approach is a Python demo (small alpha-beta implementation + neural
+  move ordering) to measure nodes-to-depth before committing to a
+  Rust port.
+- **Phase 3.5 — AlphaZero warm-start** *(done)*:
+  `AlphaZeroTrainer` now accepts a `model.warm_start` config key
+  pointing at any AlphaZeroNetwork-compatible checkpoint (Bonanza or
+  AlphaZero). Because both paradigms use the same architecture, the
+  state_dict loads directly without conversion. Tests under
+  `tests/alphazero/test_trainer.py::TestAlphaZeroTrainerWarmStart`
+  (2 tests) verify the checkpoint's weights are copied exactly and
+  that omitting the key leaves random initialization.
+- **Phase 3.6 — Three-way comparison** *(infrastructure done;
+  execution deferred)*: `src/shogi_dojo/alphazero/evaluation.py`
+  provides `MatchResult` (wins/losses/draws with Elo-diff
+  calculation) and `run_match` (plays N games between two
+  AlphaZero-family networks, color-swapped, no Dirichlet noise).
+  CLI at `scripts/alphazero/match.py` takes two checkpoint paths and
+  reports win rate + Elo estimate. Tests under
+  `tests/alphazero/test_evaluation.py` (14 tests) cover MatchResult
+  arithmetic (win-rate and Elo formulas at boundary values) and
+  integration (game count rounding, color balancing, short-limit
+  draws). Actual three-way benchmark run (NNUE vs AlphaZero vs
+  Bonanza on equal compute) is a research exercise left to the team
+  — it requires GPU-days of training per paradigm. Note: the existing
+  Rust `eval_match` tool handles NNUE-vs-NNUE matches; for
+  cross-paradigm matches (NNUE vs AlphaZero), a new Python harness
+  would be needed to drive both simultaneously.
 
 ### Other paradigms worth knowing about
 

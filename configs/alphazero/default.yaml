@@ -17,6 +17,11 @@ model:
   num_filters: 64
   value_head_hidden: 64
 
+  # Optional: warm-start from a Bonanza-trained checkpoint. Known to
+  # accelerate early training by giving self-play better move priors
+  # than random initialization.
+  # warm_start: "checkpoints/bonanza/bonanza_epoch_0050.pt"
+
 self_play:
   # More games and deeper search than the tiny config.
   games_per_iteration: 20

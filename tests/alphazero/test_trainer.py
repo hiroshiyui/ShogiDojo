@@ -127,6 +127,64 @@ class TestAlphaZeroTrainerSmokeTest:
             assert any_changed, "No network parameters changed after training"
 
 
+class TestAlphaZeroTrainerWarmStart:
+    """Phase 3.5: loading a Bonanza-trained checkpoint as an AlphaZero
+    warm-start. Both use AlphaZeroNetwork, so state_dicts are directly
+    compatible."""
+
+    def test_warm_start_loads_checkpoint_weights(self):
+        from shogi_dojo.alphazero.network import AlphaZeroNetwork
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Step 1: create a "source" network with distinctive weights
+            # and save as a checkpoint (mimicking a Bonanza-trained
+            # file).
+            source_net = AlphaZeroNetwork(
+                num_blocks=1, num_filters=8, value_head_hidden=8,
+            )
+            # Perturb so it differs from random init.
+            with torch.no_grad():
+                for p in source_net.parameters():
+                    p.add_(torch.randn_like(p) * 0.1)
+
+            ckpt_path = os.path.join(tmpdir, "bonanza.pt")
+            torch.save({
+                "epoch": 1,
+                "model_state_dict": source_net.state_dict(),
+            }, ckpt_path)
+
+            # Step 2: construct trainer with warm_start pointing at that
+            # checkpoint. The trainer's network should match.
+            cfg = _tiny_config(tmpdir)
+            cfg["model"]["warm_start"] = ckpt_path
+            trainer = AlphaZeroTrainer(cfg)
+
+            for name, p in trainer.network.named_parameters():
+                source_p = dict(source_net.named_parameters())[name]
+                assert torch.equal(
+                    p.cpu(), source_p.cpu(),
+                ), f"Warm-start failed to copy {name}"
+
+    def test_warm_start_absent_leaves_random_init(self):
+        # When no warm_start key is provided, the network is randomly
+        # initialized — verified by constructing two trainers and
+        # confirming their weights differ.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg_1 = _tiny_config(tmpdir)
+            cfg_2 = _tiny_config(tmpdir)
+            trainer_1 = AlphaZeroTrainer(cfg_1)
+            trainer_2 = AlphaZeroTrainer(cfg_2)
+
+            any_differ = any(
+                not torch.equal(p1, p2)
+                for (_, p1), (_, p2) in zip(
+                    trainer_1.network.named_parameters(),
+                    trainer_2.network.named_parameters(),
+                )
+            )
+            assert any_differ
+
+
 class TestAlphaZeroTrainerFromYaml:
     """Verify that the YAML configs parse and construct correctly."""
 
