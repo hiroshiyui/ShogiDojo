@@ -29,11 +29,13 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Iterator, Optional
 
+import numpy as np
 import shogi
 import shogi.CSA
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, IterableDataset, get_worker_info
 
 from shogi_dojo.alphazero.encoding import (
     encode_move,
@@ -271,3 +273,132 @@ class SupervisedDataset(Dataset):
             "legal_mask": self._masks[idx],
             "value_target": self._values[idx],
         }
+
+
+# ============================================================================
+# Streaming (IterableDataset) variant for large datasets
+# ============================================================================
+
+
+class StreamingSupervisedDataset(IterableDataset):
+    """Streams ``(position, pro_move)`` samples from CSA files on demand.
+
+    Unlike the map-style :class:`SupervisedDataset` which loads every
+    sample into memory at construction, this dataset produces samples
+    lazily by replaying games during iteration. Memory use is bounded
+    by the shuffle buffer regardless of the underlying dataset's size.
+
+    Intended for datasets that exceed RAM — e.g. the shogi-server
+    ``wdoor`` archives (~167K CSA files, ~13M samples at ~14 KB each).
+
+    **Shuffle strategy.** A sliding shuffle buffer provides local
+    cross-game mixing: samples are collected until the buffer fills,
+    then shuffled; half are yielded and the remaining half carry
+    forward to mix with new arrivals. With the default
+    ``buffer_size=10000`` and ~80 samples per game, this mixes
+    positions from ~120 different games at a time — sufficient to
+    break the intra-game correlation that would otherwise plague SGD.
+
+    **Multi-worker DataLoader support.** When used with
+    ``DataLoader(..., num_workers=N)``, each worker process iterates a
+    disjoint subset of files (round-robin assignment by file index),
+    so no sample is produced twice per epoch.
+
+    Usage:
+
+    .. code-block:: python
+
+        dataset = StreamingSupervisedDataset(csa_files=[...])
+        # IMPORTANT: pass shuffle=False to DataLoader — iterable
+        # datasets handle shuffling internally.
+        loader = DataLoader(dataset, batch_size=256, shuffle=False,
+                            num_workers=4)
+
+    Caveats:
+
+    - ``len(dataset)`` is not defined (the stream is unbounded in
+      principle). The trainer iterates until the DataLoader is
+      exhausted.
+    - Games that fail to parse are silently skipped (logged at DEBUG).
+    """
+
+    def __init__(
+        self,
+        csa_files: list[str],
+        min_ply: int = 1,
+        max_ply: int = 512,
+        buffer_size: int = 10000,
+        shuffle_files: bool = True,
+        seed: Optional[int] = None,
+    ):
+        if buffer_size < 2:
+            raise ValueError(f"buffer_size must be ≥ 2, got {buffer_size}")
+        self._csa_files = list(csa_files)
+        self._min_ply = min_ply
+        self._max_ply = max_ply
+        self._buffer_size = buffer_size
+        self._shuffle_files = shuffle_files
+        self._seed = seed
+
+    def __iter__(self) -> Iterator[dict[str, torch.Tensor]]:
+        # Per-worker setup: each worker gets its own file slice and its
+        # own RNG derived from the base seed.
+        worker_info = get_worker_info()
+        if worker_info is None:
+            worker_id = 0
+            num_workers = 1
+        else:
+            worker_id = worker_info.id
+            num_workers = worker_info.num_workers
+
+        base_seed = self._seed if self._seed is not None else np.random.SeedSequence().entropy
+        rng = np.random.default_rng(base_seed + worker_id)
+
+        files = list(self._csa_files)
+        if self._shuffle_files:
+            rng.shuffle(files)
+
+        # Round-robin file slicing across workers.
+        my_files = files[worker_id::num_workers]
+
+        buffer: list[dict] = []
+        half = self._buffer_size // 2
+
+        for csa_path in my_files:
+            try:
+                games = parse_csa_file(csa_path)
+            except Exception as e:
+                logger.debug("Skipping %s (parse error: %s)", csa_path, e)
+                continue
+            for game in games:
+                samples = replay_game(
+                    game, min_ply=self._min_ply, max_ply=self._max_ply,
+                )
+                buffer.extend(samples)
+
+                # When the buffer is full, shuffle and release half.
+                while len(buffer) >= self._buffer_size:
+                    rng.shuffle(buffer)
+                    for _ in range(half):
+                        yield _to_tensor_dict(buffer.pop())
+
+        # Flush whatever is left at end-of-epoch.
+        rng.shuffle(buffer)
+        while buffer:
+            yield _to_tensor_dict(buffer.pop())
+
+
+def _to_tensor_dict(sample: dict) -> dict[str, torch.Tensor]:
+    """Convert a replay_game sample dict into the tensor form the
+    DataLoader's default collate expects.
+
+    ``replay_game`` returns ``target`` as a Python int and
+    ``value_target`` as a Python float; wrap them as scalar tensors so
+    the default collate can stack them into batch tensors.
+    """
+    return {
+        "input": sample["input"],
+        "target": torch.tensor(sample["target"], dtype=torch.long),
+        "legal_mask": sample["legal_mask"],
+        "value_target": torch.tensor(sample["value_target"], dtype=torch.float32),
+    }

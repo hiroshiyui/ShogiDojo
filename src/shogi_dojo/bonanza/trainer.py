@@ -25,10 +25,9 @@ import time
 
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 
 from shogi_dojo.alphazero.network import AlphaZeroNetwork, masked_log_softmax
-from shogi_dojo.bonanza.dataset import SupervisedDataset
 
 logger = logging.getLogger(__name__)
 
@@ -76,26 +75,38 @@ class BonanzaTrainer:
         self.checkpoint_dir = train_cfg["checkpoint_dir"]
         self.save_every = train_cfg.get("save_every", 10)
 
-    def train(self, dataset: SupervisedDataset) -> None:
+    def train(self, dataset) -> None:
         """Run the full supervised training loop.
 
         Args:
-            dataset: A :class:`SupervisedDataset` of ``(position, pro_move)``
-                samples, typically built via ``SupervisedDataset.from_csa_files``.
+            dataset: Either a map-style :class:`SupervisedDataset` (loads
+                all samples into memory) or a :class:`StreamingSupervisedDataset`
+                (streams lazily). Both are accepted; the DataLoader
+                configuration is adjusted automatically.
         """
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
+        is_streaming = isinstance(dataset, IterableDataset)
+
+        # For IterableDataset, shuffle must be False (the dataset itself
+        # handles shuffling via its internal buffer).
         loader = DataLoader(
             dataset,
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=not is_streaming,
             drop_last=False,
         )
 
-        logger.info(
-            "Training: %d samples, %d epochs, batch_size=%d, lambda_value=%.2f",
-            len(dataset), self.epochs, self.batch_size, self.lambda_value,
-        )
+        if is_streaming:
+            logger.info(
+                "Training: streaming dataset, %d epochs, batch_size=%d, lambda_value=%.2f",
+                self.epochs, self.batch_size, self.lambda_value,
+            )
+        else:
+            logger.info(
+                "Training: %d samples, %d epochs, batch_size=%d, lambda_value=%.2f",
+                len(dataset), self.epochs, self.batch_size, self.lambda_value,
+            )
 
         for epoch in range(1, self.epochs + 1):
             t0 = time.time()

@@ -177,6 +177,13 @@ class TestMixedPaddingBatch:
     """Batch where some samples are all-valid and some are all-padding."""
 
     def test_mixed_batch(self):
+        # Seed explicitly: the all-padding sample always produces 0
+        # (no features → FT bias → ClippedReLU → eval layers whose
+        # initial weights produce 0). The features-having sample can
+        # coincidentally also produce 0 on some random inits (seeds
+        # 0, 11, 12, 19, ...). Seed 1 is known to give distinct
+        # non-zero output for the features sample.
+        torch.manual_seed(1)
         net = NnueNetwork(ft_input_dim=100, ft_out_dim=8, l1_dim=4, l2_dim=4)
         stm = torch.tensor([[0, 1, 2], [-1, -1, -1]])
         nstm = torch.tensor([[3, 4, 5], [-1, -1, -1]])

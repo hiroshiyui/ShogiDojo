@@ -6,13 +6,16 @@ Usage:
     python train_bonanza.py --data games.csa other.csa
 
     # For large datasets (e.g. the shogi-server wdoor archives contain
-    # ~167K files, which exceeds the argv limit), use --data-list:
+    # ~167K files which would use ~200 GB loaded into RAM), use both
+    # --data-list (to avoid the argv limit) and --streaming (to avoid
+    # OOM):
     find data/wdoor -name '*.csa' > data/wdoor_files.txt
-    python train_bonanza.py --data-list data/wdoor_files.txt --min-ply 10
+    python train_bonanza.py --data-list data/wdoor_files.txt \
+        --streaming --min-ply 10
 
     # Skip the first 10 plies (opening book moves) and use the default config:
     python train_bonanza.py --config configs/bonanza/default.yaml \
-        --data-list data/wdoor_files.txt --min-ply 10
+        --data-list data/wdoor_files.txt --streaming --min-ply 10
 
 Before running, you need Shogi game records in CSA format.
 See doc/bonanza/Bonanza_Reference.md §5 for data sources.
@@ -24,7 +27,10 @@ from pathlib import Path
 
 import yaml
 
-from shogi_dojo.bonanza.dataset import SupervisedDataset
+from shogi_dojo.bonanza.dataset import (
+    StreamingSupervisedDataset,
+    SupervisedDataset,
+)
 from shogi_dojo.bonanza.trainer import BonanzaTrainer
 
 
@@ -61,6 +67,16 @@ def main():
         "--max-ply", type=int, default=512,
         help="Stop replaying after this ply (default: 512).",
     )
+    parser.add_argument(
+        "--streaming", action="store_true",
+        help="Use StreamingSupervisedDataset (bounded memory, recommended "
+             "for the full 167K-file wdoor dataset). Default uses the "
+             "map-style SupervisedDataset which loads everything into RAM.",
+    )
+    parser.add_argument(
+        "--buffer-size", type=int, default=10000,
+        help="Shuffle buffer size for streaming mode (default: 10000).",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -78,15 +94,27 @@ def main():
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
 
-    dataset = SupervisedDataset.from_csa_files(
-        data_files,
-        min_ply=args.min_ply,
-        max_ply=args.max_ply,
-    )
-    logging.info(
-        "Dataset: %d training samples from %d file(s).",
-        len(dataset), len(data_files),
-    )
+    if args.streaming:
+        dataset = StreamingSupervisedDataset(
+            csa_files=data_files,
+            min_ply=args.min_ply,
+            max_ply=args.max_ply,
+            buffer_size=args.buffer_size,
+        )
+        logging.info(
+            "Dataset: streaming over %d file(s), buffer_size=%d.",
+            len(data_files), args.buffer_size,
+        )
+    else:
+        dataset = SupervisedDataset.from_csa_files(
+            data_files,
+            min_ply=args.min_ply,
+            max_ply=args.max_ply,
+        )
+        logging.info(
+            "Dataset: %d training samples from %d file(s).",
+            len(dataset), len(data_files),
+        )
 
     trainer = BonanzaTrainer(cfg)
     trainer.train(dataset)
