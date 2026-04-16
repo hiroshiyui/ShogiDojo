@@ -273,8 +273,10 @@ fn order_moves(pos: &Position, moves: &[Move]) -> Vec<(i32, Move)> {
         })
         .collect();
 
-    // Sort descending by score (best moves first)
-    scored.sort_by(|a, b| b.0.cmp(&a.0));
+    // Sort descending by score (best moves first). Using sort_by_key
+    // with std::cmp::Reverse satisfies clippy::unnecessary_sort_by
+    // introduced in Rust 1.95.
+    scored.sort_by_key(|entry| std::cmp::Reverse(entry.0));
     scored
 }
 
