@@ -1,5 +1,83 @@
 # TODO
 
+## Open — Third paradigm: Bonanza-method supervised learning
+
+A natural third paradigm to complement the NNUE and AlphaZero pipelines.
+The Bonanza method (Hoki, 2006) trains evaluation weights by supervised
+learning on professional game records (kifu), placing it at a distinct
+point in the design space:
+
+| Paradigm           | Data source        | Search at training? | Search at play? |
+|--------------------|--------------------|---------------------|-----------------|
+| Bonanza/supervised | Human games        | No                  | Yes (alpha-beta)|
+| NNUE               | Engine self-play   | Yes (alpha-beta)    | Yes (alpha-beta)|
+| AlphaZero          | Network self-play  | Yes (MCTS)          | Yes (MCTS)      |
+
+**Why add it.** (a) Completes the spectrum from "learn from humans" →
+"learn from engines" → "learn from yourself." (b) Low implementation
+cost: reuse `encoding.py` + a simplified network (policy head only, no
+value head, no MCTS, no replay buffer). Train with standard
+cross-entropy on (position, move-played-by-pro) pairs. (c) Data is
+freely available: professional Shogi kifu are archived online in large
+quantities. (d) The resulting policy network could initialize the
+AlphaZero self-play loop (warm-start instead of random weights), which
+is known to accelerate early training.
+
+Phased plan:
+
+- **Phase 3.1 — Reference doc**: `doc/bonanza/Bonanza_Reference.md`
+  covering Bonanza's history (WCSC 2006, first automated Shogi
+  evaluation tuning), the logistic-regression formulation on game
+  outcomes, feature design (piece-square, king-relative patterns),
+  comparison with NNUE's dual loss and AlphaZero's policy cross-entropy.
+- **Phase 3.2 — Kifu parser + dataset**: `src/shogi_dojo/bonanza/
+  kifu.py` (parse KIF/CSA professional game records → list of
+  (SFEN, move) pairs) + `dataset.py` (PyTorch Dataset wrapping the
+  parsed games). Tests for format edge cases.
+- **Phase 3.3 — Policy network + training**: reuse the AlphaZero
+  `encoding.py` for board → tensor and move → policy-index conversion.
+  A CNN (or reuse `AlphaZeroNetwork` with only the policy head
+  active) trained via cross-entropy against the pro's chosen move.
+  No MCTS, no self-play — standard supervised classification.
+- **Phase 3.4 — Move-ordering integration**: use the trained policy
+  network to order moves in the existing gensfen alpha-beta search.
+  Measure search efficiency (nodes-to-same-depth) with vs without
+  neural move ordering.
+- **Phase 3.5 — AlphaZero warm-start**: initialize
+  `AlphaZeroNetwork` weights from the supervised policy network
+  before self-play begins. Compare training speed (iterations-to-
+  strength) against cold-start AlphaZero.
+- **Phase 3.6 — Three-way comparison**: run all three paradigms on
+  the same compute budget; plot Elo vs wall-clock for each. This
+  is the survey's flagship quantitative output.
+
+### Other paradigms worth knowing about
+
+These are not planned for implementation but are noted here for
+literature awareness:
+
+- **dlshogi** — AlphaZero-family but with distinct Shogi-specific
+  engineering: virtual loss for GPU-batched MCTS, USI protocol
+  integration, tournament-grade time management. Won WCSC multiple
+  times. The benchmark to study if the AlphaZero implementation
+  ever targets competitive strength. Code:
+  `github.com/TadaoYamaoka/DeepLearningShogi`.
+- **Transformer-based evaluation** — emerging research direction
+  replacing the CNN trunk with Vision Transformer / attention over
+  board squares and hand pieces as tokens. No major tournament
+  wins yet, but Shogi's drop rule (pieces appear/disappear between
+  hand and board) is a natural fit for attention. A tiny Transformer
+  policy/value network compared against the ResNet on the same
+  self-play data would be a publishable contribution.
+- **Pure MCTS (no neural network)** — UCT with random rollouts
+  instead of neural evaluation. Historically important (competitive
+  in Go before AlphaGo), now superseded. The existing `mcts.py` can
+  demonstrate this directly: pass an `evaluate_fn` that returns
+  `(uniform_prior, 0.0)` and the search degrades gracefully to
+  UCT. Useful as a baseline.
+
+---
+
 ## Open — Research directions
 
 Now that ShogiDojo has working implementations of both NNUE and
