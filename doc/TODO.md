@@ -1,157 +1,154 @@
 # TODO
 
-## Open — AlphaZero Survey
+## Open — Research directions
 
-Research survey of the AlphaZero family of game-playing systems, run in
-parallel with the NNUE work and mirrored under `alphazero/` subdirectories
-(`src/shogi_dojo/alphazero/`, `doc/alphazero/`, `configs/alphazero/`,
-`tests/alphazero/`, `scripts/alphazero/`, `tools/alphazero/`). The survey
-is *educational* — it does not aim to produce a competitive engine. The
-team is junior in computer Shogi, so docs lead and code follows.
+Now that ShogiDojo has working implementations of both NNUE and
+AlphaZero, several research directions are available. They are
+ordered roughly by expected impact-per-effort for an academic team
+with limited GPU resources.
 
-Phased plan:
+### 1. Policy distillation: AlphaZero → NNUE
 
-- **Phase 2.1 — Skeleton** *(done)*: `alphazero/` subdirs in place with
-  `__init__.py` for the new Python sub-package.
-- **Phase 2.2 — Foundational doc** *(done)*: `doc/alphazero/AlphaZero_Reference.md`
-  covers history, architecture (ResNet + policy/value heads), Shogi input
-  and move encoding, MCTS+PUCT, the self-play loop, the loss function,
-  comparison with NNUE, glossary, and references.
-- **Phase 2.3 — Training reference** *(done)*:
-  `doc/alphazero/AlphaZero_Training_Reference.md` mirrors
-  `doc/nnue/Model_Training_Reference.md` — self-play methodology,
-  replay-buffer dynamics, loss decomposition, hyperparameter ranges
-  (Dirichlet noise, temperature schedule, c_puct, MCTS simulations),
-  the training loop step by step, evaluation/promotion gating,
-  distributed self-play architecture, resource estimates, common
-  failure modes, improvement strategy, side-by-side comparison with
-  NNUE training, and realistic expectations for the survey.
-- **Phase 2.4 — Encoding code + tests** *(done)*:
-  `src/shogi_dojo/alphazero/encoding.py` provides `Position` and
-  `Move` dataclasses, `encode_position` (45-channel input tensor
-  from the side-to-move's perspective), `encode_move` /
-  `decode_move` over the paper's 9×9×139 = 11,259 action space,
-  `legal_move_mask` for masking illegal logits before softmax, and
-  a `position_from_sfen` convenience wrapper. Tests under
-  `tests/alphazero/test_encoding.py` cover constants, shape,
-  scalar planes, per-piece/hand planes, perspective flip,
-  round-tripping for queen/knight/drop/promoting moves under both
-  sides, error handling, legal-move mask shape/contents, and
-  cross-color plane consistency (69 tests total). Shogi facts
-  (piece type IDs, board dimensions) are imported from
-  `shogi_dojo.nnue.constants`; the SFEN parser is shared via a
-  local import to avoid duplicating 200 lines.
-- **Phase 2.5 — Network code + tests** *(done)*:
-  `src/shogi_dojo/alphazero/network.py` implements `ResidualBlock`
-  and `AlphaZeroNetwork`: stem 3×3 conv (45 → F filters) → N
-  residual blocks (each BN + ReLU + skip) → policy head (1×1 conv
-  to 139 planes, raw logits) + value head (1×1 conv → flatten → FC →
-  tanh scalar). Defaults (`num_blocks=4`, `num_filters=64`,
-  `value_head_hidden=64`) give ~336K parameters — tiny by AlphaZero
-  standards but trainable on a single CPU. Helpers
-  `masked_log_softmax` (apply legal-move mask before softmax with
-  ``-1e9`` fill) and `alphazero_loss` (value-MSE + policy
-  cross-entropy with configurable term weights) round out the module.
-  Kaiming-normal init mirrors the NNUE code style. Tests under
-  `tests/alphazero/test_network.py` (19 tests) cover residual-block
-  shape preservation, identity-path representability, default
-  construction, parameter-count sanity, forward-pass shape/dtype/
-  value-range/finiteness under several batch sizes, train vs eval
-  BatchNorm behavior, gradient flow to every parameter, and the
-  mask/loss helpers.
-- **Phase 2.6 — MCTS code + tests** *(done)*:
-  `src/shogi_dojo/alphazero/mcts.py` implements readable PUCT MCTS:
-  `Edge` (prior/N/W/Q/child), `Node` (state + dict of edges +
-  terminal flag), `puct_score`, `select_child`, `apply_dirichlet_noise`,
-  `MCTS.search(root_state, num_simulations, dirichlet_alpha,
-  dirichlet_epsilon, rng)` with the standard four-phase simulation
-  (select → expand → evaluate → backup with sign flip), plus helpers
-  `visit_counts`, `policy_target(root, temperature)`, and
-  `sample_move(root, temperature, greedy)`. The search is
-  game-agnostic: the caller passes `evaluate_fn`, `legal_moves_fn`,
-  `apply_fn`, and `is_terminal_fn` callables. Default `c_puct=1.5`,
-  no subtree carryover between searches. Tests under
-  `tests/alphazero/test_mcts.py` (30 tests) use a hand-built 2-ply
-  zero-sum toy game with hardcoded terminal values to verify PUCT
-  math, select_child behavior, Dirichlet noise (priors still sum to
-  1, ε=0 is a no-op, ε=1 replaces priors), search basics (terminal
-  root, root expansion, visit-sum = num_simulations, visits
-  concentrate on higher-Q move), the perspective sign-flip on backup,
-  Dirichlet noise spreading visits averaged over 30 seeds in a
-  flat-Q variant game, and the helpers (visit_counts, policy_target
-  at multiple temperatures, sample_move greedy/stochastic).
-- **Phase 2.7 — Self-play + trainer + smoke test** *(in progress)*:
+**Idea.** Train an AlphaZero-style network via self-play to produce
+high-quality move-selection data (the MCTS visit distributions),
+then use those distributions as training targets for the NNUE
+pipeline's gensfen tool. The NNUE model cannot predict a *policy*
+directly, but it can be trained on positions whose *scores* were
+generated by an MCTS-informed evaluator — effectively distilling
+AlphaZero's search knowledge into a fast NNUE evaluation.
 
-  - **2.7a — python-shogi adapter** *(done)*:
-    `src/shogi_dojo/alphazero/rules.py` wires python-shogi to the
-    game-agnostic MCTS interface. `python-shogi` added to
-    `pyproject.toml`. Provides piece-type translation (python-shogi
-    uses 1-indexed IDs starting at PAWN=1; we use 0-indexed from
-    PAWN=0), `board_to_position` / `shogi_move_to_move` /
-    `move_to_shogi_move`, the four MCTS callables (`legal_moves_fn`,
-    `apply_fn` via SFEN round-trip since python-shogi lacks `.copy()`,
-    `is_terminal_fn` with a 512-ply default limit and sennichite →
-    draw), and `make_evaluate_fn` that bridges an `AlphaZeroNetwork`
-    into an MCTS-compatible evaluator (forward pass under
-    `torch.no_grad()`, legal-move masking, log-softmax, keyed by
-    original `shogi.Move`). Tests under `tests/alphazero/test_rules.py`
-    (30 tests) cover piece-type bijection, starting-position
-    translation, move round-trip (ordinary / promoting / drop),
-    ``legal_moves_fn``, ``apply_fn`` purity, terminal detection
-    (including a verified two-gold corner checkmate), and the
-    evaluator's plumbing (keys, sum-to-one, value range, training-
-    mode restoration, no grad leaks).
-  - **2.7b — self-play + replay buffer** *(done)*:
-    `src/shogi_dojo/alphazero/self_play.py` provides
-    `TrainingExample` (`input_tensor`, `policy_target`,
-    `value_target`, `legal_mask`), `play_game` (one full self-play
-    game with MCTS at every move, Dirichlet noise at root, τ=1 for
-    the first 30 plies then argmax, terminal z backfill per STM
-    perspective), and `ReplayBuffer` (FIFO `deque(maxlen=capacity)`,
-    uniform random sampling with replacement, returns a dict of
-    stacked tensors ready for training). Tests under
-    `tests/alphazero/test_self_play.py` (23 tests) cover
-    `_backfill_z` for all terminal cases, `_policy_dict_to_tensor`
-    placement and sum, replay-buffer construction validation,
-    `add`/`add_many` length invariants, FIFO eviction, `is_full`
-    flip, `sample` shapes/dtypes/empty-buffer error/batch-larger-
-    than-buffer, and `play_game` integration (returns
-    `TrainingExample`s with correct shapes, short move_limit yields
-    all-zero z values, terminal starting board returns empty list,
-    policy targets sum to ~1, legal masks non-empty at every step).
-  - **2.7c — trainer + configs + scripts + smoke test** *(done)*:
-    `src/shogi_dojo/alphazero/trainer.py` (`AlphaZeroTrainer`:
-    config-driven iteration loop — self-play → buffer → Adam
-    gradient steps → checkpoint), `configs/alphazero/tiny.yaml` (1
-    game × 20 sims × 10 iterations — runs in minutes on CPU) and
-    `configs/alphazero/default.yaml` (20 games × 100 sims × 50
-    iterations — hours-scale), top-level `train_alphazero.py` entry
-    point. Evaluation-match promotion gating deferred to a later
-    phase. Tests under `tests/alphazero/test_trainer.py` (6 tests):
-    construction from config dict, end-to-end smoke test (2
-    iterations, 1 game each, move_limit=6 — completes in seconds,
-    buffer grows, checkpoint saved with model+optimizer state,
-    network parameters change after training), and both YAML configs
-    parse and construct correctly.
-- **Phase 2.8 — Comparison and reading list** *(done)*:
-  `doc/alphazero/AlphaZero_vs_NNUE.md` — standalone operational
-  comparison expanding §10 of the reference into seven sections
-  (architecture, inference cost, training data, training compute,
-  deployment, development complexity, when-to-use-which).
-  `doc/alphazero/AlphaZero_Reading_List.md` — annotated bibliography
-  in five sections (core papers, open-source implementations,
-  related paradigms including MuZero and NNUE, tutorials, hybrid /
-  future directions including distillation).
-- **Phase 2.9 — README integration** *(done)*: `README.md` gains an
-  "AlphaZero Survey" section (documentation table, code layout, quick
-  start, expectations), project structure tree expanded to show both
-  paradigms side by side, python-shogi added to requirements. `CLAUDE.md`
-  Architecture section split into "NNUE" and "AlphaZero survey"
-  subsections.
+**Why interesting.** Combines AlphaZero's data-quality advantage
+(no need for an external strong engine) with NNUE's deployment
+advantage (sub-millisecond inference on CPU). This is an active
+research direction in the broader community.
 
-Sequencing is loose: docs and code can interleave (writing
-`encoding.py` may surface clarifications worth folding back into the
-reference doc, and vice versa).
+**Concrete steps.** (a) Run AlphaZero self-play at moderate depth
+(100+ sims) to produce a set of (SFEN, MCTS-value) pairs. (b) Feed
+those into the NNUE training pipeline as if they were gensfen output
+(the value replaces the alpha-beta score). (c) Compare the resulting
+NNUE against one trained on gensfen-only data via eval_match.
+
+### 2. Evaluation-match promotion gating for AlphaZero
+
+**Idea.** The current `AlphaZeroTrainer` saves every iteration's
+weights and uses them unconditionally for the next iteration's
+self-play. Standard practice (LCZero, KataGo) is to *gate* promotion:
+play an evaluation match between the new and current-best networks,
+and only promote if the new network wins by a margin (≥55% win rate
+in 40+ games).
+
+**Why interesting.** Without gating, a bad training step can produce
+a weaker network whose self-play data then drags the next iteration
+down — a downward spiral. Gating prevents this. It is described in
+`AlphaZero_Training_Reference.md` §6 but not yet implemented.
+
+**Concrete steps.** (a) Add a `run_match(network_a, network_b,
+num_games, num_simulations)` function to `rules.py` or a new
+`evaluation.py`. (b) Integrate into the trainer's iteration loop
+after each training phase. (c) Track best-network separately from
+latest-network.
+
+### 3. Auxiliary training targets (KataGo-style)
+
+**Idea.** Add auxiliary heads to the AlphaZero network that predict
+additional targets beyond policy and value:
+
+- **Opponent's reply policy** — what move will the opponent play?
+- **Ownership prediction** — which squares will be controlled by
+  which side at the end of the game? (adapted from Go to Shogi)
+- **Score prediction** — predict the *margin* of victory in
+  centipawns, not just win/loss/draw.
+
+**Why interesting.** KataGo showed that auxiliary targets provide
+additional gradient signal that accelerates learning, especially
+early in training when the value and policy targets are noisy.
+The score-prediction head is particularly interesting because it
+bridges the AlphaZero and NNUE paradigms — NNUE trains on scores
+directly, while standard AlphaZero only trains on outcomes.
+
+**Concrete steps.** (a) Add auxiliary head(s) to `network.py`.
+(b) Extend `self_play.py` to record the additional targets.
+(c) Extend `alphazero_loss` with the new terms. (d) Compare
+training efficiency (iterations-to-strength) with and without
+auxiliary heads.
+
+### 4. Hybrid search: NNUE evaluation inside MCTS
+
+**Idea.** Replace the AlphaZero network's value head with the
+trained NNUE evaluator for leaf evaluation, while keeping the
+policy head for MCTS guidance. This is a simplified version of
+what dlshogi and similar hybrid engines do.
+
+**Why interesting.** The NNUE evaluator is ~100,000× faster than
+a full AlphaZero forward pass. If its positional judgment is
+comparable, the MCTS can run orders of magnitude more simulations
+in the same wall time, potentially producing stronger play even
+with a weaker (but faster) evaluation.
+
+**Concrete steps.** (a) Load a trained NNUE checkpoint and wrap
+it as a value-only evaluator. (b) Modify `make_evaluate_fn` in
+`rules.py` to use the AlphaZero policy head but the NNUE value.
+(c) Run eval_match comparisons: pure-AlphaZero vs hybrid vs
+pure-NNUE-alpha-beta.
+
+### 5. Opening book from self-play statistics
+
+**Idea.** Aggregate the MCTS visit distributions from many
+self-play games at early plies to build a probabilistic opening
+book. Positions with consistent high-visit moves across many games
+indicate strong opening preferences.
+
+**Why interesting.** A data-driven opening book requires no
+human curation. The team can visualize which openings the network
+"likes" and compare them against known joseki (standard Shogi
+openings). This is more accessible than playing strength as a
+research output — it produces human-readable artifacts.
+
+**Concrete steps.** (a) During self-play, dump (SFEN, visit_counts)
+for the first N plies to a separate file. (b) Aggregate across
+games: for each SFEN, average the visit distributions. (c) Build
+a simple tree viewer that shows the top 3 moves at each position
+with their visit percentages.
+
+### 6. Quantitative paradigm comparison
+
+**Idea.** Run both pipelines on identical compute budgets and
+measure playing strength via eval_match at each checkpoint.
+The comparison in `AlphaZero_vs_NNUE.md` is qualitative; a
+quantitative version with actual Elo curves would be the
+flagship output of this research survey.
+
+**Why interesting.** The literature claims that NNUE reaches
+usable strength much faster per GPU-hour while AlphaZero
+eventually surpasses it given enough compute. Verifying (or
+contradicting) this claim on Shogi with our own code is a
+genuine research contribution.
+
+**Concrete steps.** (a) Define a fixed compute budget (e.g.,
+1 GPU-day). (b) Train NNUE (gensfen + train iterations) and
+AlphaZero (self-play iterations) within that budget. (c) At
+regular intervals, freeze a checkpoint and run 200-game
+eval_match against a fixed baseline (PST evaluator). (d) Plot
+Elo vs wall-clock-time for both paradigms.
+
+### 7. Board-size reduction for faster experimentation
+
+**Idea.** Implement a 5×5 or 7×7 mini-Shogi variant (e.g.,
+Minishogi / Gogo Shogi) where games are shorter and the state
+space is smaller. Both NNUE and AlphaZero pipelines would need
+minor adaptation (feature dimensions, move encoding), but the
+core algorithms are unchanged.
+
+**Why interesting.** Smaller boards make experiments 10–100×
+faster, enabling the team to iterate on algorithmic ideas
+(auxiliary heads, hybrid search, distillation) before committing
+to full 9×9 Shogi runs. Many research groups use reduced-board
+variants for exactly this purpose.
+
+**Concrete steps.** (a) Define a `MiniShogi` rule set (5×5 board,
+subset of pieces). (b) Adapt `encoding.py` and `constants.py` for
+the smaller board. (c) Verify both training pipelines run on the
+reduced variant. (d) Use it as a fast testbed for items 1–6 above.
 
 ---
 
@@ -175,6 +172,39 @@ None blocks training, but fixing them would improve data fidelity:
 ---
 
 ## Completed
+
+### AlphaZero Survey — `src/shogi_dojo/alphazero/`, `doc/alphazero/`
+
+Educational research survey of the AlphaZero family of game-playing
+systems, built under `alphazero/` subdirectories in parallel with NNUE.
+Docs lead, code follows. Delivered in nine phases:
+
+1. **Skeleton** — `alphazero/` subdirs and Python sub-package.
+2. **Foundational doc** — `doc/alphazero/AlphaZero_Reference.md`:
+   history, architecture, Shogi encoding, MCTS+PUCT, self-play loop,
+   loss function, NNUE comparison, glossary.
+3. **Training reference** — `doc/alphazero/AlphaZero_Training_Reference.md`:
+   self-play methodology, replay-buffer dynamics, loss decomposition,
+   hyperparameters, training loop, evaluation gating, resource estimates,
+   failure modes, NNUE comparison.
+4. **Encoding** — `encoding.py` + 69 tests: 45-channel input tensor,
+   9×9×139 action-space encode/decode, legal-move mask, SFEN bridge.
+5. **Network** — `network.py` + 19 tests: `AlphaZeroNetwork` (ResNet +
+   policy/value heads, ~336K params), `masked_log_softmax`,
+   `alphazero_loss`.
+6. **MCTS** — `mcts.py` + 30 tests: game-agnostic PUCT MCTS with
+   Dirichlet noise, temperature-based move selection.
+7. **Self-play + trainer**:
+   - `rules.py` + 30 tests: python-shogi adapter for MCTS callables.
+   - `self_play.py` + 23 tests: `play_game`, `ReplayBuffer`.
+   - `trainer.py` + 6 tests: `AlphaZeroTrainer` iteration loop.
+   - `train_alphazero.py` entry point,
+     `configs/alphazero/{tiny,default}.yaml`.
+8. **Comparison and reading list** —
+   `doc/alphazero/AlphaZero_vs_NNUE.md` (operational comparison),
+   `doc/alphazero/AlphaZero_Reading_List.md` (annotated bibliography).
+9. **README integration** — `README.md` AlphaZero Survey section,
+   `CLAUDE.md` architecture subsections for both paradigms.
 
 ### Rust gensfen Tool — `tools/nnue/gensfen/`
 
