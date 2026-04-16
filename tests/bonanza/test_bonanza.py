@@ -187,6 +187,19 @@ class TestSupervisedDataset:
             ds = SupervisedDataset.from_csa_files([path])
             assert len(ds) == 3
 
+    def test_data_list_reader_skips_blank_lines(self):
+        # Verify the --data-list helper handles blanks and whitespace
+        # (since find output sometimes includes a trailing newline).
+        from train_bonanza import _read_data_list
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csa_path = _make_sample_csa_file(tmpdir)
+            list_path = os.path.join(tmpdir, "files.txt")
+            with open(list_path, "w") as f:
+                f.write(f"\n  \n{csa_path}\n\n")
+            paths = _read_data_list(list_path)
+            assert paths == [csa_path]
+
     def test_empty_game_list_raises(self):
         with pytest.raises(ValueError, match="No training samples"):
             SupervisedDataset.from_games([])

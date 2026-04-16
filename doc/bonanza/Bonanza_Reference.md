@@ -259,15 +259,30 @@ Common sources include:
   Minimal workflow once extracted:
 
   ```bash
-  # Extract both archives into a flat directory of .csa files
+  # Extract. Each archive creates a year subdirectory (wdoor/2025/,
+  # wdoor/2026/); CSA files live one level down, not flat under
+  # data/wdoor/.
   mkdir -p data/wdoor
   (cd data/wdoor && 7z x ../../wdoor2025.7z && 7z x ../../wdoor2026.7z)
 
-  # Pass the CSA files to train_bonanza.py. Glob expansion handles
-  # the ~167K files; if the argv limit becomes a problem, feed them
-  # through a file list instead.
+  # Build a file list. With ~167K CSA files, passing them all on the
+  # command line would exceed the argv limit (~2 MB on Linux; the full
+  # dataset is ~15 MB of paths). Use --data-list to read paths from a
+  # file instead.
+  find data/wdoor -name '*.csa' > data/wdoor_files.txt
+  wc -l data/wdoor_files.txt   # should report 166740
+
   python train_bonanza.py --config configs/bonanza/tiny.yaml \
-      --data data/wdoor/*.csa --min-ply 10
+      --data-list data/wdoor_files.txt --min-ply 10
+  ```
+
+  For a quick smoke test on a tiny subset, ``--data`` with a
+  targeted glob works because there are only ~100 files to pass:
+
+  ```bash
+  # Just one day's worth of games (argv-safe):
+  python train_bonanza.py --config configs/bonanza/tiny.yaml \
+      --data data/wdoor/2025/*20250215*.csa --min-ply 10
   ```
 - **Japan Shogi Association records** — official kifu from
   professional title matches. Available through various fan sites
