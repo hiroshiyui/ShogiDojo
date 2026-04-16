@@ -239,6 +239,47 @@ find data/wdoor -name '*.csa' > data/wdoor_files.txt
 python train_bonanza.py --data-list data/wdoor_files.txt --streaming
 ```
 
+### GPU Utilization Tuning
+
+The default `configs/bonanza/default.yaml` includes three settings that
+make a big difference for GPU-backed training; if you see low GPU
+utilization in `nvidia-smi`, these are the first things to check:
+
+- **`num_workers`** — DataLoader worker processes that parse CSA and
+  encode tensors in parallel. With `num_workers=0` (the PyTorch default)
+  all CSA parsing and sample encoding happens on the main thread, so
+  the GPU sits idle between batches. The default config uses `8`; go
+  as high as your CPU core count allows.
+- **`pin_memory`** — when `true`, DataLoader staging buffers live in
+  page-locked memory so the CPU→GPU transfer can happen asynchronously.
+  Combined with `non_blocking=True` on the trainer's `.to(device)`
+  calls (always on inside the trainer when using CUDA), transfers
+  overlap with compute. CUDA-only; ignored on CPU.
+- **`batch_size`** — the default AlphaZero-family network is tiny
+  (~336K params). On a modern GPU, batch size must be large to keep
+  the compute pipeline full. The default config uses `1024`; on an
+  A100 or H100 you can probably push to `2048` or beyond.
+
+The trainer logs **samples/second** at the end of every epoch. Use
+that number to compare before/after changes: a CPU-bound pipeline
+plateaus at a few thousand samples/sec even on a fast GPU, while a
+well-tuned one on a modern GPU reaches tens of thousands.
+
+Troubleshooting checklist if utilization is still low:
+
+1. `nvidia-smi` during training — is the GPU at 100%? If yes, it is
+   not the bottleneck; tune elsewhere (e.g. increase network size).
+2. Run with `num_workers=0` briefly to confirm parallelism helps;
+   it should slow training significantly.
+3. Verify `pin_memory=True` is logged at trainer start (the trainer
+   forces it off if the device is CPU).
+4. Try `batch_size * 2` until OOM; each doubling raises GPU
+   utilization until compute saturates.
+5. For very large datasets, watch for DataLoader shared-memory
+   limits: if workers crash with "bus error" or "Connection reset",
+   raise the system's shared-memory quota (Docker/k8s `/dev/shm`
+   default is 64 MB — bump to at least 2 GB).
+
 ---
 
 ## 5. Data: Professional Game Records

@@ -167,12 +167,15 @@ class AlphaZeroTrainer:
             total_ploss = 0.0
 
             self.network.train()
+            use_non_blocking = self.device.type == "cuda"
             for _ in range(self.steps_per_iteration):
                 batch = self.replay_buffer.sample(self.batch_size, rng=rng)
-                inputs = batch["input"].to(self.device)
-                target_policy = batch["policy"].to(self.device)
-                target_value = batch["value"].to(self.device)
-                mask = batch["legal_mask"].to(self.device)
+                # non_blocking transfers overlap with compute on CUDA
+                # devices. On CPU this flag is a no-op.
+                inputs = batch["input"].to(self.device, non_blocking=use_non_blocking)
+                target_policy = batch["policy"].to(self.device, non_blocking=use_non_blocking)
+                target_value = batch["value"].to(self.device, non_blocking=use_non_blocking)
+                mask = batch["legal_mask"].to(self.device, non_blocking=use_non_blocking)
 
                 policy_logits, value = self.network(inputs)
                 loss, parts = alphazero_loss(

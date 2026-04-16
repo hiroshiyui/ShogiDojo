@@ -19,8 +19,24 @@ training:
   # (no MCTS, no self-play — just forward + backward on a fixed dataset).
   epochs: 50
 
-  # Larger batch for better gradient estimates.
-  batch_size: 256
+  # Samples per batch. Large enough to keep a GPU busy — the network
+  # is tiny (~336K params) so small batches underutilize the GPU.
+  # Halve this if you hit OOM on a smaller GPU; doubling to 2048 is
+  # worth trying on an A100 or H100.
+  batch_size: 1024
+
+  # Data-loading parallelism. Each worker is a separate Python
+  # process that parses CSA and encodes tensors concurrently with
+  # the GPU doing forward/backward. Without enough workers the GPU
+  # idles waiting for the main thread to encode the next batch.
+  # Rule of thumb: start at min(8, CPU_cores). Set to 0 only for
+  # single-process debugging.
+  num_workers: 8
+
+  # Pin DataLoader output in page-locked memory so the CPU→GPU
+  # transfer can happen asynchronously (together with non_blocking=True
+  # in the trainer's .to(device) calls). Cuda-only; ignored on CPU.
+  pin_memory: true
 
   # Adam optimizer.
   lr: 1.0e-3

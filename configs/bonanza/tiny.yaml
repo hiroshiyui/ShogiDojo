@@ -20,6 +20,15 @@ training:
   # Small batch for tiny datasets.
   batch_size: 8
 
+  # Data-loading parallelism. 0 = load on the main thread (simplest
+  # for debugging smoke tests). Bump to 4-8 when training for real.
+  num_workers: 0
+
+  # pin_memory is a no-op on CPU and costs no overhead when
+  # num_workers=0; the default config above will pick the right
+  # behaviour based on device.type.
+  pin_memory: false
+
   # Adam optimizer.
   lr: 1.0e-3
   weight_decay: 1.0e-4

@@ -75,6 +75,21 @@ class BonanzaTrainer:
         self.checkpoint_dir = train_cfg["checkpoint_dir"]
         self.save_every = train_cfg.get("save_every", 10)
 
+        # Data-loading parallelism. num_workers > 0 parallelizes the
+        # heavy CSA parsing + encoding work across CPU processes so the
+        # GPU does not starve while one Python thread does encoding.
+        # Default 4 is a safe baseline; on a machine with more cores
+        # and a large dataset, 8-16 can noticeably improve GPU
+        # utilization.
+        self.num_workers = train_cfg.get("num_workers", 4)
+
+        # pin_memory + non_blocking .to(device) gives async host→GPU
+        # transfer. Only useful when the device is CUDA; on CPU it is
+        # a no-op at best and wasted allocation at worst.
+        self.pin_memory = train_cfg.get(
+            "pin_memory", self.device.type == "cuda",
+        ) and self.device.type == "cuda"
+
     def train(self, dataset) -> None:
         """Run the full supervised training loop.
 
@@ -90,22 +105,32 @@ class BonanzaTrainer:
 
         # For IterableDataset, shuffle must be False (the dataset itself
         # handles shuffling via its internal buffer).
+        # persistent_workers=True keeps workers alive across epochs —
+        # saves the reset cost that otherwise runs the streaming
+        # dataset's per-worker file shuffle + RNG setup every epoch.
         loader = DataLoader(
             dataset,
             batch_size=self.batch_size,
             shuffle=not is_streaming,
             drop_last=False,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            persistent_workers=self.num_workers > 0,
         )
 
+        common_info = (
+            f"batch_size={self.batch_size}, num_workers={self.num_workers}, "
+            f"pin_memory={self.pin_memory}, lambda_value={self.lambda_value:.2f}"
+        )
         if is_streaming:
             logger.info(
-                "Training: streaming dataset, %d epochs, batch_size=%d, lambda_value=%.2f",
-                self.epochs, self.batch_size, self.lambda_value,
+                "Training: streaming dataset, %d epochs, %s",
+                self.epochs, common_info,
             )
         else:
             logger.info(
-                "Training: %d samples, %d epochs, batch_size=%d, lambda_value=%.2f",
-                len(dataset), self.epochs, self.batch_size, self.lambda_value,
+                "Training: %d samples, %d epochs, %s",
+                len(dataset), self.epochs, common_info,
             )
 
         for epoch in range(1, self.epochs + 1):
@@ -119,10 +144,13 @@ class BonanzaTrainer:
 
             self.network.train()
             for batch in loader:
-                inputs = batch["input"].to(self.device)
-                targets = batch["target"].to(self.device)
-                masks = batch["legal_mask"].to(self.device)
-                value_targets = batch["value_target"].to(self.device)
+                # non_blocking=True lets the GPU transfer overlap with
+                # the just-completed step's compute. Only effective
+                # when pin_memory was set on the DataLoader.
+                inputs = batch["input"].to(self.device, non_blocking=True)
+                targets = batch["target"].to(self.device, non_blocking=True)
+                masks = batch["legal_mask"].to(self.device, non_blocking=True)
+                value_targets = batch["value_target"].to(self.device, non_blocking=True)
 
                 policy_logits, value = self.network(inputs)
 
@@ -158,13 +186,14 @@ class BonanzaTrainer:
             avg_ploss = total_ploss / max(n_batches, 1)
             avg_vloss = total_vloss / max(n_batches, 1)
             accuracy = total_correct / max(total_samples, 1)
+            samples_per_sec = total_samples / elapsed if elapsed > 0 else 0.0
 
             logger.info(
                 "Epoch %d/%d  loss=%.4f (policy=%.4f value=%.4f)  "
-                "accuracy=%.2f%%  %.1fs",
+                "accuracy=%.2f%%  %.0f samples/s  %.1fs",
                 epoch, self.epochs,
                 avg_loss, avg_ploss, avg_vloss,
-                accuracy * 100, elapsed,
+                accuracy * 100, samples_per_sec, elapsed,
             )
 
             if epoch % self.save_every == 0 or epoch == self.epochs:
