@@ -1,0 +1,65 @@
+# =============================================================================
+# AlphaZero Survey — Default Configuration
+# =============================================================================
+# A "realistic but still laptop-scale" configuration. Running this to
+# completion takes hours on a single GPU. The resulting network will not
+# be competitive, but it should be noticeably stronger than random play.
+#
+# For the full hyperparameter discussion see
+# doc/alphazero/AlphaZero_Training_Reference.md.
+# =============================================================================
+
+model:
+  # ResNet dimensions. Still small by AlphaZero standards (~336K params).
+  # Scale up to num_blocks=10, num_filters=128 (~3M params) once
+  # self-play generates enough data to warrant the capacity.
+  num_blocks: 4
+  num_filters: 64
+  value_head_hidden: 64
+
+self_play:
+  # More games and deeper search than the tiny config.
+  games_per_iteration: 20
+
+  # MCTS simulations per move. 100 is a reasonable survey default;
+  # paper used 800.
+  num_simulations: 100
+
+  # PUCT exploration constant.
+  c_puct: 1.5
+
+  # Dirichlet noise — AlphaZero paper Shogi values.
+  dirichlet_alpha: 0.15
+  dirichlet_epsilon: 0.25
+
+  # Proportional sampling for the first 30 plies.
+  temperature_threshold: 30
+
+  # Ply limit.
+  move_limit: 512
+
+buffer:
+  # Hold roughly the last 5 iterations' worth of self-play data.
+  # At ~100 examples per game × 20 games/iter × 5 iters = 10,000.
+  capacity: 50000
+
+training:
+  # Total iterations. At 20 games/iter with 100 sims/move this runs
+  # for many hours; reduce if needed.
+  iterations: 50
+
+  # Gradient steps per iteration.
+  steps_per_iteration: 200
+
+  # Mini-batch size.
+  batch_size: 256
+
+  # Adam learning rate.
+  lr: 1.0e-3
+
+  # L2 weight decay.
+  weight_decay: 1.0e-4
+
+  # Checkpoint directory and frequency.
+  checkpoint_dir: "checkpoints/alphazero"
+  save_every: 10

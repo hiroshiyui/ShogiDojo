@@ -1,0 +1,70 @@
+# =============================================================================
+# AlphaZero Survey — Tiny Configuration
+# =============================================================================
+# A minimal configuration designed to run to completion in a few minutes on
+# a single CPU. The network, self-play budget, and training budget are all
+# deliberately undersized — the goal is to verify that the loop runs and
+# loss trends downward, not to produce a strong Shogi player.
+#
+# For the full discussion of what these parameters mean and how they
+# interact, see doc/alphazero/AlphaZero_Training_Reference.md.
+# =============================================================================
+
+model:
+  # ResNet dimensions. 4 blocks × 64 filters ≈ 336K parameters.
+  # The original AlphaZero paper used 19–39 blocks × 256 filters (~46M).
+  num_blocks: 4
+  num_filters: 64
+  value_head_hidden: 64
+
+self_play:
+  # Games generated per iteration. Each game runs MCTS at every move, so
+  # this is the dominant cost. Fewer games → faster iterations, less data.
+  games_per_iteration: 2
+
+  # MCTS simulations per move. Paper used 800; we use a very low number
+  # for smoke-test speed. Moves will be near-random; that is expected.
+  num_simulations: 20
+
+  # PUCT exploration constant.
+  c_puct: 1.5
+
+  # Dirichlet noise at root for exploration.
+  dirichlet_alpha: 0.15
+  dirichlet_epsilon: 0.25
+
+  # Proportional sampling for the first N plies, argmax after.
+  temperature_threshold: 30
+
+  # Ply limit before declaring a draw.
+  move_limit: 100
+
+buffer:
+  # Maximum replay-buffer size (number of training examples). A single
+  # Shogi game produces ~50–200 examples depending on game length, so
+  # 10_000 holds data from many games at this scale.
+  capacity: 10000
+
+training:
+  # Total training iterations (self-play + train cycles).
+  iterations: 10
+
+  # Gradient steps per iteration. With a small buffer and few games per
+  # iteration, more steps risks overfitting to a narrow data window.
+  steps_per_iteration: 50
+
+  # Mini-batch size for each gradient step.
+  batch_size: 64
+
+  # Adam learning rate. 1e-3 is the survey's default for both NNUE and
+  # AlphaZero; slightly high for production but fast for experiments.
+  lr: 1.0e-3
+
+  # L2 weight decay (via Adam's weight_decay parameter).
+  weight_decay: 1.0e-4
+
+  # Directory for saving iteration checkpoints.
+  checkpoint_dir: "checkpoints/alphazero"
+
+  # Save a checkpoint every N iterations (and always on the last one).
+  save_every: 5

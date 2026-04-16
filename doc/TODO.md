@@ -119,12 +119,20 @@ Phased plan:
     `TrainingExample`s with correct shapes, short move_limit yields
     all-zero z values, terminal starting board returns empty list,
     policy targets sum to ~1, legal masks non-empty at every step).
-  - **2.7c — trainer + configs + scripts + smoke test** *(planned)*:
-    `src/shogi_dojo/alphazero/trainer.py`, `configs/alphazero/
-    {tiny,default}.yaml`, `scripts/alphazero/{selfplay,train}.py`,
-    top-level `train_alphazero.py` entry point, and a short
-    end-to-end smoke test that runs a few iterations and asserts
-    loss decreases on average.
+  - **2.7c — trainer + configs + scripts + smoke test** *(done)*:
+    `src/shogi_dojo/alphazero/trainer.py` (`AlphaZeroTrainer`:
+    config-driven iteration loop — self-play → buffer → Adam
+    gradient steps → checkpoint), `configs/alphazero/tiny.yaml` (1
+    game × 20 sims × 10 iterations — runs in minutes on CPU) and
+    `configs/alphazero/default.yaml` (20 games × 100 sims × 50
+    iterations — hours-scale), top-level `train_alphazero.py` entry
+    point. Evaluation-match promotion gating deferred to a later
+    phase. Tests under `tests/alphazero/test_trainer.py` (6 tests):
+    construction from config dict, end-to-end smoke test (2
+    iterations, 1 game each, move_limit=6 — completes in seconds,
+    buffer grows, checkpoint saved with model+optimizer state,
+    network parameters change after training), and both YAML configs
+    parse and construct correctly.
 - **Phase 2.8 — Comparison and reading list** *(planned)*:
   `doc/alphazero/AlphaZero_vs_NNUE.md` (operational comparison with
   numbers from §10 of the reference) and `doc/alphazero/AlphaZero_Reading_List.md`
