@@ -234,9 +234,17 @@ and returns structured game data.
 Professional Shogi game records are available from various archives.
 Common sources include:
 
-- **Floodgate** — a free 24/7 Shogi server that archives all games.
-  Many games are between strong engines, but human professional
-  games appear too.
+- **shogi-server (Floodgate) kifu archives** — the operator of the
+  Floodgate 24/7 Shogi server periodically publishes compressed CSA
+  game archives via GitHub Releases at
+  [github.com/shogi-server/shogi-server/releases](https://github.com/shogi-server/shogi-server/releases).
+  The
+  [2026-04-10 release](https://github.com/shogi-server/shogi-server/releases/tag/2026-04-10)
+  is the archive the team currently uses as a starting dataset. Each
+  release typically contains millions of CSA game records from
+  Floodgate; most are engine-vs-engine but many involve strong human
+  players as well. Good for bootstrapping — filter by player rating
+  if targeting pro-level play.
 - **Japan Shogi Association records** — official kifu from
   professional title matches. Available through various fan sites
   and databases.

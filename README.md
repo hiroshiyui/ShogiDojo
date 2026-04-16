@@ -429,7 +429,7 @@ python train_bonanza.py --config configs/bonanza/default.yaml \
     --data file1.csa file2.csa --min-ply 10
 ```
 
-You will need professional Shogi game records in CSA format. See [Bonanza_Reference.md §5](doc/bonanza/Bonanza_Reference.md#5-data-professional-game-records) for data sources.
+You will need Shogi game records in CSA format. A good starting dataset is the [shogi-server kifu archive (2026-04-10 release)](https://github.com/shogi-server/shogi-server/releases/tag/2026-04-10), which contains millions of games from the Floodgate server. See [Bonanza_Reference.md §5](doc/bonanza/Bonanza_Reference.md#5-data-professional-game-records) for additional sources and filtering guidance.
 
 ## Testing
 
