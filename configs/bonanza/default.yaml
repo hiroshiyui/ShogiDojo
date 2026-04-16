@@ -48,5 +48,18 @@ training:
   lambda_value: 0.5
 
   # Checkpoint directory and frequency.
+  #
+  # save_every is epoch-based: the trainer saves a checkpoint after
+  # every N epochs (and always at the final epoch). Fine for small
+  # datasets where an epoch is minutes.
+  #
+  # save_every_steps is step-based: save a checkpoint every N
+  # optimizer steps, regardless of epoch progress. Essential for
+  # long-running training on the full wdoor archive, where one
+  # epoch is ~13M samples (hours on a single GPU) — without this,
+  # a mid-epoch crash loses all progress. A reasonable value for
+  # the full dataset is 5000-10000 (≈ every few minutes at GPU
+  # speed). Comment out or set to null to disable.
   checkpoint_dir: "checkpoints/bonanza"
   save_every: 10
+  save_every_steps: 5000

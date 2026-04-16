@@ -75,6 +75,13 @@ class BonanzaTrainer:
         self.checkpoint_dir = train_cfg["checkpoint_dir"]
         self.save_every = train_cfg.get("save_every", 10)
 
+        # Step-based checkpointing (default disabled). When set, the
+        # trainer also saves a checkpoint every N optimizer steps,
+        # regardless of epoch progress. Useful for long-running streaming
+        # training where a single epoch can take hours — without it, a
+        # crash midway through epoch 1 loses all progress.
+        self.save_every_steps = train_cfg.get("save_every_steps")
+
         # Data-loading parallelism. num_workers > 0 parallelizes the
         # heavy CSA parsing + encoding work across CPU processes so the
         # GPU does not starve while one Python thread does encoding.
@@ -133,6 +140,10 @@ class BonanzaTrainer:
                 len(dataset), self.epochs, common_info,
             )
 
+        # Monotonic counter across all epochs — used for step-based
+        # checkpointing and logged in every saved checkpoint.
+        global_step = 0
+
         for epoch in range(1, self.epochs + 1):
             t0 = time.time()
             total_loss = 0.0
@@ -181,6 +192,19 @@ class BonanzaTrainer:
                 total_correct += (preds == targets).sum().item()
                 total_samples += targets.size(0)
 
+                # Step-based checkpoint, fired from inside the inner
+                # loop so even mid-epoch crashes are recoverable.
+                global_step += 1
+                if (
+                    self.save_every_steps
+                    and global_step % self.save_every_steps == 0
+                ):
+                    self._save_checkpoint(
+                        epoch=epoch,
+                        global_step=global_step,
+                        label=f"step_{global_step:08d}",
+                    )
+
             elapsed = time.time() - t0
             avg_loss = total_loss / max(n_batches, 1)
             avg_ploss = total_ploss / max(n_batches, 1)
@@ -197,14 +221,28 @@ class BonanzaTrainer:
             )
 
             if epoch % self.save_every == 0 or epoch == self.epochs:
-                self._save_checkpoint(epoch)
+                self._save_checkpoint(
+                    epoch=epoch,
+                    global_step=global_step,
+                    label=f"epoch_{epoch:04d}",
+                )
 
-        logger.info("Training complete. %d epochs.", self.epochs)
+        logger.info("Training complete. %d epochs, %d steps.", self.epochs, global_step)
 
-    def _save_checkpoint(self, epoch: int) -> None:
-        path = os.path.join(self.checkpoint_dir, f"bonanza_epoch_{epoch:04d}.pt")
+    def _save_checkpoint(
+        self, *, epoch: int, global_step: int, label: str,
+    ) -> None:
+        """Save a checkpoint with the given ``label`` in the filename.
+
+        Labels distinguish epoch-based (e.g. ``epoch_0010``) from
+        step-based (``step_00005000``) checkpoints. Both payloads
+        include the current epoch and global step so a future resume
+        implementation can pick either and continue correctly.
+        """
+        path = os.path.join(self.checkpoint_dir, f"bonanza_{label}.pt")
         torch.save({
             "epoch": epoch,
+            "global_step": global_step,
             "model_state_dict": self.network.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
         }, path)

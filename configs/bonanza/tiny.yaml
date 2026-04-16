@@ -37,5 +37,8 @@ training:
   lambda_value: 0.5
 
   # Checkpoint directory and frequency.
+  # Tiny config has short epochs so epoch-based saving is sufficient;
+  # step-based saving is not enabled here. See default.yaml for the
+  # save_every_steps option used in long-running training.
   checkpoint_dir: "checkpoints/bonanza"
   save_every: 5

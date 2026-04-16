@@ -304,6 +304,65 @@ class TestStreamingSupervisedDataset:
 # ---------------------------------------------------------------------------
 
 
+class TestBonanzaTrainerStepCheckpoints:
+    """Step-based checkpointing fires mid-training, independent of epochs."""
+
+    def test_step_checkpoints_saved_at_expected_interval(self):
+        games = parse_csa_string(SAMPLE_CSA)
+        ds = SupervisedDataset.from_games(games)
+        # 3 samples, batch_size=1 → 3 optimizer steps per epoch.
+        # Over 2 epochs that's 6 steps total; save_every_steps=2 should
+        # produce step checkpoints at global_step=2, 4, 6.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = _tiny_config(tmpdir)
+            cfg["training"]["batch_size"] = 1
+            cfg["training"]["epochs"] = 2
+            cfg["training"]["save_every"] = 100   # suppress epoch saves
+            cfg["training"]["save_every_steps"] = 2
+            trainer = BonanzaTrainer(cfg)
+            trainer.train(ds)
+
+            saved = sorted(os.listdir(tmpdir))
+            step_files = [f for f in saved if f.startswith("bonanza_step_")]
+            assert step_files == [
+                "bonanza_step_00000002.pt",
+                "bonanza_step_00000004.pt",
+                "bonanza_step_00000006.pt",
+            ]
+
+    def test_step_checkpoint_payload_has_step_and_epoch(self):
+        games = parse_csa_string(SAMPLE_CSA)
+        ds = SupervisedDataset.from_games(games)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = _tiny_config(tmpdir)
+            cfg["training"]["batch_size"] = 1
+            cfg["training"]["epochs"] = 1
+            cfg["training"]["save_every_steps"] = 1
+            trainer = BonanzaTrainer(cfg)
+            trainer.train(ds)
+
+            ckpt = torch.load(
+                os.path.join(tmpdir, "bonanza_step_00000001.pt"),
+                weights_only=True,
+            )
+            assert ckpt["global_step"] == 1
+            assert ckpt["epoch"] == 1
+            assert "model_state_dict" in ckpt
+            assert "optimizer_state_dict" in ckpt
+
+    def test_save_every_steps_absent_means_no_step_files(self):
+        games = parse_csa_string(SAMPLE_CSA)
+        ds = SupervisedDataset.from_games(games)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = _tiny_config(tmpdir)   # no save_every_steps in tiny config
+            trainer = BonanzaTrainer(cfg)
+            trainer.train(ds)
+
+            saved = os.listdir(tmpdir)
+            step_files = [f for f in saved if f.startswith("bonanza_step_")]
+            assert step_files == []
+
+
 class TestBonanzaTrainerWithStreaming:
     def _make_files(self, tmpdir: str, n: int) -> list[str]:
         paths = []

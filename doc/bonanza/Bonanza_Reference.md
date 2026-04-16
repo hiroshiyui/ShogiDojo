@@ -265,6 +265,24 @@ that number to compare before/after changes: a CPU-bound pipeline
 plateaus at a few thousand samples/sec even on a fast GPU, while a
 well-tuned one on a modern GPU reaches tens of thousands.
 
+### Checkpoint Cadence
+
+Two independent checkpoint triggers:
+
+- **`save_every`** (epochs) — save after every N epochs and always at
+  the final epoch. Default `10`. Fine for small datasets.
+
+- **`save_every_steps`** (optimizer steps) — save after every N
+  optimizer steps, mid-epoch. Essential for long-running streaming
+  training where a single epoch can take hours: without it, a
+  mid-epoch crash loses all progress. Default in the shipped
+  `default.yaml` is `5000` (≈ a few minutes at GPU speed). Set to
+  `null` (or omit) to disable.
+
+Step-based checkpoints are named ``bonanza_step_NNNNNNNN.pt``; epoch-
+based are ``bonanza_epoch_NNNN.pt``. Both payloads include ``epoch``
+and ``global_step`` so a future resume implementation can pick either.
+
 Troubleshooting checklist if utilization is still low:
 
 1. `nvidia-smi` during training — is the GPU at 100%? If yes, it is
