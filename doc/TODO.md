@@ -101,11 +101,24 @@ Phased plan:
     (including a verified two-gold corner checkmate), and the
     evaluator's plumbing (keys, sum-to-one, value range, training-
     mode restoration, no grad leaks).
-  - **2.7b — self-play + replay buffer** *(planned)*:
-    `src/shogi_dojo/alphazero/self_play.py` — `play_game` runs one
-    full self-play game, recording `(state_tensor, π, z)` tuples
-    with sign-correct terminal backfill; small in-memory replay
-    buffer.
+  - **2.7b — self-play + replay buffer** *(done)*:
+    `src/shogi_dojo/alphazero/self_play.py` provides
+    `TrainingExample` (`input_tensor`, `policy_target`,
+    `value_target`, `legal_mask`), `play_game` (one full self-play
+    game with MCTS at every move, Dirichlet noise at root, τ=1 for
+    the first 30 plies then argmax, terminal z backfill per STM
+    perspective), and `ReplayBuffer` (FIFO `deque(maxlen=capacity)`,
+    uniform random sampling with replacement, returns a dict of
+    stacked tensors ready for training). Tests under
+    `tests/alphazero/test_self_play.py` (23 tests) cover
+    `_backfill_z` for all terminal cases, `_policy_dict_to_tensor`
+    placement and sum, replay-buffer construction validation,
+    `add`/`add_many` length invariants, FIFO eviction, `is_full`
+    flip, `sample` shapes/dtypes/empty-buffer error/batch-larger-
+    than-buffer, and `play_game` integration (returns
+    `TrainingExample`s with correct shapes, short move_limit yields
+    all-zero z values, terminal starting board returns empty list,
+    policy targets sum to ~1, legal masks non-empty at every step).
   - **2.7c — trainer + configs + scripts + smoke test** *(planned)*:
     `src/shogi_dojo/alphazero/trainer.py`, `configs/alphazero/
     {tiny,default}.yaml`, `scripts/alphazero/{selfplay,train}.py`,
