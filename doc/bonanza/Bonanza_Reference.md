@@ -198,6 +198,47 @@ for epoch in range(num_epochs):
 
 No MCTS. No self-play. No replay buffer. The simplicity is the point.
 
+### Dataset Modes: Map-Style vs Streaming
+
+``src/shogi_dojo/bonanza/dataset.py`` provides two PyTorch-compatible
+dataset classes. The trainer (:class:`BonanzaTrainer`) auto-detects
+which one it was given and configures the ``DataLoader`` accordingly;
+the user chooses which to use based on dataset size.
+
+- **``SupervisedDataset``** (map-style). Loads every training sample
+  into memory at construction. Simpler, permits standard
+  ``shuffle=True`` in the DataLoader for globally-random sampling.
+  Use this when the full dataset fits in RAM — roughly under 100K
+  training samples (≈ 1,000 games).
+
+- **``StreamingSupervisedDataset``** (``IterableDataset``). Produces
+  samples on-the-fly by replaying games during iteration. Memory use
+  is bounded by a sliding shuffle buffer (default 10,000 samples),
+  regardless of how many CSA files are in the source list. Use this
+  for large datasets — e.g. the full shogi-server wdoor archive
+  (~167K CSA files, ~13M samples, ~200 GB if loaded eagerly).
+
+  The sliding shuffle buffer fills to N samples, shuffles, yields
+  N/2, and carries the remaining N/2 forward to mix with new
+  arrivals. At ~80 samples per game this mixes positions from ~120
+  different games per yield — enough to break intra-game correlation
+  that would otherwise hurt SGD convergence.
+
+  When used with ``DataLoader(num_workers=M)`` each worker process
+  iterates a round-robin-assigned slice of the file list with its
+  own seeded RNG, so no sample is produced twice per epoch.
+
+Choose at the CLI:
+
+```bash
+# Map-style (default) — small dataset:
+python train_bonanza.py --data small_games.csa
+
+# Streaming — large dataset:
+find data/wdoor -name '*.csa' > data/wdoor_files.txt
+python train_bonanza.py --data-list data/wdoor_files.txt --streaming
+```
+
 ---
 
 ## 5. Data: Professional Game Records

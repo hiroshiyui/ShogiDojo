@@ -4,24 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Shogi Dojo is the repository for the Computer Shogi Studies Research Group. It contains resources for studying and experimenting with NNUE (Efficiently Updatable Neural Network) evaluation in Shogi, including a HalfKAv2 training implementation (~5M parameters) built with PyTorch. The team is junior in computer Shogi — code and comments should be thorough and beginner-friendly.
+Shogi Dojo is the repository for the Computer Shogi Studies Research Group. It surveys three complementary Shogi-AI paradigms side by side:
+
+- **NNUE (HalfKAv2)** — sparse, incrementally-updatable evaluation (~5M params) for alpha-beta search. The primary pipeline: PyTorch trainer + Rust `gensfen` data generator.
+- **AlphaZero-style** — ResNet policy/value network (~336K params, survey-sized) + PUCT MCTS + self-play. Educational research survey.
+- **Bonanza-method** — supervised policy + value training from professional kifu records. Reuses the AlphaZero network architecture; simplest of the three pipelines. Can warm-start AlphaZero self-play.
+
+The team is junior in computer Shogi — code and comments should be thorough and beginner-friendly.
 
 ## Repository Layout
 
-The repo is split by evaluation paradigm. NNUE assets live under `nnue/`
-subdirectories everywhere (`src/shogi_dojo/nnue/`, `configs/nnue/`,
-`scripts/nnue/`, `tests/nnue/`, `doc/nnue/`, `tools/nnue/gensfen/`).
+The repo is split by paradigm. Each of the three lives under matching
+subdirectories across the tree: `src/shogi_dojo/<paradigm>/`,
+`configs/<paradigm>/`, `scripts/<paradigm>/`, `tests/<paradigm>/`, and
+`doc/<paradigm>/`, where `<paradigm>` is one of `nnue`, `alphazero`,
+or `bonanza`. NNUE-specific Rust tooling lives under
+`tools/nnue/gensfen/`.
 
-A parallel **AlphaZero research survey** is being built up under matching
-`alphazero/` subdirectories (`src/shogi_dojo/alphazero/`,
-`doc/alphazero/`, `configs/alphazero/`, `tests/alphazero/`,
-`scripts/alphazero/`, `tools/alphazero/`). The survey is educational —
-docs lead, code follows, no competitive engine is targeted. See
-[`doc/alphazero/AlphaZero_Reference.md`](doc/alphazero/AlphaZero_Reference.md)
-for the foundational document and `doc/TODO.md` for the phased roadmap.
+Top-level entry points are paradigm-prefixed: `train_nnue.py`,
+`train_alphazero.py`, `train_bonanza.py`.
 
-Top-level entry points are paradigm-prefixed (`train_nnue.py`, future
-`train_alphazero.py`).
+See `doc/TODO.md` for the roadmap (completed phases and open research
+directions) and the paradigm-specific reference docs at
+`doc/<paradigm>/*.md` for conceptual background.
 
 ## Commands
 
@@ -62,16 +67,6 @@ Data flows linearly: **constants → features → dataset → model → trainer 
 - `configs/nnue/default.yaml` — All hyperparameters. Fully commented.
 - `tools/nnue/gensfen/` — Rust tool for training data generation via self-play. Uses shogi-rs for board/move generation, alpha-beta search with material eval, outputs text SFEN directly.
 
-### Bonanza-method survey (`src/shogi_dojo/bonanza/`)
-
-Supervised policy + value learning from professional game records (kifu). Reuses the AlphaZero network architecture; only the training data source and loss formulation differ.
-
-- `dataset.py` — CSA-format parser (via python-shogi), game replay producing `(input, target_move_index, legal_mask, value_target)` samples, `SupervisedDataset` class.
-- `trainer.py` — `BonanzaTrainer`: epoch-based supervised loop with cross-entropy on the policy head and MSE on the value head.
-- `train_bonanza.py` — CLI entry point at the repository root.
-- `configs/bonanza/{tiny,default}.yaml` — Fully commented configurations.
-- `doc/bonanza/Bonanza_Reference.md` — Reference document covering history, formulation, three-paradigm comparison.
-
 ### AlphaZero survey (`src/shogi_dojo/alphazero/`)
 
 Self-play training loop: **encoding → network → mcts → rules → self_play → trainer → train_alphazero.py**
@@ -81,10 +76,21 @@ Self-play training loop: **encoding → network → mcts → rules → self_play
 - `mcts.py` — Game-agnostic PUCT MCTS (`Node`, `Edge`, `select_child`, Dirichlet noise, search loop). Takes four callables; no Shogi-specific code.
 - `rules.py` — python-shogi adapter: `legal_moves_fn`, `apply_fn`, `is_terminal_fn`, `make_evaluate_fn`. Piece-type translation (python-shogi uses 1-indexed IDs).
 - `self_play.py` — `play_game()` runs one game with MCTS at every move, records (input, π, legal_mask), backfills terminal z. `ReplayBuffer` for training sampling.
-- `trainer.py` — `AlphaZeroTrainer`: config-driven iteration loop (self-play → buffer → gradient steps → checkpoint).
+- `evaluation.py` — `run_match()` and `MatchResult`: color-swapped N-game matches between two AlphaZero-family networks, with Elo-diff estimate. Used for promotion gating and cross-paradigm comparison. CLI at `scripts/alphazero/match.py`.
+- `trainer.py` — `AlphaZeroTrainer`: config-driven iteration loop (self-play → buffer → gradient steps → checkpoint). Supports `model.warm_start` config key for initializing from a Bonanza (or prior AlphaZero) checkpoint.
 - `train_alphazero.py` — CLI entry point at the repository root.
 - `configs/alphazero/{tiny,default}.yaml` — Fully commented configurations.
 - `doc/alphazero/` — Four reference documents: architecture, training methodology, NNUE comparison, annotated reading list.
+
+### Bonanza-method survey (`src/shogi_dojo/bonanza/`)
+
+Supervised policy + value learning from professional game records (kifu). Reuses `AlphaZeroNetwork` without modification; only the training data source and loss formulation differ. State dicts are interchangeable — a Bonanza-trained checkpoint can warm-start AlphaZero self-play directly.
+
+- `dataset.py` — CSA-format parser (via python-shogi), game replay producing `(input, target_move_index, legal_mask, value_target)` samples. Two PyTorch dataset classes: `SupervisedDataset` (map-style, loads all samples into memory) and `StreamingSupervisedDataset` (`IterableDataset` with sliding-buffer shuffle, bounded memory for the full ~167K-file wdoor archive).
+- `trainer.py` — `BonanzaTrainer`: epoch-based supervised loop with cross-entropy on the policy head and MSE on the value head. Auto-detects map-style vs streaming datasets and configures the DataLoader accordingly.
+- `train_bonanza.py` — CLI entry point. Supports `--data`, `--data-list` (for large file sets), and `--streaming` flags.
+- `configs/bonanza/{tiny,default}.yaml` — Fully commented configurations.
+- `doc/bonanza/Bonanza_Reference.md` — Reference document covering history, formulation, CSA format, data sources (wdoor archive), and three-paradigm comparison.
 
 ## Testing Policy
 
@@ -97,12 +103,33 @@ Self-play training loop: **encoding → network → mcts → rules → self_play
 
 ## Key Design Concepts
 
+### NNUE (paradigm-specific)
+
 **Sparse two-perspective evaluation:** Each position is encoded from both the side-to-move (STM) and not-side-to-move (NSTM) perspectives. White's perspective flips the board 180 degrees and swaps piece colors. Both perspectives share the same FeatureTransformer weights but produce separate 256-dim outputs, which are concatenated into a 512-dim vector before the eval network.
 
-**-1 padding convention:** Positions have varying numbers of pieces, so sparse index tensors have varying lengths. The custom `collate_fn` in `dataset.py` pads shorter tensors with -1. The `FeatureTransformer.forward_dense()` in `model.py` masks these out (clamps to 0 for indexing, then zeros the result). This convention is load-bearing — both files must stay in sync.
+**-1 padding convention:** Positions have varying numbers of pieces, so sparse index tensors have varying lengths. The custom `collate_fn` in `src/shogi_dojo/nnue/dataset.py` pads shorter tensors with -1. `FeatureTransformer.forward_dense()` in `src/shogi_dojo/nnue/model.py` masks these out (clamps to 0 for indexing, then zeros the result). This convention is load-bearing — both files must stay in sync.
 
-**King buckets:** Instead of per-square feature weights for all 81 king positions (which would be enormous), king squares are grouped into 9 buckets by rank. The bucket selects which slice of the weight table to use: `index = bucket * 2182 + feature_index`. Only one bucket is active per position.
+**King buckets:** Instead of per-square feature weights for all 81 king positions (which would be enormous), king squares are grouped into 9 buckets by rank. The bucket selects which slice of the weight table to use: `index = bucket * 2182 + feature_index`. Only one bucket is active per position. Total input dimension = 9 × 2,182 = **19,638**.
 
 **Dual loss function:** Training optimizes a weighted sum of sigmoid-MSE against the engine score (`lambda_score=1.0`) and sigmoid-MSE against the game result (`lambda_result=0.5`). Score loss teaches tactical accuracy; result loss teaches strategic understanding.
 
 **ClippedReLU, not ReLU:** Activations are clamped to [0, 1] for compatibility with integer quantization in game engines. This is standard for HalfKAv2 NNUE.
+
+### AlphaZero (paradigm-specific)
+
+**Perspective sign-flip on MCTS backup:** Terminal values and network value-head outputs are always from the STM's perspective. When backing a leaf value up the search path, the sign flips at every ply because the perspective alternates. Implemented in `src/shogi_dojo/alphazero/mcts.py::MCTS._simulate`. Getting this wrong produces a network that consistently prefers losing — hence the explicit test in `test_mcts.py`.
+
+**Dense 9×9×139 action space:** Policy output is `(B, 139, 9, 9)` flattened to 11,259 logits per position. The 139 planes decompose as 64 queen-like sliding moves + 2 knight offsets + 66 promoting variants + 7 drops, matching the AlphaZero paper's Shogi encoding. See `src/shogi_dojo/alphazero/encoding.py` for the layout.
+
+**Legal-move masking via `-1e9` fill:** Before softmax, illegal logits are set to a large negative number (`masked_log_softmax` in `network.py`). This keeps illegal actions at ≈ 0 probability and 0 gradient without requiring a custom softmax.
+
+### Cross-paradigm (architectural sharing)
+
+**AlphaZero and Bonanza share the network.** Both use `AlphaZeroNetwork` with no modification. The only difference is what the heads are trained against:
+
+| Head  | AlphaZero target                  | Bonanza target                          |
+|-------|-----------------------------------|-----------------------------------------|
+| Policy | MCTS visit distribution (π)       | Professional's move (one-hot)           |
+| Value  | Terminal outcome z (from self-play) | Game outcome from this position's STM  |
+
+Because the architectures are byte-for-byte identical, state dicts are interchangeable: `AlphaZeroTrainer` accepts a `model.warm_start` config key pointing at a Bonanza checkpoint, and the load is a plain `load_state_dict` with no conversion layer. The Bonanza paradigm is thus a "free" warm-start generator for AlphaZero self-play.
