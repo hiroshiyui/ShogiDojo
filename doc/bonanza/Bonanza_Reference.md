@@ -240,11 +240,26 @@ Common sources include:
   [github.com/shogi-server/shogi-server/releases](https://github.com/shogi-server/shogi-server/releases).
   The
   [2026-04-10 release](https://github.com/shogi-server/shogi-server/releases/tag/2026-04-10)
-  is the archive the team currently uses as a starting dataset. Each
-  release typically contains millions of CSA game records from
-  Floodgate; most are engine-vs-engine but many involve strong human
-  players as well. Good for bootstrapping — filter by player rating
-  if targeting pro-level play.
+  is the archive the team currently uses as a starting dataset. The
+  release ships as a ``wdoor2025.7z`` 7-Zip archive; extract with
+  ``7z x wdoor2025.7z`` (install ``p7zip-full`` on Debian/Ubuntu).
+  The archive contains **~128,843 CSA files** (one game per file),
+  totaling on the order of 10M training positions after replay. Most
+  games are engine-vs-engine; many involve strong human players as
+  well. Good for bootstrapping — filter by player rating if targeting
+  pro-level play.
+
+  Minimal workflow once extracted:
+
+  ```bash
+  # Extract to a flat directory of .csa files
+  mkdir -p data/wdoor2025 && cd data/wdoor2025 && 7z x ../../wdoor2025.7z && cd -
+
+  # Concatenate into a single CSA stream (python-shogi's CSA parser
+  # handles multi-game input) or pass individual files to train_bonanza.py
+  python train_bonanza.py --config configs/bonanza/tiny.yaml \
+      --data data/wdoor2025/*.csa --min-ply 10
+  ```
 - **Japan Shogi Association records** — official kifu from
   professional title matches. Available through various fan sites
   and databases.
