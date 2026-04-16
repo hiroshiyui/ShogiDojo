@@ -49,16 +49,32 @@ ruff check .
 
 ## Architecture
 
-Data flows linearly inside the NNUE package: **constants → features → dataset → model → trainer → train_nnue.py**
+### NNUE (`src/shogi_dojo/nnue/`)
 
-- `src/shogi_dojo/nnue/constants.py` — Shogi piece types, board geometry, and HalfKAv2 feature dimensions. Defines the 19,638-dimensional sparse input space (9 king buckets x 2,182 features per perspective).
-- `src/shogi_dojo/nnue/features.py` — SFEN text parsing and sparse feature index computation. Produces two sets of ~40 active indices (out of 19,638) per position: one per perspective.
-- `src/shogi_dojo/nnue/dataset.py` — Streaming `IterableDataset` for large SFEN files. Custom `collate_fn` pads variable-length index tensors.
-- `src/shogi_dojo/nnue/model.py` — `FeatureTransformer` (sparse lookup + sum, ~5M params) and `NnueNetwork` (3-layer eval net, ~18K params). Uses ClippedReLU throughout.
-- `src/shogi_dojo/nnue/trainer.py` — Training loop with dual loss (score + result), best-model tracking, early stopping, LR scheduling, gradient clipping, and checkpointing.
+Data flows linearly: **constants → features → dataset → model → trainer → train_nnue.py**
+
+- `constants.py` — Shogi piece types, board geometry, and HalfKAv2 feature dimensions. Defines the 19,638-dimensional sparse input space (9 king buckets x 2,182 features per perspective).
+- `features.py` — SFEN text parsing and sparse feature index computation. Produces two sets of ~40 active indices (out of 19,638) per position: one per perspective.
+- `dataset.py` — Streaming `IterableDataset` for large SFEN files. Custom `collate_fn` pads variable-length index tensors.
+- `model.py` — `FeatureTransformer` (sparse lookup + sum, ~5M params) and `NnueNetwork` (3-layer eval net, ~18K params). Uses ClippedReLU throughout.
+- `trainer.py` — Training loop with dual loss (score + result), best-model tracking, early stopping, LR scheduling, gradient clipping, and checkpointing.
 - `train_nnue.py` — CLI entry point at the repository root.
 - `configs/nnue/default.yaml` — All hyperparameters. Fully commented.
 - `tools/nnue/gensfen/` — Rust tool for training data generation via self-play. Uses shogi-rs for board/move generation, alpha-beta search with material eval, outputs text SFEN directly.
+
+### AlphaZero survey (`src/shogi_dojo/alphazero/`)
+
+Self-play training loop: **encoding → network → mcts → rules → self_play → trainer → train_alphazero.py**
+
+- `encoding.py` — Board → 45-channel input tensor; Move ↔ flat 9×9×139 policy index (paper-faithful action space). `position_from_sfen` bridges the NNUE SFEN parser.
+- `network.py` — `AlphaZeroNetwork`: ResNet with policy head (139 logit planes) and value head (tanh scalar). ~336K params by default. Helpers: `masked_log_softmax`, `alphazero_loss`.
+- `mcts.py` — Game-agnostic PUCT MCTS (`Node`, `Edge`, `select_child`, Dirichlet noise, search loop). Takes four callables; no Shogi-specific code.
+- `rules.py` — python-shogi adapter: `legal_moves_fn`, `apply_fn`, `is_terminal_fn`, `make_evaluate_fn`. Piece-type translation (python-shogi uses 1-indexed IDs).
+- `self_play.py` — `play_game()` runs one game with MCTS at every move, records (input, π, legal_mask), backfills terminal z. `ReplayBuffer` for training sampling.
+- `trainer.py` — `AlphaZeroTrainer`: config-driven iteration loop (self-play → buffer → gradient steps → checkpoint).
+- `train_alphazero.py` — CLI entry point at the repository root.
+- `configs/alphazero/{tiny,default}.yaml` — Fully commented configurations.
+- `doc/alphazero/` — Four reference documents: architecture, training methodology, NNUE comparison, annotated reading list.
 
 ## Testing Policy
 

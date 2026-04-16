@@ -133,13 +133,21 @@ Phased plan:
     buffer grows, checkpoint saved with model+optimizer state,
     network parameters change after training), and both YAML configs
     parse and construct correctly.
-- **Phase 2.8 — Comparison and reading list** *(planned)*:
-  `doc/alphazero/AlphaZero_vs_NNUE.md` (operational comparison with
-  numbers from §10 of the reference) and `doc/alphazero/AlphaZero_Reading_List.md`
-  (annotated bibliography expanded from §12).
-- **Phase 2.9 — README integration** *(planned)*: an "AlphaZero Survey"
-  section in `README.md` parallel to the existing NNUE section, and an
-  `alphazero/` subsection under Architecture in `CLAUDE.md`.
+- **Phase 2.8 — Comparison and reading list** *(done)*:
+  `doc/alphazero/AlphaZero_vs_NNUE.md` — standalone operational
+  comparison expanding §10 of the reference into seven sections
+  (architecture, inference cost, training data, training compute,
+  deployment, development complexity, when-to-use-which).
+  `doc/alphazero/AlphaZero_Reading_List.md` — annotated bibliography
+  in five sections (core papers, open-source implementations,
+  related paradigms including MuZero and NNUE, tutorials, hybrid /
+  future directions including distillation).
+- **Phase 2.9 — README integration** *(done)*: `README.md` gains an
+  "AlphaZero Survey" section (documentation table, code layout, quick
+  start, expectations), project structure tree expanded to show both
+  paradigms side by side, python-shogi added to requirements. `CLAUDE.md`
+  Architecture section split into "NNUE" and "AlphaZero survey"
+  subsections.
 
 Sequencing is loose: docs and code can interleave (writing
 `encoding.py` may surface clarifications worth folding back into the
