@@ -1,0 +1,36 @@
+# =============================================================================
+# Bonanza Method — Default Configuration
+# =============================================================================
+# Supervised policy + value training from professional game records.
+# Trains the same AlphaZeroNetwork architecture using cross-entropy on
+# professional moves + MSE on game outcomes.
+#
+# See doc/bonanza/Bonanza_Reference.md for the full discussion.
+# =============================================================================
+
+model:
+  # Same architecture as AlphaZero. Default survey size (~336K params).
+  num_blocks: 4
+  num_filters: 64
+  value_head_hidden: 64
+
+training:
+  # More epochs than AlphaZero iterations, since each epoch is cheap
+  # (no MCTS, no self-play — just forward + backward on a fixed dataset).
+  epochs: 50
+
+  # Larger batch for better gradient estimates.
+  batch_size: 256
+
+  # Adam optimizer.
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+
+  # Value-head weight. The original Bonanza method used evaluation
+  # regression only (no policy head); our dual-head formulation needs
+  # a balance. 0.5 gives the policy head twice the gradient weight.
+  lambda_value: 0.5
+
+  # Checkpoint directory and frequency.
+  checkpoint_dir: "checkpoints/bonanza"
+  save_every: 10

@@ -62,6 +62,16 @@ Data flows linearly: **constants → features → dataset → model → trainer 
 - `configs/nnue/default.yaml` — All hyperparameters. Fully commented.
 - `tools/nnue/gensfen/` — Rust tool for training data generation via self-play. Uses shogi-rs for board/move generation, alpha-beta search with material eval, outputs text SFEN directly.
 
+### Bonanza-method survey (`src/shogi_dojo/bonanza/`)
+
+Supervised policy + value learning from professional game records (kifu). Reuses the AlphaZero network architecture; only the training data source and loss formulation differ.
+
+- `dataset.py` — CSA-format parser (via python-shogi), game replay producing `(input, target_move_index, legal_mask, value_target)` samples, `SupervisedDataset` class.
+- `trainer.py` — `BonanzaTrainer`: epoch-based supervised loop with cross-entropy on the policy head and MSE on the value head.
+- `train_bonanza.py` — CLI entry point at the repository root.
+- `configs/bonanza/{tiny,default}.yaml` — Fully commented configurations.
+- `doc/bonanza/Bonanza_Reference.md` — Reference document covering history, formulation, three-paradigm comparison.
+
 ### AlphaZero survey (`src/shogi_dojo/alphazero/`)
 
 Self-play training loop: **encoding → network → mcts → rules → self_play → trainer → train_alphazero.py**

@@ -1,9 +1,10 @@
 # Shogi Dojo - Computer Shogi Studies Research Group
 
-Academic research resources for studying neural network evaluation in Shogi (Japanese Chess), covering two paradigms:
+Academic research resources for studying neural network evaluation in Shogi (Japanese Chess), covering three paradigms:
 
 - **NNUE (HalfKAv2)** — a sparse, incrementally-updatable evaluation network (~5M params) designed for real-time alpha-beta search. The primary pipeline: generate data with a Rust self-play tool, train with PyTorch, export quantized weights.
 - **AlphaZero-style** — a deep residual policy/value network (~340K params, survey-sized) trained purely from self-play via MCTS. An educational reference implementation with comprehensive documentation.
+- **Bonanza-method** — supervised learning from professional Shogi game records (kifu). The simplest of the three paradigms (no MCTS, no self-play, just a dataset and a training loop). Reuses the AlphaZero network architecture and can warm-start AlphaZero self-play.
 
 ## What is NNUE?
 
@@ -400,6 +401,35 @@ python train_alphazero.py --config configs/alphazero/default.yaml
 ### Expectations
 
 The survey's tiny default network (~340K params, 20 MCTS sims/move) will *not* approach competitive strength. It is designed to be read, run, and modified by the team as a learning tool. See [AlphaZero_Training_Reference.md §12](doc/alphazero/AlphaZero_Training_Reference.md#12-realistic-expectations-for-a-research-survey) for a frank discussion of what to expect.
+
+## Bonanza-Method Survey
+
+The third paradigm: supervised policy + value training from professional Shogi game records (kifu). Reuses the AlphaZero network architecture, with cross-entropy on the move played by the professional and MSE on the game outcome.
+
+### Documentation
+
+- [doc/bonanza/Bonanza_Reference.md](doc/bonanza/Bonanza_Reference.md) — history (Bonanza 2006 at WCSC26), the supervised classification formulation, data sources, three-paradigm comparison, strengths and limitations.
+
+### Code
+
+```
+src/shogi_dojo/bonanza/
+├── dataset.py    # CSA parser, game replay, PyTorch SupervisedDataset
+└── trainer.py    # BonanzaTrainer: epoch-based supervised training loop
+```
+
+### Quick Start (Bonanza)
+
+```bash
+# Train on a CSA file (minutes on CPU with the tiny config):
+python train_bonanza.py --data path/to/games.csa
+
+# Use the default config with multiple files:
+python train_bonanza.py --config configs/bonanza/default.yaml \
+    --data file1.csa file2.csa --min-ply 10
+```
+
+You will need professional Shogi game records in CSA format. See [Bonanza_Reference.md §5](doc/bonanza/Bonanza_Reference.md#5-data-professional-game-records) for data sources.
 
 ## Testing
 

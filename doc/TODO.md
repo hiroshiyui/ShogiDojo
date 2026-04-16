@@ -25,20 +25,29 @@ is known to accelerate early training.
 
 Phased plan:
 
-- **Phase 3.1 — Reference doc**: `doc/bonanza/Bonanza_Reference.md`
-  covering Bonanza's history (WCSC 2006, first automated Shogi
-  evaluation tuning), the logistic-regression formulation on game
-  outcomes, feature design (piece-square, king-relative patterns),
-  comparison with NNUE's dual loss and AlphaZero's policy cross-entropy.
-- **Phase 3.2 — Kifu parser + dataset**: `src/shogi_dojo/bonanza/
-  kifu.py` (parse KIF/CSA professional game records → list of
-  (SFEN, move) pairs) + `dataset.py` (PyTorch Dataset wrapping the
-  parsed games). Tests for format edge cases.
-- **Phase 3.3 — Policy network + training**: reuse the AlphaZero
-  `encoding.py` for board → tensor and move → policy-index conversion.
-  A CNN (or reuse `AlphaZeroNetwork` with only the policy head
-  active) trained via cross-entropy against the pro's chosen move.
-  No MCTS, no self-play — standard supervised classification.
+- **Phase 3.1 — Reference doc** *(done)*: `doc/bonanza/Bonanza_Reference.md`
+  covers Bonanza's history (WCSC26 2006), the supervised classification
+  formulation (policy cross-entropy + value MSE, modernized from the
+  original logistic regression), CSA data format, three-paradigm
+  comparison table, strengths and limitations, and references.
+- **Phase 3.2 — Kifu parser + dataset** *(done)*: `src/shogi_dojo/bonanza/
+  dataset.py` provides `parse_csa_string` / `parse_csa_file` (via
+  python-shogi's CSA.Parser), `replay_game` (reconstructs the board
+  state at every move and produces training samples), and
+  `SupervisedDataset` (PyTorch map-style Dataset with `from_csa_files`
+  / `from_games` constructors).
+- **Phase 3.3 — Policy network + training** *(done)*: reuses
+  `AlphaZeroNetwork` from the alphazero/ package. `BonanzaTrainer`
+  runs epoch-based supervised training: masked log-softmax + NLL loss
+  on the policy head against the pro's move index, MSE on the value
+  head against the game outcome. Configurable `lambda_value` weight.
+  Top-1 move-prediction accuracy logged per epoch.
+  `configs/bonanza/{tiny,default}.yaml`, `train_bonanza.py` entry point.
+  Tests under `tests/bonanza/test_bonanza.py` (20 tests) cover CSA
+  parsing, game replay (sample shapes, min/max ply, value targets,
+  legal masks), dataset construction, and an end-to-end smoke test
+  (loop runs, checkpoint saved, parameters change, both YAML configs
+  parse).
 - **Phase 3.4 — Move-ordering integration**: use the trained policy
   network to order moves in the existing gensfen alpha-beta search.
   Measure search efficiency (nodes-to-same-depth) with vs without

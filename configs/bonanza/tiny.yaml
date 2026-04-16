@@ -1,0 +1,32 @@
+# =============================================================================
+# Bonanza Method — Tiny Configuration
+# =============================================================================
+# Minimal config for smoke-testing the supervised training pipeline.
+# Runs in seconds on CPU with a handful of sample games.
+#
+# See doc/bonanza/Bonanza_Reference.md for the full discussion.
+# =============================================================================
+
+model:
+  # Same architecture as AlphaZero (reused network). Tiny for speed.
+  num_blocks: 1
+  num_filters: 8
+  value_head_hidden: 8
+
+training:
+  # Few epochs — enough to verify loss decreases.
+  epochs: 5
+
+  # Small batch for tiny datasets.
+  batch_size: 8
+
+  # Adam optimizer.
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+
+  # Weight for the value-head MSE loss. Set to 0 to train policy only.
+  lambda_value: 0.5
+
+  # Checkpoint directory and frequency.
+  checkpoint_dir: "checkpoints/bonanza"
+  save_every: 5
