@@ -408,6 +408,132 @@ def _tiny_config(checkpoint_dir: str) -> dict:
     }
 
 
+class TestBonanzaTrainerResume:
+    """``resume_from`` restores model + optimizer + counters from a checkpoint."""
+
+    def test_resume_restores_weights(self):
+        games = parse_csa_string(SAMPLE_CSA)
+        ds = SupervisedDataset.from_games(games)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = _tiny_config(tmpdir)
+            cfg["training"]["epochs"] = 2
+            cfg["training"]["save_every"] = 1
+            trainer1 = BonanzaTrainer(cfg)
+            trainer1.train(ds)
+            saved_state = {
+                n: p.detach().clone() for n, p in trainer1.network.named_parameters()
+            }
+
+            trainer2 = BonanzaTrainer(cfg)
+            # Sanity: a freshly built network differs from the saved one.
+            assert any(
+                not torch.equal(p, saved_state[n])
+                for n, p in trainer2.network.named_parameters()
+            )
+            trainer2.resume_from(os.path.join(tmpdir, "bonanza_epoch_0002.pt"))
+            for n, p in trainer2.network.named_parameters():
+                assert torch.equal(p, saved_state[n])
+
+    def test_resume_sets_start_epoch_and_global_step(self):
+        games = parse_csa_string(SAMPLE_CSA)
+        ds = SupervisedDataset.from_games(games)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = _tiny_config(tmpdir)
+            cfg["training"]["batch_size"] = 1
+            cfg["training"]["epochs"] = 2
+            cfg["training"]["save_every"] = 2
+            trainer1 = BonanzaTrainer(cfg)
+            trainer1.train(ds)   # 2 epochs × 3 steps = 6 steps total
+
+            trainer2 = BonanzaTrainer(cfg)
+            assert trainer2.start_epoch == 1
+            assert trainer2.global_step == 0
+            trainer2.resume_from(os.path.join(tmpdir, "bonanza_epoch_0002.pt"))
+            assert trainer2.start_epoch == 3
+            assert trainer2.global_step == 6
+
+    def test_resume_continues_global_step(self):
+        # After resume, step-based checkpoint filenames must reflect
+        # the *cumulative* global step, not restart from zero.
+        games = parse_csa_string(SAMPLE_CSA)
+        ds = SupervisedDataset.from_games(games)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = _tiny_config(tmpdir)
+            cfg["training"]["batch_size"] = 1
+            cfg["training"]["epochs"] = 1
+            cfg["training"]["save_every"] = 1
+            trainer1 = BonanzaTrainer(cfg)
+            trainer1.train(ds)   # 1 epoch × 3 steps = global_step=3
+
+            cfg2 = _tiny_config(tmpdir)
+            cfg2["training"]["batch_size"] = 1
+            cfg2["training"]["epochs"] = 2   # one more epoch's worth
+            cfg2["training"]["save_every"] = 100
+            cfg2["training"]["save_every_steps"] = 1
+            trainer2 = BonanzaTrainer(cfg2)
+            trainer2.resume_from(os.path.join(tmpdir, "bonanza_epoch_0001.pt"))
+            trainer2.train(ds)
+
+            step_files = sorted(
+                f for f in os.listdir(tmpdir) if f.startswith("bonanza_step_")
+            )
+            # Resumed run produced 3 more steps, numbered 4, 5, 6.
+            assert step_files == [
+                "bonanza_step_00000004.pt",
+                "bonanza_step_00000005.pt",
+                "bonanza_step_00000006.pt",
+            ]
+
+    def test_resume_skips_epochs_already_completed(self):
+        # If start_epoch > epochs (e.g. resumed from the last checkpoint
+        # without bumping epochs in the config), train() returns
+        # immediately without producing any new checkpoints or mutating
+        # the network.
+        games = parse_csa_string(SAMPLE_CSA)
+        ds = SupervisedDataset.from_games(games)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = _tiny_config(tmpdir)
+            cfg["training"]["epochs"] = 2
+            cfg["training"]["save_every"] = 2
+            trainer1 = BonanzaTrainer(cfg)
+            trainer1.train(ds)
+            existing = set(os.listdir(tmpdir))
+
+            trainer2 = BonanzaTrainer(cfg)
+            trainer2.resume_from(os.path.join(tmpdir, "bonanza_epoch_0002.pt"))
+            before = {
+                n: p.detach().clone() for n, p in trainer2.network.named_parameters()
+            }
+            trainer2.train(ds)   # start_epoch=3 > epochs=2 → no-op
+            after = {n: p.detach().clone() for n, p in trainer2.network.named_parameters()}
+
+            assert set(os.listdir(tmpdir)) == existing
+            for n in before:
+                assert torch.equal(before[n], after[n])
+
+    def test_resume_from_step_checkpoint_advances_to_next_epoch(self):
+        # Step checkpoints record the in-progress epoch. Resuming from
+        # one starts the *next* epoch fresh (the partial epoch's
+        # remainder is skipped — documented behaviour).
+        games = parse_csa_string(SAMPLE_CSA)
+        ds = SupervisedDataset.from_games(games)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = _tiny_config(tmpdir)
+            cfg["training"]["batch_size"] = 1
+            cfg["training"]["epochs"] = 2
+            cfg["training"]["save_every"] = 100
+            cfg["training"]["save_every_steps"] = 2
+            trainer1 = BonanzaTrainer(cfg)
+            trainer1.train(ds)
+            # Step 2 fires mid-epoch 1 (epoch 1 has 3 steps). The
+            # checkpoint records epoch=1, so resume should start at 2.
+
+            trainer2 = BonanzaTrainer(cfg)
+            trainer2.resume_from(os.path.join(tmpdir, "bonanza_step_00000002.pt"))
+            assert trainer2.start_epoch == 2
+            assert trainer2.global_step == 2
+
+
 class TestBonanzaTrainerSmokeTest:
     def test_full_loop_runs_to_completion(self):
         games = parse_csa_string(SAMPLE_CSA)

@@ -17,6 +17,10 @@ Usage:
     python train_bonanza.py --config configs/bonanza/default.yaml \
         --data-list data/wdoor_files.txt --streaming --min-ply 10
 
+    # Resume training from a saved checkpoint (epoch- or step-based):
+    python train_bonanza.py --resume checkpoints/bonanza_epoch_0010.pt \
+        --data-list data/wdoor_files.txt --streaming
+
 Before running, you need Shogi game records in CSA format.
 See doc/bonanza/Bonanza_Reference.md §5 for data sources.
 """
@@ -77,6 +81,13 @@ def main():
         "--buffer-size", type=int, default=10000,
         help="Shuffle buffer size for streaming mode (default: 10000).",
     )
+    parser.add_argument(
+        "--resume", type=str, default=None,
+        help="Path to a checkpoint file (.pt) to resume training from. "
+             "Continues from the next epoch after the saved one. If "
+             "resuming from a step-based checkpoint, the remainder of "
+             "that epoch is skipped.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -117,6 +128,8 @@ def main():
         )
 
     trainer = BonanzaTrainer(cfg)
+    if args.resume:
+        trainer.resume_from(args.resume)
     trainer.train(dataset)
 
 

@@ -97,6 +97,37 @@ class BonanzaTrainer:
             "pin_memory", self.device.type == "cuda",
         ) and self.device.type == "cuda"
 
+        # Resume state. ``start_epoch`` is the first epoch to run
+        # (1-indexed); ``global_step`` is the monotonic optimizer-step
+        # counter. Both are mutated by :meth:`resume_from`.
+        self.start_epoch = 1
+        self.global_step = 0
+
+    def resume_from(self, checkpoint_path: str) -> None:
+        """Restore model + optimizer state from a saved checkpoint.
+
+        Sets ``self.start_epoch`` to the epoch *after* the one recorded
+        in the checkpoint, and ``self.global_step`` to the saved step
+        counter, so the next :meth:`train` call continues from there.
+
+        Step-based checkpoints (``bonanza_step_*.pt``) are saved
+        mid-epoch; resuming from one skips the remainder of that epoch
+        and restarts at the next one. Exact mid-epoch resume would
+        require DataLoader/RNG state that we do not persist.
+        """
+        ckpt = torch.load(
+            checkpoint_path, map_location=self.device, weights_only=True,
+        )
+        self.network.load_state_dict(ckpt["model_state_dict"])
+        self.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        self.start_epoch = int(ckpt["epoch"]) + 1
+        self.global_step = int(ckpt["global_step"])
+        logger.info(
+            "Resumed from %s (saved epoch=%d, global_step=%d) — "
+            "next epoch=%d",
+            checkpoint_path, ckpt["epoch"], self.global_step, self.start_epoch,
+        )
+
     def train(self, dataset) -> None:
         """Run the full supervised training loop.
 
@@ -141,10 +172,20 @@ class BonanzaTrainer:
             )
 
         # Monotonic counter across all epochs — used for step-based
-        # checkpointing and logged in every saved checkpoint.
-        global_step = 0
+        # checkpointing and logged in every saved checkpoint. When
+        # resuming, this picks up where the loaded checkpoint left off.
+        global_step = self.global_step
 
-        for epoch in range(1, self.epochs + 1):
+        if self.start_epoch > self.epochs:
+            logger.warning(
+                "Nothing to do: start_epoch=%d already exceeds configured "
+                "epochs=%d. Increase training.epochs in the config to "
+                "continue training past the resumed checkpoint.",
+                self.start_epoch, self.epochs,
+            )
+            return
+
+        for epoch in range(self.start_epoch, self.epochs + 1):
             t0 = time.time()
             total_loss = 0.0
             total_ploss = 0.0
