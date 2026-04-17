@@ -427,6 +427,10 @@ python train_bonanza.py --data path/to/games.csa
 # Use the default config with multiple files:
 python train_bonanza.py --config configs/bonanza/default.yaml \
     --data file1.csa file2.csa --min-ply 10
+
+# Resume from a saved checkpoint (epoch- or step-based):
+python train_bonanza.py --resume checkpoints/bonanza_epoch_0010.pt \
+    --data-list data/wdoor_files.txt --streaming
 ```
 
 You will need Shogi game records in CSA format. A good starting dataset is the [shogi-server kifu archive (2026-04-10 release)](https://github.com/shogi-server/shogi-server/releases/tag/2026-04-10) — two 7-Zip archives (`wdoor2025.7z` + `wdoor2026.7z`) containing ~166,740 CSA game files combined from the Floodgate server. See [Bonanza_Reference.md §5](doc/bonanza/Bonanza_Reference.md#5-data-professional-game-records) for extraction instructions, additional sources, and filtering guidance.

@@ -280,8 +280,36 @@ Two independent checkpoint triggers:
   `null` (or omit) to disable.
 
 Step-based checkpoints are named ``bonanza_step_NNNNNNNN.pt``; epoch-
-based are ``bonanza_epoch_NNNN.pt``. Both payloads include ``epoch``
-and ``global_step`` so a future resume implementation can pick either.
+based are ``bonanza_epoch_NNNN.pt``. Both payloads include ``epoch``,
+``global_step``, ``model_state_dict``, and ``optimizer_state_dict`` —
+everything the trainer needs to resume.
+
+### Resuming Training
+
+Pass ``--resume PATH`` to ``train_bonanza.py`` to continue from a
+saved checkpoint:
+
+```bash
+python train_bonanza.py --resume checkpoints/bonanza_epoch_0010.pt \
+    --data-list data/wdoor_files.txt --streaming
+```
+
+Internally, ``BonanzaTrainer.resume_from(path)`` restores the model
+and optimizer state and sets ``start_epoch = saved_epoch + 1`` and
+``global_step = saved_global_step``. The next ``train()`` call picks
+up from there, and step-numbered checkpoint filenames continue
+counting from where the previous run left off.
+
+Resuming from a **step-based** checkpoint skips the remainder of the
+in-progress epoch — the trainer restarts cleanly at the next epoch.
+Exact mid-epoch resume is not supported because the DataLoader/RNG
+state is not persisted; for streaming datasets this is unavoidable
+without a substantial bookkeeping overhead.
+
+If ``training.epochs`` in the config is less than or equal to the
+saved epoch (e.g. you resumed from the final checkpoint without
+bumping the target), the trainer logs a warning and exits without
+running any further updates.
 
 Troubleshooting checklist if utilization is still low:
 

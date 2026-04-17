@@ -87,8 +87,8 @@ Self-play training loop: **encoding → network → mcts → rules → self_play
 Supervised policy + value learning from professional game records (kifu). Reuses `AlphaZeroNetwork` without modification; only the training data source and loss formulation differ. State dicts are interchangeable — a Bonanza-trained checkpoint can warm-start AlphaZero self-play directly.
 
 - `dataset.py` — CSA-format parser (via python-shogi), game replay producing `(input, target_move_index, legal_mask, value_target)` samples. Two PyTorch dataset classes: `SupervisedDataset` (map-style, loads all samples into memory) and `StreamingSupervisedDataset` (`IterableDataset` with sliding-buffer shuffle, bounded memory for the full ~167K-file wdoor archive).
-- `trainer.py` — `BonanzaTrainer`: epoch-based supervised loop with cross-entropy on the policy head and MSE on the value head. Auto-detects map-style vs streaming datasets and configures the DataLoader accordingly.
-- `train_bonanza.py` — CLI entry point. Supports `--data`, `--data-list` (for large file sets), and `--streaming` flags.
+- `trainer.py` — `BonanzaTrainer`: epoch-based supervised loop with cross-entropy on the policy head and MSE on the value head. Auto-detects map-style vs streaming datasets and configures the DataLoader accordingly. `resume_from(path)` restores model + optimizer state and sets `start_epoch` / `global_step` so training continues seamlessly from epoch- or step-based checkpoints.
+- `train_bonanza.py` — CLI entry point. Supports `--data`, `--data-list` (for large file sets), `--streaming`, and `--resume` (continue from a saved checkpoint) flags.
 - `configs/bonanza/{tiny,default}.yaml` — Fully commented configurations.
 - `doc/bonanza/Bonanza_Reference.md` — Reference document covering history, formulation, CSA format, data sources (wdoor archive), and three-paradigm comparison.
 
