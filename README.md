@@ -148,6 +148,27 @@ python train_bonanza.py --resume checkpoints/bonanza_epoch_0010.pt \
     --data-list data/wdoor_files.txt --streaming
 ```
 
+### Deploying the Trained Network
+
+A trained checkpoint is a standard PyTorch `.pt` file (model weights + optimizer state). For inference outside PyTorch — mobile apps, browsers, C++ engines — convert it to a portable format:
+
+```bash
+# Install export extras (onnx + onnxruntime)
+pip install -e ".[export]"
+
+# ONNX (recommended for mobile/web — Core ML, TFLite, ONNX Runtime Web all consume it):
+python scripts/alphazero/export_onnx.py \
+    --checkpoint checkpoints/bonanza/bonanza_epoch_0050.pt \
+    --output bonanza.onnx
+
+# TorchScript (when the deployment target already uses libtorch C++):
+python scripts/alphazero/export_torchscript.py \
+    --checkpoint checkpoints/bonanza/bonanza_epoch_0050.pt \
+    --output bonanza.ts
+```
+
+Both produce ~1.3 MB artifacts (336K params at float32) with named I/O and a dynamic batch dimension, so the same file works for one-position-at-a-time mobile inference and for batched server inference.
+
 ### Why Bonanza?
 
 - **Simplest pipeline.** No replay buffer, no Dirichlet noise, no virtual loss — a few thousand lines including tests. Good first paradigm to read.

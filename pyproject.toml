@@ -18,6 +18,12 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
 viz = ["tensorboard"]
+# Optional dependencies for exporting AlphaZero/Bonanza checkpoints to
+# portable formats (see scripts/alphazero/export_onnx.py and
+# export_torchscript.py). ``onnx`` is required for ONNX export itself;
+# ``onnxruntime`` adds round-trip verification. TorchScript export
+# needs no extras (it is part of torch).
+export = ["onnx", "onnxruntime"]
 
 [build-system]
 requires = ["setuptools>=68.0"]

@@ -77,6 +77,7 @@ Self-play training loop: **encoding → network → mcts → rules → self_play
 - `rules.py` — python-shogi adapter: `legal_moves_fn`, `apply_fn`, `is_terminal_fn`, `make_evaluate_fn`. Piece-type translation (python-shogi uses 1-indexed IDs).
 - `self_play.py` — `play_game()` runs one game with MCTS at every move, records (input, π, legal_mask), backfills terminal z. `ReplayBuffer` for training sampling.
 - `evaluation.py` — `run_match()` and `MatchResult`: color-swapped N-game matches between two AlphaZero-family networks, with Elo-diff estimate. Used for promotion gating and cross-paradigm comparison. CLI at `scripts/alphazero/match.py`.
+- `scripts/alphazero/export_torchscript.py` and `export_onnx.py` — convert any AlphaZero-architecture checkpoint (AlphaZero- or Bonanza-trained) to TorchScript (`.ts`) or ONNX (`.onnx`) for deployment outside the PyTorch Python runtime (libtorch C++, ONNX Runtime, Core ML, web). ONNX export requires the `[export]` extra (`onnx`); TorchScript needs no extra deps.
 - `trainer.py` — `AlphaZeroTrainer`: config-driven iteration loop (self-play → buffer → gradient steps → checkpoint). Supports `model.warm_start` config key for initializing from a Bonanza (or prior AlphaZero) checkpoint.
 - `train_alphazero.py` — CLI entry point at the repository root.
 - `configs/alphazero/{tiny,default}.yaml` — Fully commented configurations.
