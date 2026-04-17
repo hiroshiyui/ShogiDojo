@@ -165,6 +165,83 @@ Each iteration produces stronger data, which trains a stronger network, which pr
 
 Each self-play game begins with `random_moves` (default: 8) random legal moves before switching to engine play. This creates **opening diversity** in the training data — without it, every game would follow the same opening and the network would only learn about a narrow set of positions.
 
+### Building and Running gensfen
+
+The `gensfen` Rust tool (under `tools/nnue/gensfen/`) generates training positions via self-play. Building it requires the [Rust toolchain](https://rustup.rs/):
+
+```bash
+cd tools/nnue/gensfen && cargo build --release
+```
+
+The release profile enables LTO and `target-cpu=native` (see `tools/nnue/gensfen/.cargo/config.toml`) for ~20% faster NNUE inference. The resulting binary is **non-portable** — only run it on a machine with at least the same CPU feature set as the build host. For portable CI builds:
+
+```bash
+RUSTFLAGS="" cargo build --release
+```
+
+Run it with:
+
+```bash
+./tools/nnue/gensfen/target/release/gensfen \
+    --depth 4 --threads 4 --positions 1000000 --output data/train.sfen
+```
+
+| Option           | Default        | Description                                              |
+|------------------|----------------|----------------------------------------------------------|
+| `--depth`        | `4`            | Alpha-beta search depth. Higher = better quality, slower.|
+| `--threads`      | `4`            | Parallel game threads.                                   |
+| `--positions`    | (required)     | Total positions to generate.                             |
+| `--output`       | `output.sfen`  | Output file path (text SFEN).                            |
+| `--random-moves` | `8`            | Random opening moves for diversity.                      |
+| `--model`        | (none)         | Path to `.nnue` model file for NNUE-powered self-play.   |
+
+Without `--model`, gensfen uses the built-in PST evaluator (material + piece-square tables). With `--model`, it uses the trained NNUE for stronger self-play, producing higher-quality training data.
+
+#### Picking a Depth
+
+`gensfen` runtime grows roughly 5× per extra ply at NNUE inference cost. A position is only written *after the whole game it belongs to finishes*, so the per-game wall time below is also the time before any output appears.
+
+Indicative numbers on a 6-core CPU (LTO + native build, `--threads 8`, NNUE evaluator):
+
+| `--depth` | Per-game wall time | 100k-position ETA      |
+|-----------|-------------------:|-----------------------:|
+| 3         | ~3 min             | ~3-4 hours             |
+| 4         | ~30 min            | overnight (~15-20 h)   |
+| 5         | ~3 hours           | ~3-4 days              |
+| 6         | ~15 hours          | weeks                  |
+
+For limited-resource setups, see [§0 below](#0-limited-resources--constrained-search-depth) — iterating at depth 4-5 typically beats a single shot at depth 6+.
+
+#### Output Format
+
+One position per line:
+
+```
+sfen <board> <side> <hand> <move#>\t<score>\t<result>
+```
+
+| Field    | Description                                                  | Example                   |
+|----------|--------------------------------------------------------------|---------------------------|
+| `board`  | SFEN board string (pieces on the 9x9 grid)                   | `lnsgkgsnl/1r5b1/...`     |
+| `side`   | Side to move: `b` (Black/Sente) or `w` (White/Gote)          | `b`                       |
+| `hand`   | Pieces in hand (`-` if none)                                 | `S2P` (1 Silver, 2 Pawns) |
+| `move#`  | Move number                                                  | `1`                       |
+| `score`  | Engine evaluation in centipawns (positive = good for STM)    | `100`                     |
+| `result` | Game result for STM: `1.0` = win, `0.5` = draw, `0.0` = loss | `1.0`                     |
+
+#### Validating Generated Data
+
+```bash
+python scripts/nnue/validate_sfen.py data/train.sfen
+python scripts/nnue/validate_sfen.py data/*.sfen --check-duplicates --summary
+```
+
+Reports malformed lines, score distribution, result balance (W/D/L), and duplicates.
+
+#### Alternative Data Sources
+
+Instead of generating from scratch, you can use pre-generated datasets such as [Hugging Face nodchip/shogi_hao_depth9](https://huggingface.co/datasets/nodchip/shogi_hao_depth9) (may require format conversion).
+
 ---
 
 ## Checkpointing and Resuming
@@ -347,6 +424,29 @@ Change architecture only after the iterative loop has plateaued:
 ### 5. Engine-Side Improvements (Separate from Training)
 
 Stronger search makes the *same* NNUE play stronger games. But this is engine work (transposition tables, killer moves, late-move reductions in `gensfen`/an external engine), not training work — and it does not improve the evaluation function itself.
+
+---
+
+## Disk Budget
+
+NNUE training data is text SFEN, roughly 50 bytes per position. Plan disk accordingly:
+
+| Component                  | Size            | Notes                                            |
+|----------------------------|----------------:|--------------------------------------------------|
+| Training data (text SFEN)  | **5–100+ GB**   | 100M positions ≈ 5 GB                            |
+| Single checkpoint          | ~19 MB          | Model weights + optimizer state                  |
+| All checkpoints (default)  | ~385 MB         | 20 files (`save_every: 10`, 200 epochs)          |
+| `gensfen` Rust binary      | ~1 MB           | Compiled release build                           |
+
+End-to-end footprint by training scale:
+
+| Scale         | Positions | Training Data | Total Disk |
+|---------------|----------:|--------------:|-----------:|
+| Quick test    |        1M |        ~50 MB | **~1 GB**  |
+| Small run     |      100M |         ~5 GB | **~7 GB**  |
+| Full training |        1B |        ~50 GB | **~55 GB** |
+
+For a large training run, ensure the data directory and checkpoint directory are on the same fast (SSD/NVMe) volume to keep the DataLoader from becoming I/O-bound.
 
 ---
 
