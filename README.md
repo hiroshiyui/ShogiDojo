@@ -118,8 +118,19 @@ The trainer accepts a `model.warm_start` config key pointing at any AlphaZero-ar
 Compare two AlphaZero networks (or AlphaZero vs Bonanza) head-to-head:
 
 ```bash
-python scripts/alphazero/match.py --model-a model_v2.pt --model-b model_v1.pt --games 100
+python scripts/alphazero/match.py --network-a model_v2.pt --network-b model_v1.pt --num-games 100
 ```
+
+For a sanity-floor opponent — useful for confirming a trained network actually plays better than random initialization — generate a freshly-initialized checkpoint with the same architecture:
+
+```bash
+python scripts/alphazero/make_random_checkpoint.py --output checkpoints/random_init.pt --seed 0
+python scripts/alphazero/match.py \
+    --network-a checkpoints/bonanza/bonanza_epoch_0050.pt \
+    --network-b checkpoints/random_init.pt --num-games 20
+```
+
+A trained network should crush the random baseline ~95%+; if not, something is wrong (architecture mismatch, weight-loading bug, untrained checkpoint).
 
 The survey's tiny default network will *not* approach competitive strength. See [AlphaZero_Training_Reference.md §12](doc/alphazero/AlphaZero_Training_Reference.md#12-realistic-expectations-for-a-research-survey) for an honest discussion of expectations, and [AlphaZero_Reference.md](doc/alphazero/AlphaZero_Reference.md) for architecture, MCTS+PUCT walk-through, and the 9×9×139 action-space encoding.
 
