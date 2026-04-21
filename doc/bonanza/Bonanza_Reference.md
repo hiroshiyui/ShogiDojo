@@ -529,3 +529,4 @@ policy can then be used to warm-start AlphaZero self-play (Phase
 - [`AlphaZero_Training_Reference.md`](../alphazero/AlphaZero_Training_Reference.md)
 - [`NNUE_Reference.md`](../nnue/NNUE_Reference.md)
 - [`Model_Training_Reference.md`](../nnue/Model_Training_Reference.md)
+- [`Deployment.md`](Deployment.md) — single-source-of-truth contract for porting the trained network to a non-Python runtime (encoder layout, policy index decoding, value perspective convention).

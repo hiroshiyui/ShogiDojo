@@ -180,6 +180,8 @@ python scripts/alphazero/export_torchscript.py \
 
 Both produce ~1.3 MB artifacts (336K params at float32) with named I/O and a dynamic batch dimension, so the same file works for one-position-at-a-time mobile inference and for batched server inference.
 
+The exported file contains only the network — to actually use it in a deployment language (Swift, Kotlin, JavaScript, Rust) you also need an encoder, a legal-move mask, a policy decoder, and the value sign-flip convention. [doc/bonanza/Deployment.md](doc/bonanza/Deployment.md) is the single-source-of-truth contract for those pieces.
+
 ### Why Bonanza?
 
 - **Simplest pipeline.** No replay buffer, no Dirichlet noise, no virtual loss — a few thousand lines including tests. Good first paradigm to read.
