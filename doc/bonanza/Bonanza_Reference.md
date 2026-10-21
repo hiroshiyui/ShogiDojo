@@ -239,6 +239,61 @@ find data/wdoor -name '*.csa' > data/wdoor_files.txt
 python train_bonanza.py --data-list data/wdoor_files.txt --streaming
 ```
 
+### Packed Dataset (Preprocess Once, Train Fast)
+
+Both modes above replay every game with python-shogi **every epoch**,
+and generating the legal-move mask at each position is slow. On the
+v1 run (RTX 3060, 8 workers) this capped training at ~2,200
+samples/s while the GPU could do ~27,000/s, so the GPU was idle ~90%
+of the time.
+
+``src/shogi_dojo/bonanza/packed.py`` does the replay **once** and
+stores the results as compact NumPy shards:
+
+```bash
+# 1. Preprocess (one-time; resumable — re-run the same command after
+#    an interruption and finished shards are skipped):
+find data/wdoor -name '*.csa' | sort > data/wdoor_files.txt
+python scripts/bonanza/preprocess_kifu.py \
+    --data-list data/wdoor_files.txt --output data/packed/wdoor \
+    --min-ply 10 --workers 10
+
+# 2. Train from the shards:
+python train_bonanza.py --config configs/bonanza/default.yaml \
+    --packed data/packed/wdoor
+```
+
+How it stays small (~510 bytes per position instead of ~26 KB):
+
+- Piece planes (channels 0–27) are 0/1, so they are stored as bits.
+- Hand, repetition, side-to-move and move-number planes (28–44) are
+  constant over the board, so one float per plane is stored.
+- The legal-move mask (11,259 entries, ~100 of them `True`) is stored
+  as the list of legal move indices.
+
+``PackedDataset`` memory-maps the shards and decodes a whole batch at
+once with vectorized NumPy. The decoded tensors are bit-for-bit
+identical to ``replay_game``'s output (``tests/bonanza/test_packed.py``
+checks this).
+
+Measured on 2,000 wdoor games (RTX 3060, 12-core CPU):
+
+| Step | Throughput |
+|---|---|
+| Preprocessing (10 workers, one-time) | ~2,300 samples/s ≈ 15 h for 122M positions |
+| Training-time loading (``PackedDataset``) | ~85,000–105,000 samples/s |
+
+Notes:
+
+- ``--min-ply`` / ``--max-ply`` are applied at preprocessing time and
+  recorded in the output's ``config.json``. To change them, preprocess
+  into a new directory. The tool refuses to mix settings in one
+  directory.
+- Disk: ~55 MB per 1,000 wdoor games, so roughly 65 GB for all
+  2011–2026 archives (~1.2M games).
+- Keep the file list **sorted and unchanged** when resuming: list
+  order decides which shard each file goes to.
+
 ### GPU Utilization Tuning
 
 The default `configs/bonanza/default.yaml` includes three settings that

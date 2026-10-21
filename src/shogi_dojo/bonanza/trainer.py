@@ -132,10 +132,12 @@ class BonanzaTrainer:
         """Run the full supervised training loop.
 
         Args:
-            dataset: Either a map-style :class:`SupervisedDataset` (loads
-                all samples into memory) or a :class:`StreamingSupervisedDataset`
-                (streams lazily). Both are accepted; the DataLoader
-                configuration is adjusted automatically.
+            dataset: A map-style :class:`SupervisedDataset` (loads all
+                samples into memory), a :class:`StreamingSupervisedDataset`
+                (streams lazily from CSA files), or a
+                :class:`~shogi_dojo.bonanza.packed.PackedDataset`
+                (pre-processed shards, fastest). All are accepted; the
+                DataLoader configuration is adjusted automatically.
         """
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
@@ -146,6 +148,8 @@ class BonanzaTrainer:
         # persistent_workers=True keeps workers alive across epochs —
         # saves the reset cost that otherwise runs the streaming
         # dataset's per-worker file shuffle + RNG setup every epoch.
+        # Datasets that decode a whole batch at once (PackedDataset)
+        # provide their own collate_fn; None means PyTorch's default.
         loader = DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -154,6 +158,7 @@ class BonanzaTrainer:
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             persistent_workers=self.num_workers > 0,
+            collate_fn=getattr(dataset, "collate_fn", None),
         )
 
         common_info = (

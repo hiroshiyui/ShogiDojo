@@ -21,6 +21,14 @@ Usage:
     python train_bonanza.py --resume checkpoints/bonanza_epoch_0010.pt \
         --data-list data/wdoor_files.txt --streaming
 
+    # Fastest: preprocess the CSA files once, then train from the packed
+    # shards (no CSA parsing or legal-move generation during training):
+    python scripts/bonanza/preprocess_kifu.py \
+        --data-list data/wdoor_files.txt --output data/packed/wdoor \
+        --min-ply 10 --workers 10
+    python train_bonanza.py --config configs/bonanza/default.yaml \
+        --packed data/packed/wdoor
+
 Before running, you need Shogi game records in CSA format.
 See doc/bonanza/Bonanza_Reference.md §5 for data sources.
 """
@@ -35,6 +43,7 @@ from shogi_dojo.bonanza.dataset import (
     StreamingSupervisedDataset,
     SupervisedDataset,
 )
+from shogi_dojo.bonanza.packed import PackedDataset
 from shogi_dojo.bonanza.trainer import BonanzaTrainer
 
 
@@ -62,6 +71,14 @@ def main():
              "Use this for large datasets (e.g. ~167K files from the "
              "shogi-server wdoor archives) to avoid the argv limit. "
              "Build with: find data/wdoor -name '*.csa' > data/wdoor_files.txt",
+    )
+    data_group.add_argument(
+        "--packed", type=str,
+        help="Directory of pre-processed shards written by "
+             "scripts/bonanza/preprocess_kifu.py. Much faster than "
+             "--streaming because the CSA replay and legal-move "
+             "generation were done once up front. --min-ply/--max-ply "
+             "are ignored (they were applied at preprocessing time).",
     )
     parser.add_argument(
         "--min-ply", type=int, default=1,
@@ -105,7 +122,15 @@ def main():
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
 
-    if args.streaming:
+    if args.packed:
+        dataset = PackedDataset(args.packed)
+        logging.info(
+            "Dataset: %d packed samples in %d shard(s) from %s "
+            "(min_ply=%d, max_ply=%d at preprocessing time).",
+            len(dataset), dataset.num_shards, args.packed,
+            dataset.config["min_ply"], dataset.config["max_ply"],
+        )
+    elif args.streaming:
         dataset = StreamingSupervisedDataset(
             csa_files=data_files,
             min_ply=args.min_ply,
