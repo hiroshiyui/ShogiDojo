@@ -1,0 +1,80 @@
+# =============================================================================
+# Bonanza Method — v2 Configuration (bigger net, AMP, cosine LR)
+# =============================================================================
+# Second-generation recipe, designed for the packed full wdoor archive
+# (2011–2026, ~1.6M games, ~190M positions) on a single consumer GPU
+# (sized on an RTX 3060 12 GB).
+#
+# Differences from default.yaml (the v1 recipe) and why:
+#   - 10 blocks × 128 filters (~3M params, ~9× v1). v1's 4×64 net
+#     plateaued at ~44% top-1 accuracy — a capacity limit.
+#   - Few epochs over much more data instead of 50 epochs over 166K
+#     games: the network sees more distinct positions and repeats less.
+#   - Mixed precision (amp): ~2× training throughput on the GPU.
+#   - AdamW + cosine LR decay with warmup: v1 ran a constant LR for all
+#     50 epochs; decaying the LR at the end typically adds a few points
+#     of accuracy.
+#
+# Use with packed data and a validation split:
+#   python train_bonanza.py --config configs/bonanza/v2.yaml \
+#       --packed data/packed/wdoor_all --val-fraction 0.02
+#
+# Measured GPU ceiling for 10×128 + AMP on an RTX 3060: ~8,900 samples/s,
+# so one epoch over ~190M positions takes ~6.5 hours; 4 epochs ≈ 26 h.
+#
+# See doc/bonanza/Bonanza_Reference.md for the full discussion.
+# =============================================================================
+
+model:
+  num_blocks: 10
+  num_filters: 128
+  value_head_hidden: 128
+
+training:
+  # 4 passes over ~190M positions ≈ 760M samples — about as many
+  # samples as v1 saw in its 50 epochs, but ~10× more distinct ones.
+  # (6 epochs would take ~40 h; the cosine schedule adapts either way.)
+  epochs: 4
+
+  batch_size: 1024
+
+  # Packed data decodes at ~85K+ samples/s with even one worker, so a
+  # few workers are plenty (they only need to stay ahead of the GPU).
+  num_workers: 4
+  pin_memory: true
+
+  # Mixed precision (float16 on CUDA). Ignored on CPU.
+  amp: true
+
+  # adam | adamw | sgd. AdamW applies weight decay directly to the
+  # weights (decoupled from Adam's gradient scaling), so the decay value
+  # means "shrink weights by lr × weight_decay per step" — hence the
+  # larger value than the Adam-style 1e-4 in default.yaml.
+  optimizer: adamw
+  lr: 1.0e-3
+  weight_decay: 1.0e-2
+
+  # Learning-rate schedule, updated every optimizer step.
+  #   type:          constant | cosine | step
+  #   warmup_steps:  linear ramp from ~0 to lr over this many steps.
+  #   min_lr_ratio:  (cosine) final LR = lr × min_lr_ratio.
+  #   milestones / gamma: (step) multiply LR by gamma at these fractions
+  #                  of training, e.g. [0.6, 0.85] and 0.1.
+  #   total_steps:   only needed with streaming datasets (no len());
+  #                  otherwise computed as epochs × batches per epoch.
+  lr_schedule:
+    type: cosine
+    warmup_steps: 2000
+    min_lr_ratio: 0.01
+
+  lambda_value: 0.5
+
+  checkpoint_dir: "checkpoints/bonanza_v2"
+  # One epoch is hours long, so checkpoint every epoch and every
+  # 10,000 steps (~20 min at ~8,900 samples/s).
+  save_every: 1
+  save_every_steps: 10000
+
+  # Print running loss / accuracy / LR / throughput every N steps
+  # (~2 min at ~8,900 samples/s).
+  log_every_steps: 1000

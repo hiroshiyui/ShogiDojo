@@ -280,7 +280,7 @@ Measured on 2,000 wdoor games (RTX 3060, 12-core CPU):
 
 | Step | Throughput |
 |---|---|
-| Preprocessing (10 workers, one-time) | ~2,300 samples/s ≈ 15 h for 122M positions |
+| Preprocessing (10 workers, one-time) | ~2,300–3,000 samples/s ≈ 18 h for the full archive (~190M positions) |
 | Training-time loading (``PackedDataset``) | ~85,000–105,000 samples/s |
 
 Notes:
@@ -289,8 +289,8 @@ Notes:
   recorded in the output's ``config.json``. To change them, preprocess
   into a new directory. The tool refuses to mix settings in one
   directory.
-- Disk: ~55 MB per 1,000 wdoor games, so roughly 65 GB for all
-  2011–2026 archives (~1.2M games).
+- Disk: ~55–60 MB per 1,000 wdoor games, so roughly 90 GB for all
+  2011–2026 archives (~1.6M games).
 - Keep the file list **sorted and unchanged** when resuming: list
   order decides which shard each file goes to.
 
@@ -319,6 +319,58 @@ The trainer logs **samples/second** at the end of every epoch. Use
 that number to compare before/after changes: a CPU-bound pipeline
 plateaus at a few thousand samples/sec even on a fast GPU, while a
 well-tuned one on a modern GPU reaches tens of thousands.
+
+### Training Recipe Options (v2)
+
+v1 (``configs/bonanza/default.yaml``) trained a 4×64 net with Adam at
+a constant LR for 50 epochs and plateaued at ~44% top-1 accuracy
+(measured on the *training* data; v1 had no held-out set).
+``configs/bonanza/v2.yaml`` turns on four optional trainer features.
+All of them default to off, so v1 configs and checkpoints behave
+exactly as before.
+
+- **Mixed precision** (``amp: true``). The network runs in float16 on
+  CUDA, roughly doubling throughput (RTX 3060, 10×128 net: 4,800 →
+  8,900 samples/s). Losses are still computed in float32, because the
+  ``-1e9`` illegal-move fill in ``masked_log_softmax`` does not fit in
+  float16. A ``GradScaler`` scales the loss up before ``backward()`` so
+  tiny float16 gradients do not round to zero. On CPU the setting is
+  ignored, with a warning.
+- **Optimizer** (``optimizer: adam | adamw | sgd``). ``adamw`` applies
+  weight decay directly to the weights instead of mixing it into Adam's
+  per-parameter scaling, so it acts as real regularization. Its
+  ``weight_decay`` is therefore larger (``1e-2`` in v2, vs ``1e-4``).
+  ``sgd`` uses Nesterov momentum 0.9.
+- **LR schedule** (``lr_schedule``), updated every optimizer step: a
+  linear warmup (``warmup_steps``), then ``constant``, ``cosine``
+  (decays to ``lr × min_lr_ratio``) or ``step`` (×``gamma`` at
+  ``milestones``, given as fractions of the run). Total steps are
+  computed from the dataset length. Streaming datasets have no length,
+  so set ``lr_schedule.total_steps`` for them. Scheduler and grad-scaler
+  state are saved in every checkpoint, so ``--resume`` continues the
+  schedule exactly where it stopped.
+- **Validation** (``--val-fraction`` with ``--packed``). Whole shards,
+  and therefore whole *games*, are held out. Splitting by position
+  would leak data: consecutive positions of one game are nearly
+  identical, so validation would just re-test the training set. The
+  held-out set is evaluated after every epoch (in ``eval()`` mode, so
+  BatchNorm uses its running statistics). The model with the lowest
+  validation loss is saved as ``bonanza_best.pt``. Keep
+  ``--val-seed`` fixed across resumes so the split does not change.
+
+``log_every_steps`` prints running loss, accuracy, LR and throughput
+inside an epoch. Running sums stay on the GPU between log lines, so the
+loop never waits on ``.item()`` every step.
+
+```bash
+python train_bonanza.py --config configs/bonanza/v2.yaml \
+    --packed data/packed/wdoor_all --val-fraction 0.02
+```
+
+Measured end to end on an RTX 3060 (packed data, 10×128, AMP, 4
+loader workers): **~8,100 samples/s**, about 91% of the GPU-only
+ceiling. The v2 config's four epochs over ~190M positions therefore
+take about 26 hours (six would take ~40).
 
 ### Checkpoint Cadence
 

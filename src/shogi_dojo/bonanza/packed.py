@@ -263,6 +263,11 @@ def _shard_name(shard_id: int) -> str:
     return f"{SHARD_PREFIX}{shard_id:05d}"
 
 
+def _shard_id(shard_dir: Path) -> int:
+    """Inverse of :func:`_shard_name`: ``shard_00042`` → ``42``."""
+    return int(shard_dir.name[len(SHARD_PREFIX):])
+
+
 def write_shard(
     out_dir: str | Path,
     shard_id: int,
@@ -470,7 +475,15 @@ class PackedDataset(Dataset):
                             num_workers=4, collate_fn=ds.collate_fn)
     """
 
-    def __init__(self, root: str | Path):
+    def __init__(self, root: str | Path, shard_ids: Optional[list[int]] = None):
+        """Open a packed dataset.
+
+        Args:
+            root: Directory written by :func:`preprocess_csa_files`.
+            shard_ids: Optional subset of shard numbers to use (the
+                ``NNNNN`` in ``shard_NNNNN``). ``None`` uses every shard.
+                Mostly used through :meth:`split`.
+        """
         self.root = Path(root)
         config_path = self.root / CONFIG_FILE
         if not config_path.exists():
@@ -489,6 +502,8 @@ class PackedDataset(Dataset):
         sizes: list[int] = []
         for meta_path in sorted(self.root.glob(f"{SHARD_PREFIX}*/{SHARD_META_FILE}")):
             if not _SHARD_DIR_RE.fullmatch(meta_path.parent.name):
+                continue
+            if shard_ids is not None and _shard_id(meta_path.parent) not in shard_ids:
                 continue
             meta = json.loads(meta_path.read_text())
             if meta["num_samples"] == 0:
@@ -509,6 +524,41 @@ class PackedDataset(Dataset):
     @property
     def num_shards(self) -> int:
         return len(self._shard_dirs)
+
+    @property
+    def shard_ids(self) -> list[int]:
+        """Shard numbers in use, in index order."""
+        return [_shard_id(d) for d in self._shard_dirs]
+
+    def split(self, val_fraction: float, seed: int = 0) -> tuple["PackedDataset", "PackedDataset"]:
+        """Split into ``(train, validation)`` datasets by whole shards.
+
+        Each shard holds complete games, so splitting by shard keeps all
+        positions of a game on the same side. A position-level random
+        split would put near-identical positions from one game into both
+        sides and make validation look better than it really is.
+
+        The validation shards are chosen at random (seeded, so the split
+        is reproducible across runs and resumes). Because the input file
+        list is sorted by year, random shards also spread validation
+        across all years.
+
+        Args:
+            val_fraction: Fraction of shards to hold out, in (0, 1). At
+                least one shard is always held out, and at least one is
+                always kept for training.
+            seed: RNG seed for choosing the validation shards.
+        """
+        if not 0.0 < val_fraction < 1.0:
+            raise ValueError(f"val_fraction must be in (0, 1), got {val_fraction}")
+        if self.num_shards < 2:
+            raise ValueError("Need at least 2 shards to split into train and validation.")
+        ids = self.shard_ids
+        n_val = min(max(1, round(val_fraction * len(ids))), len(ids) - 1)
+        rng = np.random.default_rng(seed)
+        val_ids = sorted(int(i) for i in rng.choice(ids, size=n_val, replace=False))
+        train_ids = [i for i in ids if i not in set(val_ids)]
+        return PackedDataset(self.root, train_ids), PackedDataset(self.root, val_ids)
 
     def __len__(self) -> int:
         return int(self._starts[-1])

@@ -29,6 +29,12 @@ Usage:
     python train_bonanza.py --config configs/bonanza/default.yaml \
         --packed data/packed/wdoor
 
+    # v2 recipe: bigger net, AMP, cosine LR, and 2% of shards (whole
+    # games) held out for validation; the best model is saved as
+    # checkpoints/bonanza_v2/bonanza_best.pt:
+    python train_bonanza.py --config configs/bonanza/v2.yaml \
+        --packed data/packed/wdoor_all --val-fraction 0.02
+
 Before running, you need Shogi game records in CSA format.
 See doc/bonanza/Bonanza_Reference.md §5 for data sources.
 """
@@ -105,7 +111,20 @@ def main():
              "resuming from a step-based checkpoint, the remainder of "
              "that epoch is skipped.",
     )
+    parser.add_argument(
+        "--val-fraction", type=float, default=None,
+        help="With --packed: hold out this fraction of shards (whole games) "
+             "for validation, e.g. 0.02. Validation runs after every epoch "
+             "and the best model is saved as bonanza_best.pt.",
+    )
+    parser.add_argument(
+        "--val-seed", type=int, default=0,
+        help="Seed for choosing the validation shards (default: 0). Keep it "
+             "fixed when resuming so the split does not change.",
+    )
     args = parser.parse_args()
+    if args.val_fraction is not None and not args.packed:
+        parser.error("--val-fraction requires --packed.")
 
     logging.basicConfig(
         level=logging.INFO,
@@ -122,6 +141,8 @@ def main():
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
 
+    val_dataset = None
+
     if args.packed:
         dataset = PackedDataset(args.packed)
         logging.info(
@@ -130,6 +151,14 @@ def main():
             len(dataset), dataset.num_shards, args.packed,
             dataset.config["min_ply"], dataset.config["max_ply"],
         )
+        if args.val_fraction is not None:
+            dataset, val_dataset = dataset.split(args.val_fraction, seed=args.val_seed)
+            logging.info(
+                "Validation split: %d shard(s) / %d samples held out, "
+                "%d shard(s) / %d samples for training (seed=%d).",
+                val_dataset.num_shards, len(val_dataset),
+                dataset.num_shards, len(dataset), args.val_seed,
+            )
     elif args.streaming:
         dataset = StreamingSupervisedDataset(
             csa_files=data_files,
@@ -155,7 +184,7 @@ def main():
     trainer = BonanzaTrainer(cfg)
     if args.resume:
         trainer.resume_from(args.resume)
-    trainer.train(dataset)
+    trainer.train(dataset, val_dataset=val_dataset)
 
 
 if __name__ == "__main__":
