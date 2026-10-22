@@ -8,7 +8,9 @@ Coverage goals:
   - preprocess_csa_files: shard layout, sample order, resume (skips
     finished shards, redoes missing ones), settings-mismatch refusal,
     unreadable files counted, multi-process output identical to
-    single-process.
+    single-process; a worker process that dies abruptly (segfault /
+    OOM kill) is retried on a fresh pool instead of hanging forever,
+    and a worker that always dies raises RuntimeError.
   - PackedDataset: len, single and batched access across shard
     boundaries, out-of-range errors, version/config checks, ignores
     half-written .tmp shards, pickling drops memmaps, DataLoader with
@@ -23,6 +25,7 @@ import json
 import os
 import pickle
 import shutil
+import signal
 import sys
 from pathlib import Path
 
@@ -32,6 +35,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from shogi_dojo.alphazero.encoding import NUM_INPUT_CHANNELS, NUM_MOVE_PLANES
+from shogi_dojo.bonanza import packed as packed_module
 from shogi_dojo.bonanza.dataset import parse_csa_string, replay_game
 from shogi_dojo.bonanza.packed import (
     CONFIG_FILE,
@@ -280,6 +284,101 @@ class TestPreprocess:
     def test_rejects_bad_files_per_shard(self, tmp_path):
         with pytest.raises(ValueError):
             preprocess_csa_files([], tmp_path / "p", files_per_shard=0)
+
+    def test_rejects_negative_max_pool_restarts(self, tmp_path):
+        with pytest.raises(ValueError):
+            preprocess_csa_files([], tmp_path / "p", max_pool_restarts=-1)
+
+
+# ---------------------------------------------------------------------------
+# Worker crashes (multi-process preprocessing)
+# ---------------------------------------------------------------------------
+# A real segfault or OOM kill ends a worker process without any Python
+# exception. os._exit() reproduces that: the process just disappears.
+# These helpers live at module level so worker processes can find them
+# by name (functions sent to a process pool must be importable).
+
+_REAL_BUILD_SHARD = packed_module._build_shard
+_CRASH_ENV = "SHOGI_DOJO_TEST_CRASH"  # "<marker dir>|<shard id>|once|always"
+
+
+def _crashing_build_shard(task: tuple) -> dict:
+    """Stand-in for _build_shard that kills its process on one shard."""
+    marker_dir, shard_id, mode = os.environ[_CRASH_ENV].split("|")
+    if task[0] == int(shard_id):
+        marker = Path(marker_dir) / f"crashed_{shard_id}"
+        if mode == "always" or not marker.exists():
+            marker.touch()
+            os._exit(1)
+    return _REAL_BUILD_SHARD(task)
+
+
+@pytest.fixture
+def hang_guard():
+    """Fail (instead of hanging pytest forever) if a test takes > 60 s.
+
+    Before the fix, a dead worker made preprocessing wait forever, so a
+    regression would otherwise show up as a stuck test run.
+    """
+    def _timeout(signum, frame):
+        raise TimeoutError("preprocess_csa_files hung after a worker died")
+
+    previous = signal.signal(signal.SIGALRM, _timeout)
+    signal.alarm(60)
+    yield
+    signal.alarm(0)
+    signal.signal(signal.SIGALRM, previous)
+
+
+@pytest.mark.skipif(not hasattr(signal, "SIGALRM"), reason="needs SIGALRM (Unix)")
+class TestWorkerCrash:
+    def _crash(self, monkeypatch, tmp_path, shard_id, mode):
+        monkeypatch.setenv(_CRASH_ENV, f"{tmp_path}|{shard_id}|{mode}")
+        monkeypatch.setattr(packed_module, "_build_shard", _crashing_build_shard)
+
+    def test_crashed_shard_is_retried(self, tmp_path, monkeypatch, hang_guard):
+        files = _write_games(tmp_path, 6)
+        # Reference output, built without any crash.
+        preprocess_csa_files(files, tmp_path / "ref", files_per_shard=2)
+
+        self._crash(monkeypatch, tmp_path, shard_id=1, mode="once")
+        out = tmp_path / "packed"
+        summary = preprocess_csa_files(files, out, files_per_shard=2, num_workers=2)
+
+        assert (tmp_path / "crashed_1").exists()      # the crash really happened
+        assert summary.shards_built == 3              # ...and every shard got built
+        assert summary.games_built == 6
+        assert not list(out.glob("*.tmp"))
+        for shard in ("shard_00000", "shard_00001", "shard_00002"):
+            for name in ("planes", "target", "legal_indices"):
+                np.testing.assert_array_equal(
+                    np.load(tmp_path / "ref" / shard / f"{name}.npy"),
+                    np.load(out / shard / f"{name}.npy"),
+                )
+        assert len(PackedDataset(out)) == len(PackedDataset(tmp_path / "ref"))
+
+    def test_progress_reports_each_shard_once(self, tmp_path, monkeypatch, hang_guard):
+        files = _write_games(tmp_path, 6)
+        self._crash(monkeypatch, tmp_path, shard_id=0, mode="once")
+        seen = []
+        preprocess_csa_files(
+            files, tmp_path / "packed", files_per_shard=2, num_workers=2,
+            progress=seen.append,
+        )
+        assert sorted(r["shard_id"] for r in seen) == [0, 1, 2]
+
+    def test_always_crashing_shard_raises(self, tmp_path, monkeypatch, hang_guard):
+        files = _write_games(tmp_path, 6)
+        self._crash(monkeypatch, tmp_path, shard_id=2, mode="always")
+        out = tmp_path / "packed"
+        with pytest.raises(RuntimeError, match=r"\[2\]"):
+            preprocess_csa_files(
+                files, out, files_per_shard=2, num_workers=2, max_pool_restarts=1,
+            )
+        # The healthy shards were still built, so re-running resumes.
+        assert (out / "shard_00000" / "meta.json").exists()
+        assert (out / "shard_00001" / "meta.json").exists()
+        assert not (out / "shard_00002").exists()
 
 
 # ---------------------------------------------------------------------------

@@ -293,6 +293,13 @@ Notes:
   2011–2026 archives (~1.6M games).
 - Keep the file list **sorted and unchanged** when resuming: list
   order decides which shard each file goes to.
+- If a worker process dies abruptly (segfault, out-of-memory kill),
+  the shards it and the other workers were building are retried on a
+  fresh pool, up to 3 times (`max_pool_restarts`). After that the tool
+  stops with an error naming the shards, instead of hanging; re-running
+  the same command resumes. (On the first full wdoor run, one worker
+  segfaulted and the old `multiprocessing.Pool` code waited forever for
+  the lost shard.)
 
 ### GPU Utilization Tuning
 

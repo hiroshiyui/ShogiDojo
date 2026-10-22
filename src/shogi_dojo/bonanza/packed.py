@@ -70,10 +70,11 @@ from __future__ import annotations
 
 import json
 import logging
-import multiprocessing as mp
 import os
 import re
 import shutil
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
@@ -366,6 +367,7 @@ def preprocess_csa_files(
     max_ply: int = 512,
     num_workers: int = 1,
     progress: Optional[Callable[[dict], None]] = None,
+    max_pool_restarts: int = 3,
 ) -> PreprocessSummary:
     """Convert CSA files into a packed dataset directory.
 
@@ -387,10 +389,17 @@ def preprocess_csa_files(
             (simplest to debug).
         progress: Optional callback, called with each finished shard's
             summary dict.
+        max_pool_restarts: With ``num_workers > 1``: how many times to
+            restart the worker pool after a worker process dies (e.g.
+            segfault or out-of-memory kill), retrying the shards that
+            were unfinished. If workers keep dying after that, raises
+            ``RuntimeError`` instead of hanging.
 
     Returns:
         A :class:`PreprocessSummary`.
     """
+    if max_pool_restarts < 0:
+        raise ValueError(f"max_pool_restarts must be ≥ 0, got {max_pool_restarts}")
     if files_per_shard < 1:
         raise ValueError(f"files_per_shard must be ≥ 1, got {files_per_shard}")
     out_dir = Path(out_dir)
@@ -438,11 +447,65 @@ def preprocess_csa_files(
         for task in tasks:
             _record(_build_shard(task))
     else:
-        with mp.Pool(num_workers, initializer=_init_worker) as pool:
-            for result in pool.imap_unordered(_build_shard, tasks):
-                _record(result)
+        _run_in_pool(tasks, num_workers, max_pool_restarts, _record)
 
     return summary
+
+
+def _run_in_pool(
+    tasks: list[tuple],
+    num_workers: int,
+    max_pool_restarts: int,
+    record: Callable[[dict], None],
+) -> None:
+    """Build shards in worker processes, surviving worker crashes.
+
+    Why not ``multiprocessing.Pool``: if a ``Pool`` worker dies abruptly
+    (segfault, out-of-memory kill), the pool quietly starts a replacement
+    but the task it was running is lost, so ``imap`` waits forever. This
+    actually happened on the full wdoor run: one shard's worker crashed
+    and the job hung for hours.
+
+    ``ProcessPoolExecutor`` instead marks itself "broken" and fails every
+    unfinished future with ``BrokenProcessPool``. We collect those tasks
+    and run them again on a fresh pool. Re-running is safe because shards
+    are written atomically (a crashed worker leaves at most a ``.tmp``
+    directory, which ``write_shard`` replaces). Ordinary Python
+    exceptions raised by ``_build_shard`` are not retried: those are
+    deterministic bugs and propagate to the caller as before.
+    """
+    pending = tasks
+    for attempt in range(max_pool_restarts + 1):
+        crashed = []
+        with ProcessPoolExecutor(num_workers, initializer=_init_worker) as pool:
+            # Look up _build_shard at call time (not import time) so tests
+            # can substitute a worker that crashes.
+            futures = {pool.submit(_build_shard, task): task for task in pending}
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                except BrokenProcessPool:
+                    crashed.append(futures[future])
+                    continue
+                record(result)
+        if not crashed:
+            return
+        # A crash fails every in-flight task, not just the one that caused
+        # it, so several shards may be retried here.
+        pending = sorted(crashed, key=lambda t: t[0])
+        shard_ids = [t[0] for t in pending]
+        if attempt < max_pool_restarts:
+            logger.warning(
+                "A worker process died; retrying %d unfinished shard(s) on a "
+                "fresh pool (restart %d/%d): %s",
+                len(pending), attempt + 1, max_pool_restarts, shard_ids,
+            )
+    raise RuntimeError(
+        f"Worker processes kept dying after {max_pool_restarts} pool "
+        f"restart(s); shard(s) {shard_ids} were not built. Re-running the "
+        "same command resumes from the finished shards. If the same shard "
+        "always crashes, try --workers 1 to see the error."
+    )
 
 
 # ============================================================================
