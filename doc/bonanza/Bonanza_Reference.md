@@ -280,7 +280,7 @@ Measured on 2,000 wdoor games (RTX 3060, 12-core CPU):
 
 | Step | Throughput |
 |---|---|
-| Preprocessing (10 workers, one-time) | ~2,300–3,000 samples/s ≈ 18 h for the full archive (~190M positions) |
+| Preprocessing (10 workers, one-time) | ~2,800–3,000 samples/s; the full archive (188.4M positions) took ~18 h |
 | Training-time loading (``PackedDataset``) | ~85,000–105,000 samples/s |
 
 Notes:
@@ -289,13 +289,17 @@ Notes:
   recorded in the output's ``config.json``. To change them, preprocess
   into a new directory. The tool refuses to mix settings in one
   directory.
-- Disk: ~55–60 MB per 1,000 wdoor games, so roughly 90 GB for all
-  2011–2026 archives (~1.6M games).
+- Disk: ~55–60 MB per 1,000 wdoor games; all 2011–2026 archives
+  (1.57M games) take 93 GB. The shards compress to ~6.6% with
+  ``zstd -9`` (consecutive positions in a game are nearly identical),
+  so they can be archived at ~6 GB between training runs.
 - Keep the file list **sorted and unchanged** when resuming: list
   order decides which shard each file goes to.
 - If a worker process dies abruptly (segfault, out-of-memory kill),
   the shards it and the other workers were building are retried on a
-  fresh pool, up to 3 times (`max_pool_restarts`). After that the tool
+  fresh pool, up to 3 times (`max_pool_restarts`). A shard that was
+  already fully written when the pool broke is counted from its
+  `meta.json` instead of being rebuilt. After that the tool
   stops with an error naming the shards, instead of hanging; re-running
   the same command resumes. (On the first full wdoor run, one worker
   segfaulted and the old `multiprocessing.Pool` code waited forever for
@@ -375,9 +379,10 @@ python train_bonanza.py --config configs/bonanza/v2.yaml \
 ```
 
 Measured end to end on an RTX 3060 (packed data, 10×128, AMP, 4
-loader workers): **~8,100 samples/s**, about 91% of the GPU-only
-ceiling. The v2 config's four epochs over ~190M positions therefore
-take about 26 hours (six would take ~40).
+loader workers): **~8,500 samples/s**, about 96% of the GPU-only
+ceiling (the first few minutes are slower while the OS reads the
+shards into its page cache). The v2 config's four epochs over 184.6M
+training positions took 24 h 17 min.
 
 #### v2 results (2026-10-23)
 
@@ -513,42 +518,69 @@ Common sources include:
   [2026-04-10 release](https://github.com/shogi-server/shogi-server/releases/tag/2026-04-10)
   is what the team currently uses as a starting dataset.
 
-  The release ships two 7-Zip archives covering successive years,
-  each containing one CSA file per game:
+  The release ships one 7-Zip archive per year, `wdoor2011.7z` …
+  `wdoor2026.7z` (3.6 GB compressed in total), each containing one CSA
+  file per game inside a `<year>/` directory:
 
-  | Archive          | Games   | Notes                                                |
-  |------------------|---------|------------------------------------------------------|
-  | `wdoor2025.7z`   | 128,843 | Full 2025 year of Floodgate games.                    |
-  | `wdoor2026.7z`   |  37,897 | 2026 year-to-date at the time of the 2026-04-10 cut. |
-  | **Combined**     | **166,740** | ~13M training positions after replay (~80/game avg). |
+  | Archive | Games | | Archive | Games |
+  |---|---|---|---|---|
+  | `wdoor2011.7z` | 86,920 | | `wdoor2019.7z` | 106,411 |
+  | `wdoor2012.7z` | 116,429 | | `wdoor2020.7z` | 139,358 |
+  | `wdoor2013.7z` | 113,707 | | `wdoor2021.7z` | 123,717 |
+  | `wdoor2014.7z` | 90,387 | | `wdoor2022.7z` | 129,846 |
+  | `wdoor2015.7z` | 82,367 | | `wdoor2023.7z` | 121,730 |
+  | `wdoor2016.7z` | 80,141 | | `wdoor2024.7z` | 110,043 |
+  | `wdoor2017.7z` | 75,245 | | `wdoor2025.7z` | 128,843 |
+  | `wdoor2018.7z` | 47,813 | | `wdoor2026.7z` | 37,897 (to 2026-04-10) |
 
-  Extract with ``7z x <archive>.7z`` (install ``p7zip-full`` on
-  Debian/Ubuntu). Most games are engine-vs-engine; many involve
-  strong human players as well. Good for bootstrapping — filter by
-  player rating if targeting pro-level play.
+  **Total: 1,590,854 CSA files.** Replaying them gives 1,571,095
+  parseable games and **188.4M positions** (~120 per game, with
+  `--min-ply 1`). The two runs used:
 
-  Minimal workflow once extracted:
+  | Run | Archives | Games | Positions |
+  |---|---|---|---|
+  | v1 | 2025 + 2026 | 166,740 | ~13M with `--min-ply 10` |
+  | v2 | all 16 | 1,571,095 | 188.4M with `--min-ply 1` |
+
+  Most games are engine-vs-engine; many involve strong human players
+  as well. Good for bootstrapping — filter by player rating if
+  targeting pro-level play.
+
+  Download, extract and preprocess the full archive:
 
   ```bash
-  # Extract. Each archive creates a year subdirectory (wdoor/2025/,
-  # wdoor/2026/); CSA files live one level down, not flat under
-  # data/wdoor/.
+  # Download (GitHub CLI; ~3.6 GB). Install 7z with p7zip-full.
+  gh release download 2026-04-10 -R shogi-server/shogi-server \
+      -p 'wdoor*.7z' -D data
+
+  # Extract. Each archive already contains its year directory, so
+  # extract every archive into data/wdoor (giving data/wdoor/2011/,
+  # data/wdoor/2012/, ...). Unpacked size: ~25 GB.
   mkdir -p data/wdoor
-  (cd data/wdoor && 7z x ../../wdoor2025.7z && 7z x ../../wdoor2026.7z)
+  for a in data/wdoor20*.7z; do 7z x -aos -o"data/wdoor" "$a"; done
 
-  # Build a file list. With ~167K CSA files, passing them all on the
-  # command line would exceed the argv limit (~2 MB on Linux; the full
-  # dataset is ~15 MB of paths). Use --data-list to read paths from a
-  # file instead.
-  find data/wdoor -name '*.csa' > data/wdoor_files.txt
-  wc -l data/wdoor_files.txt   # should report 166740
+  # Build a SORTED file list. With 1.6M files, passing them on the
+  # command line would exceed the argv limit, so tools read paths from
+  # a file (--data-list). Sorting matters for packed preprocessing:
+  # list order decides which shard each game lands in, so the same
+  # sorted list always reproduces the same shards.
+  find data/wdoor -name '*.csa' | sort > data/wdoor_all_files.txt
+  wc -l data/wdoor_all_files.txt   # should report 1590854
 
-  python train_bonanza.py --config configs/bonanza/tiny.yaml \
-      --data-list data/wdoor_files.txt --min-ply 10
+  # Preprocess once (~18 h with 10 workers; output ~93 GB), then
+  # train (see "Packed Dataset" and "Training Recipe Options (v2)"):
+  python scripts/bonanza/preprocess_kifu.py \
+      --data-list data/wdoor_all_files.txt \
+      --output data/packed/wdoor_all --min-ply 1 --workers 10
   ```
 
+  Once the packed shards exist, training never reads the CSA files
+  again, so `data/wdoor/` can be deleted and re-extracted from the
+  `.7z` files when needed.
+
   For a quick smoke test on a tiny subset, ``--data`` with a
-  targeted glob works because there are only ~100 files to pass:
+  targeted glob works because there are only a few hundred files to
+  pass:
 
   ```bash
   # Just one day's worth of games (argv-safe):

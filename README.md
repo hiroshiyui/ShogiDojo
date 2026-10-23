@@ -27,7 +27,7 @@ ShogiDojo/
 ├── train_bonanza.py           # Entry point: Bonanza supervised training
 ├── configs/{nnue,alphazero,bonanza}/   # Per-paradigm YAML configs
 ├── src/shogi_dojo/{nnue,alphazero,bonanza}/   # Implementations
-├── scripts/{nnue,alphazero}/  # Helper scripts (export, evaluate, benchmark)
+├── scripts/{nnue,alphazero,bonanza}/  # Helper scripts (export, match, preprocess, benchmark)
 ├── tests/{nnue,alphazero,bonanza}/    # Per-paradigm test suites
 ├── tools/nnue/gensfen/        # Rust: training-data generation + eval matches
 ├── doc/{nnue,alphazero,bonanza}/      # Per-paradigm reference documents
@@ -150,9 +150,10 @@ python train_bonanza.py --data path/to/games.csa
 python train_bonanza.py --config configs/bonanza/default.yaml \
     --data file1.csa file2.csa --min-ply 10
 
-# Large dataset (~167K wdoor files): use --data-list (avoids argv limit)
-# and --streaming (bounded-memory IterableDataset):
-find data/wdoor -name '*.csa' > data/wdoor_files.txt
+# Large dataset without preprocessing: --data-list (avoids the argv
+# limit) and --streaming (bounded memory). Simple but CPU-bound
+# (~2,200 positions/s), because every epoch replays every game:
+find data/wdoor -name '*.csa' | sort > data/wdoor_files.txt
 python train_bonanza.py --config configs/bonanza/default.yaml \
     --data-list data/wdoor_files.txt --streaming --min-ply 10
 
@@ -160,6 +161,29 @@ python train_bonanza.py --config configs/bonanza/default.yaml \
 python train_bonanza.py --resume checkpoints/bonanza_epoch_0010.pt \
     --data-list data/wdoor_files.txt --streaming
 ```
+
+**Recommended for the full archive: preprocess once, then train the v2 recipe.** Preprocessing replays every game a single time and saves compact NumPy shards; training then reads them at ~90,000 positions/s, so the GPU becomes the bottleneck:
+
+```bash
+# One-time preprocessing (~18 h with 10 workers for 1.6M games; ~93 GB;
+# resumable — re-run the same command after an interruption):
+python scripts/bonanza/preprocess_kifu.py \
+    --data-list data/wdoor_all_files.txt \
+    --output data/packed/wdoor_all --min-ply 1 --workers 10
+
+# v2 recipe: 10x128 net, mixed precision, AdamW, cosine LR, 4 epochs
+# (~24 h on an RTX 3060). 2% of games are held out for validation and
+# the best model is saved as checkpoints/bonanza_v2/bonanza_best.pt:
+python train_bonanza.py --config configs/bonanza/v2.yaml \
+    --packed data/packed/wdoor_all --val-fraction 0.02
+```
+
+| Run | Data | Network | Training time | Move accuracy |
+|---|---|---|---|---|
+| v1 (`default.yaml`, streaming) | 166,740 games | 4×64, 336K params | ~4.5 days | 44.5% (training data) |
+| v2 (`v2.yaml`, packed) | 1,571,095 games | 10×128, 3.0M params | ~24 h + 18 h preprocessing | **54.3% (held-out games)**; beat v1 208–0 |
+
+Details and per-epoch results: [Bonanza_Reference.md §4](doc/bonanza/Bonanza_Reference.md#4-shogidojos-implementation).
 
 ### Deploying the Trained Network
 
@@ -204,9 +228,10 @@ The exported file contains only the network — to actually use it in a deployme
 | Mode | Class | When to use | Memory |
 |---|---|---|---|
 | Map-style  | `SupervisedDataset`           | Up to ~a few thousand games / a few GB of samples | Loads everything at construction |
-| Streaming  | `StreamingSupervisedDataset`  | Large archives (the full wdoor would be ~200 GB if loaded) | Bounded by `--buffer-size` (default 10K samples) |
+| Streaming  | `StreamingSupervisedDataset`  | Large archives without a preprocessing step | Bounded by `--buffer-size` (default 10K samples) |
+| Packed     | `PackedDataset`               | Large archives, fastest — after `preprocess_kifu.py` | Memory-mapped shards (~510 bytes/position on disk) |
 
-`--streaming` switches to the streaming dataset; both produce identically-shaped batches.
+`--streaming` and `--packed DIR` switch dataset modes; all three produce identically-shaped batches. `--val-fraction` (packed only) holds out whole games for validation.
 
 ### Checkpoints
 
@@ -219,7 +244,7 @@ Resume from either kind via `--resume PATH`. Step-checkpoint resumes restart cle
 
 ### Data: Where to Get Kifu
 
-The recommended starting dataset is the [shogi-server kifu archive (2026-04-10 release)](https://github.com/shogi-server/shogi-server/releases/tag/2026-04-10) — `wdoor2025.7z` + `wdoor2026.7z`, ~166,740 CSA games combined from the Floodgate server. See [Bonanza_Reference.md §5](doc/bonanza/Bonanza_Reference.md#5-data-professional-game-records) for extraction instructions, additional sources (Shogi24, 81Dojo dumps), CSA format details, and quality filtering guidance (rating thresholds, decisive-result filter).
+The recommended dataset is the [shogi-server kifu archive (2026-04-10 release)](https://github.com/shogi-server/shogi-server/releases/tag/2026-04-10) — one archive per year, `wdoor2011.7z` … `wdoor2026.7z`, 1,590,854 CSA games from the Floodgate server (3.6 GB compressed, ~25 GB unpacked). v1 used only 2025–2026 (166,740 games); v2 uses all of them. See [Bonanza_Reference.md §5](doc/bonanza/Bonanza_Reference.md#5-data-professional-game-records) for extraction instructions, additional sources (Shogi24, 81Dojo dumps), CSA format details, and quality filtering guidance (rating thresholds, decisive-result filter).
 
 For the Bonanza method's history (Bonanza 2006 at WCSC26), the formulation derivation, GPU utilization tuning, and a frank three-paradigm comparison, see [Bonanza_Reference.md](doc/bonanza/Bonanza_Reference.md).
 

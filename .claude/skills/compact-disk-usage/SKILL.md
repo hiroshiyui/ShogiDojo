@@ -98,8 +98,11 @@ alternative; offer both.
 ## Restore commands (include in the final report)
 
 ```bash
-# Extracted CSA files (tier 1)
-for a in data/wdoor20*.7z; do y=$(basename "$a" .7z); y=${y#wdoor}; 7z x -o"data/wdoor/$y" "$a"; done
+# Extracted CSA files (tier 1). Each archive already contains its
+# <year>/ directory, so extract every archive straight into data/wdoor
+# (NOT into data/wdoor/<year>, which would nest 2026/2026/...).
+mkdir -p data/wdoor
+for a in data/wdoor20*.7z; do 7z x -aos -o"data/wdoor" "$a"; done
 
 # Packed shards (tier 3) — ~10 minutes
 zstd -dc data/archive/packed-<name>.tar.zst | tar -xf - -C data/packed

@@ -2,7 +2,7 @@
 # Bonanza Method — v2 Configuration (bigger net, AMP, cosine LR)
 # =============================================================================
 # Second-generation recipe, designed for the packed full wdoor archive
-# (2011–2026, ~1.6M games, ~190M positions) on a single consumer GPU
+# (2011–2026, 1.57M games, 188.4M positions) on a single consumer GPU
 # (sized on an RTX 3060 12 GB).
 #
 # Differences from default.yaml (the v1 recipe) and why:
@@ -19,8 +19,10 @@
 #   python train_bonanza.py --config configs/bonanza/v2.yaml \
 #       --packed data/packed/wdoor_all --val-fraction 0.02
 #
-# Measured GPU ceiling for 10×128 + AMP on an RTX 3060: ~8,900 samples/s,
-# so one epoch over ~190M positions takes ~6.5 hours; 4 epochs ≈ 26 h.
+# Measured on an RTX 3060: ~8,500 samples/s end to end, so one epoch over
+# the 184.6M training positions takes ~6 h; the 4-epoch run took 24 h 17 min
+# and reached 54.33% validation accuracy (v1: 44.46%). See
+# doc/bonanza/Bonanza_Reference.md "v2 results".
 #
 # See doc/bonanza/Bonanza_Reference.md for the full discussion.
 # =============================================================================
@@ -31,9 +33,9 @@ model:
   value_head_hidden: 128
 
 training:
-  # 4 passes over ~190M positions ≈ 760M samples — about as many
+  # 4 passes over ~185M positions ≈ 740M samples — about as many
   # samples as v1 saw in its 50 epochs, but ~10× more distinct ones.
-  # (6 epochs would take ~40 h; the cosine schedule adapts either way.)
+  # (6 epochs would take ~36 h; the cosine schedule adapts either way.)
   epochs: 4
 
   batch_size: 1024
@@ -71,10 +73,10 @@ training:
 
   checkpoint_dir: "checkpoints/bonanza_v2"
   # One epoch is hours long, so checkpoint every epoch and every
-  # 10,000 steps (~20 min at ~8,900 samples/s).
+  # 10,000 steps (~20 min at ~8,500 samples/s).
   save_every: 1
   save_every_steps: 10000
 
   # Print running loss / accuracy / LR / throughput every N steps
-  # (~2 min at ~8,900 samples/s).
+  # (~2 min at ~8,500 samples/s).
   log_every_steps: 1000

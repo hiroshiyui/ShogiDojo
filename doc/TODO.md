@@ -23,8 +23,8 @@ None blocks training, but fixing them would improve data fidelity:
 
 The Bonanza-method paradigm (supervised policy + value training from
 professional kifu) landed phases 3.1, 3.2, 3.3, 3.5, and 3.6
-infrastructure — see the Completed section for details. Two items
-remain open:
+infrastructure, plus the v2 full-archive run (2026-10-23) — see the
+Completed section for details. Open items:
 
 - [ ] **Phase 3.4 — Move-ordering integration with gensfen alpha-beta**
   *(deferred — significant Rust infrastructure)*. Would require
@@ -44,6 +44,30 @@ remain open:
   paradigm. Note: cross-paradigm matches (NNUE vs AlphaZero) would
   need a new Python harness to drive both simultaneously; the
   existing Rust `eval_match` handles only NNUE-vs-NNUE.
+- [ ] **Finite Elo estimate for v2.** v2 beat v1 208–0, so v1 is too
+  weak a reference to measure v2 (only a lower bound of ~+735 Elo).
+  Re-run against a closer opponent (a future larger net, or a v2
+  checkpoint from epoch 1) and/or at `--temperature 0.5` so games
+  differ, and report Elo with a confidence interval.
+- [ ] **Larger network (15×192, ~10M params) on the packed archive.**
+  v2's validation accuracy still rose ~0.7 points per epoch, so it is
+  not saturated. Benchmarked at ~2,900 samples/s with AMP on an RTX
+  3060, so 4 epochs take ~3 days; no preprocessing needed (reuse
+  `data/packed/wdoor_all`).
+- [ ] **Filter training games by player rating.** Floodgate CSA files
+  carry player ratings as comment lines (`'black_rate:<name>:3833.0`,
+  `'white_rate:...`); training only on games where both players
+  exceed a threshold should raise move quality. Needs the rating
+  recorded at preprocessing time (e.g. a per-game field in the shard
+  `meta`) so the filter can be changed without re-preprocessing.
+- [ ] **Investigate data augmentation.** A left-right mirror doubles
+  the data, but Shogi's starting position is not mirror-symmetric
+  (rook and bishop swap sides), so mirrored games are legal but come
+  from a different opening. Measure whether it helps before adopting.
+- [ ] **AlphaZero self-play warm-started from v2.** Use
+  `checkpoints/bonanza_v2/bonanza_epoch_0004.pt` as `model.warm_start`
+  with a 10×128 AlphaZero config; pair with promotion gating (research
+  direction 2) so self-play cannot drift below the v2 starting point.
 
 ### Other paradigms worth knowing about
 
@@ -145,6 +169,22 @@ full ~167K-file shogi-server wdoor archive. Entry point
 reference at `doc/bonanza/Bonanza_Reference.md`, 29 tests in
 `tests/bonanza/`. Remaining work tracked in the "Bonanza-method
 paradigm: remaining work" section above.
+
+### Bonanza v2: full-archive training — Done (2026-10-23)
+
+Trained a 10×128 network (3.04M params) on all 16 shogi-server wdoor
+archives (2011–2026: 1,571,095 games, 188.4M positions) in 24 h 17 min
+on one RTX 3060, reaching 54.33% top-1 move accuracy on held-out games
+(v1: 44.46% on training data) and beating v1 208–0. Enabled by packed
+preprocessing (`packed.py` + `scripts/bonanza/preprocess_kifu.py`:
+compact memory-mapped shards, ~90K positions/s loading instead of
+~2.2K, crash-tolerant multi-process build) and trainer options in
+`configs/bonanza/v2.yaml` (mixed precision, AdamW, warmup + cosine LR,
+game-level validation split with best-model tracking). `match.py` now
+detects each checkpoint's architecture, so differently-sized networks
+can play each other. Artifacts committed as `bonanza_v2.onnx` and
+`checkpoints/bonanza_v2/`; results in `doc/bonanza/Bonanza_Reference.md`
+"v2 results".
 
 ### AlphaZero Survey — Done (2026-04-16)
 

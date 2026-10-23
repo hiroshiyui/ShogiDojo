@@ -26,10 +26,11 @@ Each paradigm lives under its own `nnue/` / `alphazero/` / `bonanza/` subdirecto
 | `doc/alphazero/AlphaZero_Training_Reference.md` | Self-play methodology, replay buffer, hyperparameters, failure modes | Training-loop design, hyperparameter guidance, or new failure modes |
 | `doc/alphazero/AlphaZero_vs_NNUE.md` | Operational side-by-side comparison | Architectural or deployment trade-offs change |
 | `doc/alphazero/AlphaZero_Reading_List.md` | Annotated bibliography | New recommended papers or open-source references |
-| `doc/bonanza/Bonanza_Reference.md` | History, supervised-classification formulation, CSA format, three-paradigm comparison, data sources | Formulation, data pipeline, or dataset recommendations change |
+| `doc/bonanza/Bonanza_Reference.md` | History, supervised-classification formulation, CSA format, packed dataset, v2 training recipe and results, three-paradigm comparison, data sources | Formulation, data pipeline, training recipe, run results, or dataset recommendations change |
+| `doc/bonanza/Deployment.md` | Contract for consumers of exported `.onnx`/`.ts` networks: I/O tensors, encoder, mask, decoder, value sign | Encoding, export format, or shipped artifacts change |
 | `configs/nnue/{default,small,large}.yaml` | Inline comments on every NNUE hyperparameter | New config keys or default changes |
 | `configs/alphazero/{tiny,default}.yaml` | Inline comments on every AlphaZero hyperparameter | New config keys, self-play knobs, or warm-start keys |
-| `configs/bonanza/{tiny,default}.yaml` | Inline comments on every Bonanza hyperparameter | New config keys or defaults |
+| `configs/bonanza/{tiny,default,v2}.yaml` | Inline comments on every Bonanza hyperparameter (`default` = v1 recipe, `v2` = 10×128 + AMP + AdamW + cosine LR) | New config keys, defaults, or measured run numbers |
 
 ## Writing guidelines
 
