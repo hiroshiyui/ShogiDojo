@@ -13,11 +13,12 @@ Usage:
         --network-a checkpoints/alphazero/az_iter_0010.pt \
         --network-b checkpoints/bonanza/bonanza_epoch_0050.pt
 
-    # Larger match with custom network sizes (must match the checkpoints):
+    # Networks of different sizes (e.g. Bonanza v2 10x128 vs v1 4x64).
+    # Each network's size is read from its own checkpoint automatically:
     python scripts/alphazero/match.py \
-        --network-a model_a.pt --network-b model_b.pt \
-        --num-games 100 --num-simulations 400 \
-        --num-blocks 4 --num-filters 64
+        --network-a checkpoints/bonanza_v2/bonanza_best.pt \
+        --network-b checkpoints/bonanza/bonanza_epoch_0050.pt \
+        --num-games 200 --device cuda
 
 See doc/alphazero/AlphaZero_Training_Reference.md §6 for guidance on
 match size and confidence.
@@ -29,24 +30,37 @@ import logging
 import torch
 
 from shogi_dojo.alphazero.evaluation import run_match
-from shogi_dojo.alphazero.network import AlphaZeroNetwork
+from shogi_dojo.alphazero.network import AlphaZeroNetwork, architecture_from_state_dict
 
 
 def _load_network(
-    path: str, num_blocks: int, num_filters: int, value_head_hidden: int,
+    path: str,
+    num_blocks: int | None = None,
+    num_filters: int | None = None,
+    value_head_hidden: int | None = None,
 ) -> AlphaZeroNetwork:
     """Load an AlphaZeroNetwork checkpoint.
 
-    The architecture dimensions must match the checkpoint; they are
-    passed as CLI args because checkpoints do not embed them.
+    Checkpoints do not record their architecture, but it can be read off
+    the weight shapes (see :func:`architecture_from_state_dict`), so by
+    default each network gets the size its own checkpoint was trained
+    with. Any dimension passed explicitly overrides the detected one (a
+    wrong override fails loudly in ``load_state_dict``).
     """
-    net = AlphaZeroNetwork(
-        num_blocks=num_blocks,
-        num_filters=num_filters,
-        value_head_hidden=value_head_hidden,
+    state_dict = torch.load(path, weights_only=True, map_location="cpu")["model_state_dict"]
+    arch = architecture_from_state_dict(state_dict)
+    overrides = {
+        "num_blocks": num_blocks,
+        "num_filters": num_filters,
+        "value_head_hidden": value_head_hidden,
+    }
+    arch.update({k: v for k, v in overrides.items() if v is not None})
+    logging.info(
+        "  architecture: %d blocks x %d filters, value head %d",
+        arch["num_blocks"], arch["num_filters"], arch["value_head_hidden"],
     )
-    ckpt = torch.load(path, weights_only=True, map_location="cpu")
-    net.load_state_dict(ckpt["model_state_dict"])
+    net = AlphaZeroNetwork(**arch)
+    net.load_state_dict(state_dict)
     net.eval()
     return net
 
@@ -65,11 +79,15 @@ def main() -> None:
     parser.add_argument("--move-limit", type=int, default=512)
     parser.add_argument("--temperature", type=float, default=0.1,
                         help="Move sampling temperature. Default 0.1 (near-greedy).")
-    parser.add_argument("--num-blocks", type=int, default=4,
-                        help="Network architecture: residual blocks. Must match checkpoints.")
-    parser.add_argument("--num-filters", type=int, default=64,
-                        help="Network architecture: filters per block.")
-    parser.add_argument("--value-head-hidden", type=int, default=64)
+    parser.add_argument("--num-blocks", type=int, default=None,
+                        help="Override residual blocks for both networks. "
+                             "Default: read from each checkpoint.")
+    parser.add_argument("--num-filters", type=int, default=None,
+                        help="Override filters per block for both networks. "
+                             "Default: read from each checkpoint.")
+    parser.add_argument("--value-head-hidden", type=int, default=None,
+                        help="Override value head size for both networks. "
+                             "Default: read from each checkpoint.")
     parser.add_argument("--device", type=str, default="cpu",
                         help="Inference device (cpu, cuda).")
     args = parser.parse_args()

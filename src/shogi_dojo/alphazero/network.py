@@ -245,6 +245,40 @@ class AlphaZeroNetwork(nn.Module):
         return policy_logits, v
 
 
+def architecture_from_state_dict(state_dict: dict) -> dict[str, int]:
+    """Read ``num_blocks`` / ``num_filters`` / ``value_head_hidden`` from weights.
+
+    Checkpoints store only weights, not the constructor arguments, but the
+    weight shapes pin the architecture down completely:
+
+    - ``num_filters``: output channels of the stem conv,
+      ``stem_conv.weight`` has shape ``(filters, 45, 3, 3)``.
+    - ``num_blocks``: how many ``tower.<i>.`` residual blocks exist.
+    - ``value_head_hidden``: rows of ``value_fc1.weight``, shape
+      ``(hidden, 81)``.
+
+    This lets tools load any AlphaZero-architecture checkpoint (e.g. the
+    4×64 v1 and 10×128 v2 Bonanza nets) without being told its size::
+
+        net = AlphaZeroNetwork(**architecture_from_state_dict(sd))
+        net.load_state_dict(sd)
+
+    Raises:
+        KeyError: if the state dict is not from an ``AlphaZeroNetwork``.
+    """
+    for key in ("stem_conv.weight", "value_fc1.weight"):
+        if key not in state_dict:
+            raise KeyError(f"{key!r} missing: not an AlphaZeroNetwork state dict")
+    block_ids = {
+        int(key.split(".")[1]) for key in state_dict if key.startswith("tower.")
+    }
+    return {
+        "num_blocks": len(block_ids),
+        "num_filters": int(state_dict["stem_conv.weight"].shape[0]),
+        "value_head_hidden": int(state_dict["value_fc1.weight"].shape[0]),
+    }
+
+
 # ============================================================================
 # Loss computation helpers
 # ============================================================================

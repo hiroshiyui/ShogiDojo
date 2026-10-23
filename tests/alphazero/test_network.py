@@ -16,6 +16,9 @@ Coverage goals:
     probability) and renormalizes legal ones.
   - alphazero_loss computes reasonable values on synthetic inputs and
     returns per-term breakdowns for logging.
+  - architecture_from_state_dict recovers the constructor arguments
+    from weight shapes (including ≥10 blocks), and rejects non-AlphaZero
+    state dicts.
 """
 
 from __future__ import annotations
@@ -32,6 +35,7 @@ from shogi_dojo.alphazero.network import (
     AlphaZeroNetwork,
     ResidualBlock,
     alphazero_loss,
+    architecture_from_state_dict,
     masked_log_softmax,
 )
 from shogi_dojo.nnue.constants import NUM_FILES, NUM_RANKS
@@ -318,3 +322,30 @@ class TestAlphaZeroLoss:
         # value_weight should roughly double the total loss.
         assert parts_1["value_loss"].item() == pytest.approx(parts_2["value_loss"].item(), rel=1e-6)
         assert loss_2.item() == pytest.approx(2 * loss_1.item(), rel=1e-5)
+
+
+# ---------------------------------------------------------------------------
+# architecture_from_state_dict
+# ---------------------------------------------------------------------------
+
+
+class TestArchitectureFromStateDict:
+    @pytest.mark.parametrize(
+        "arch",
+        [
+            dict(num_blocks=1, num_filters=8, value_head_hidden=8),
+            dict(num_blocks=4, num_filters=64, value_head_hidden=64),    # v1 Bonanza
+            dict(num_blocks=10, num_filters=16, value_head_hidden=32),   # ≥10 blocks: "tower.10" vs "tower.1"
+            dict(num_blocks=3, num_filters=16, value_head_hidden=48),    # hidden ≠ filters
+        ],
+    )
+    def test_round_trip(self, arch):
+        sd = AlphaZeroNetwork(**arch).state_dict()
+        detected = architecture_from_state_dict(sd)
+        assert detected == arch
+        # The detected sizes must build a network the weights load into.
+        AlphaZeroNetwork(**detected).load_state_dict(sd)
+
+    def test_rejects_non_alphazero_state_dict(self):
+        with pytest.raises(KeyError):
+            architecture_from_state_dict({"fc.weight": torch.zeros(2, 2)})

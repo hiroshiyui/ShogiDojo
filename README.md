@@ -121,6 +121,8 @@ Compare two AlphaZero networks (or AlphaZero vs Bonanza) head-to-head:
 python scripts/alphazero/match.py --network-a model_v2.pt --network-b model_v1.pt --num-games 100
 ```
 
+Each network's size (blocks, filters, value-head width) is read from its own checkpoint, so networks of different sizes — e.g. the 10×128 Bonanza v2 against the 4×64 v1 — can play each other directly. MCTS runs in Python on one CPU core per process, so for large matches run several `match.py` processes in parallel (`--device cuda` lets them share the GPU) and add up their results.
+
 For a sanity-floor opponent — useful for confirming a trained network actually plays better than random initialization — generate a freshly-initialized checkpoint with the same architecture:
 
 ```bash
