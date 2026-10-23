@@ -2,6 +2,8 @@
 
 This document is the **single source of truth** for what a consumer of an exported `bonanza.onnx` (or `bonanza.ts`) file must implement to actually use the network. The exported file contains only the neural network — the surrounding encoder, mask, and decoder logic must be reimplemented in the deployment language (Swift, Kotlin, JavaScript, Rust, etc.).
 
+The contract does not depend on network size: `bonanza.onnx` (v1, 4×64) and `bonanza_v2.onnx` (v2, 10×128) have exactly the same inputs and outputs, so a consumer can swap one for the other.
+
 It applies equally to checkpoints from `BonanzaTrainer` and `AlphaZeroTrainer` because they share the same `AlphaZeroNetwork` architecture and use the same I/O conventions.
 
 The reference implementations are:

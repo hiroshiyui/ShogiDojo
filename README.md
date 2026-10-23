@@ -180,7 +180,16 @@ python scripts/alphazero/export_torchscript.py \
     --output bonanza.ts
 ```
 
-Both produce ~1.3 MB artifacts (336K params at float32) with named I/O and a dynamic batch dimension, so the same file works for one-position-at-a-time mobile inference and for batched server inference.
+For the v1 4×64 network both produce ~1.3 MB artifacts (336K params at float32) with named I/O and a dynamic batch dimension, so the same file works for one-position-at-a-time mobile inference and for batched server inference.
+
+Two exported networks are committed at the repository root, with identical I/O:
+
+| File | Network | Params | Size | Notes |
+|---|---|---|---|---|
+| `bonanza.onnx` | v1, 4×64 | 336K | 1.3 MB | 44.5% move accuracy |
+| `bonanza_v2.onnx` | v2, 10×128 | 3.0M | 12 MB | 54.3% held-out accuracy; beat v1 208–0 |
+
+Larger networks must be exported with matching size flags, e.g. `--num-blocks 10 --num-filters 128 --value-head-hidden 128` for v2.
 
 The exported file contains only the network — to actually use it in a deployment language (Swift, Kotlin, JavaScript, Rust) you also need an encoder, a legal-move mask, a policy decoder, and the value sign-flip convention. [doc/bonanza/Deployment.md](doc/bonanza/Deployment.md) is the single-source-of-truth contract for those pieces.
 

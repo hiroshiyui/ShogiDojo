@@ -379,6 +379,35 @@ loader workers): **~8,100 samples/s**, about 91% of the GPU-only
 ceiling. The v2 config's four epochs over ~190M positions therefore
 take about 26 hours (six would take ~40).
 
+#### v2 results (2026-10-23)
+
+The first v2 run (wdoor 2011–2026: 1,571,095 games, 188.4M positions,
+2% of shards held out) took **24 h 17 min** at ~8,500 samples/s.
+Validation is on 3.82M positions from games never seen in training:
+
+| After epoch | Val loss | Policy | Value | Val accuracy |
+|---|---|---|---|---|
+| 1 | 1.849 | 1.555 | 0.587 | 51.08% |
+| 2 | 1.786 | 1.504 | 0.564 | 52.31% |
+| 3 | 1.730 | 1.453 | 0.554 | 53.58% |
+| 4 | 1.698 | 1.425 | 0.546 | **54.33%** |
+
+For comparison, v1 ended at 44.46% top-1 accuracy on its *training*
+data. Validation loss improved every epoch and stayed below training
+loss, so the bigger net is not overfitting; more epochs or a larger net
+may still help.
+
+**Strength:** in a 208-game color-swapped match (200 MCTS simulations
+per move, temperature 0.1) v2 beat v1 **208–0** with no draws — a lower
+bound of roughly +735 Elo at 95% confidence. Near-greedy play makes
+some games repeat, so the effective sample is smaller than 208, but the
+gap is unambiguous. v1 is now too weak to measure v2 precisely; use a
+stronger reference or a higher temperature for a finite Elo estimate.
+
+The run's artifacts are committed: ``bonanza_v2.onnx`` and
+``checkpoints/bonanza_v2/bonanza_epoch_000{1..4}.pt`` (epoch 4 is also
+the best-validation model), plus ``train.log`` and the match logs.
+
 ### Checkpoint Cadence
 
 Two independent checkpoint triggers:

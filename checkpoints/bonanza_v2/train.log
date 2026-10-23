@@ -1,0 +1,816 @@
+2026-10-22 17:23:32 [INFO] Dataset: 188432572 packed samples in 1591 shard(s) from data/packed/wdoor_all (min_ply=1, max_ply=512 at preprocessing time).
+2026-10-22 17:23:32 [INFO] Validation split: 32 shard(s) / 3820025 samples held out, 1559 shard(s) / 184612547 samples for training (seed=0).
+2026-10-22 17:23:32 [INFO] Using device: cuda
+2026-10-22 17:23:32 [INFO] Network parameters: 3,035,022
+2026-10-22 17:23:32 [INFO] LR schedule: cosine (total_steps=721144, warmup_steps=2000), optimizer=AdamW, amp=True
+2026-10-22 17:23:32 [INFO] Training: 184612547 samples, 4 epochs, batch_size=1024, num_workers=4, pin_memory=True, lambda_value=0.50
+2026-10-22 17:25:55 [INFO]   step 1000  epoch 1 [1000/180286]  loss=3.9455 (policy=3.4979 value=0.8952)  accuracy=22.57%  lr=5.00e-04  7203 samples/s
+2026-10-22 17:27:55 [INFO]   step 2000  epoch 1 [2000/180286]  loss=3.4034 (policy=2.9868 value=0.8332)  accuracy=28.21%  lr=1.00e-03  7794 samples/s
+2026-10-22 17:29:55 [INFO]   step 3000  epoch 1 [3000/180286]  loss=3.1524 (policy=2.7527 value=0.7994)  accuracy=31.09%  lr=1.00e-03  8034 samples/s
+2026-10-22 17:31:55 [INFO]   step 4000  epoch 1 [4000/180286]  loss=2.9980 (policy=2.6095 value=0.7770)  accuracy=32.99%  lr=1.00e-03  8156 samples/s
+2026-10-22 17:33:54 [INFO]   step 5000  epoch 1 [5000/180286]  loss=2.8914 (policy=2.5108 value=0.7613)  accuracy=34.36%  lr=1.00e-03  8235 samples/s
+2026-10-22 17:35:54 [INFO]   step 6000  epoch 1 [6000/180286]  loss=2.8107 (policy=2.4361 value=0.7492)  accuracy=35.43%  lr=1.00e-03  8289 samples/s
+2026-10-22 17:37:53 [INFO]   step 7000  epoch 1 [7000/180286]  loss=2.7468 (policy=2.3770 value=0.7395)  accuracy=36.32%  lr=1.00e-03  8327 samples/s
+2026-10-22 17:39:53 [INFO]   step 8000  epoch 1 [8000/180286]  loss=2.6938 (policy=2.3282 value=0.7312)  accuracy=37.06%  lr=1.00e-03  8356 samples/s
+2026-10-22 17:41:52 [INFO]   step 9000  epoch 1 [9000/180286]  loss=2.6485 (policy=2.2865 value=0.7241)  accuracy=37.70%  lr=1.00e-03  8378 samples/s
+2026-10-22 17:43:52 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00010000.pt
+2026-10-22 17:43:52 [INFO]   step 10000  epoch 1 [10000/180286]  loss=2.6094 (policy=2.2505 value=0.7179)  accuracy=38.27%  lr=1.00e-03  8395 samples/s
+2026-10-22 17:45:52 [INFO]   step 11000  epoch 1 [11000/180286]  loss=2.5754 (policy=2.2192 value=0.7124)  accuracy=38.77%  lr=1.00e-03  8410 samples/s
+2026-10-22 17:47:52 [INFO]   step 12000  epoch 1 [12000/180286]  loss=2.5452 (policy=2.1915 value=0.7074)  accuracy=39.22%  lr=1.00e-03  8421 samples/s
+2026-10-22 17:49:51 [INFO]   step 13000  epoch 1 [13000/180286]  loss=2.5181 (policy=2.1666 value=0.7030)  accuracy=39.63%  lr=9.99e-04  8431 samples/s
+2026-10-22 17:51:51 [INFO]   step 14000  epoch 1 [14000/180286]  loss=2.4938 (policy=2.1442 value=0.6990)  accuracy=40.00%  lr=9.99e-04  8440 samples/s
+2026-10-22 17:53:51 [INFO]   step 15000  epoch 1 [15000/180286]  loss=2.4716 (policy=2.1239 value=0.6954)  accuracy=40.34%  lr=9.99e-04  8448 samples/s
+2026-10-22 17:55:50 [INFO]   step 16000  epoch 1 [16000/180286]  loss=2.4514 (policy=2.1053 value=0.6921)  accuracy=40.65%  lr=9.99e-04  8455 samples/s
+2026-10-22 17:57:50 [INFO]   step 17000  epoch 1 [17000/180286]  loss=2.4326 (policy=2.0882 value=0.6890)  accuracy=40.95%  lr=9.99e-04  8461 samples/s
+2026-10-22 17:59:50 [INFO]   step 18000  epoch 1 [18000/180286]  loss=2.4155 (policy=2.0724 value=0.6862)  accuracy=41.22%  lr=9.99e-04  8466 samples/s
+2026-10-22 18:01:49 [INFO]   step 19000  epoch 1 [19000/180286]  loss=2.3997 (policy=2.0579 value=0.6835)  accuracy=41.47%  lr=9.99e-04  8471 samples/s
+2026-10-22 18:03:49 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00020000.pt
+2026-10-22 18:03:49 [INFO]   step 20000  epoch 1 [20000/180286]  loss=2.3850 (policy=2.0444 value=0.6811)  accuracy=41.71%  lr=9.98e-04  8475 samples/s
+2026-10-22 18:05:49 [INFO]   step 21000  epoch 1 [21000/180286]  loss=2.3712 (policy=2.0318 value=0.6788)  accuracy=41.93%  lr=9.98e-04  8479 samples/s
+2026-10-22 18:07:48 [INFO]   step 22000  epoch 1 [22000/180286]  loss=2.3585 (policy=2.0201 value=0.6767)  accuracy=42.13%  lr=9.98e-04  8483 samples/s
+2026-10-22 18:09:48 [INFO]   step 23000  epoch 1 [23000/180286]  loss=2.3465 (policy=2.0091 value=0.6747)  accuracy=42.33%  lr=9.98e-04  8486 samples/s
+2026-10-22 18:11:47 [INFO]   step 24000  epoch 1 [24000/180286]  loss=2.3350 (policy=1.9986 value=0.6729)  accuracy=42.51%  lr=9.98e-04  8489 samples/s
+2026-10-22 18:13:47 [INFO]   step 25000  epoch 1 [25000/180286]  loss=2.3244 (policy=1.9889 value=0.6711)  accuracy=42.69%  lr=9.98e-04  8492 samples/s
+2026-10-22 18:15:47 [INFO]   step 26000  epoch 1 [26000/180286]  loss=2.3143 (policy=1.9796 value=0.6694)  accuracy=42.85%  lr=9.97e-04  8494 samples/s
+2026-10-22 18:17:46 [INFO]   step 27000  epoch 1 [27000/180286]  loss=2.3048 (policy=1.9709 value=0.6678)  accuracy=43.01%  lr=9.97e-04  8497 samples/s
+2026-10-22 18:19:46 [INFO]   step 28000  epoch 1 [28000/180286]  loss=2.2957 (policy=1.9625 value=0.6663)  accuracy=43.16%  lr=9.97e-04  8499 samples/s
+2026-10-22 18:21:46 [INFO]   step 29000  epoch 1 [29000/180286]  loss=2.2870 (policy=1.9546 value=0.6648)  accuracy=43.30%  lr=9.97e-04  8501 samples/s
+2026-10-22 18:23:45 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00030000.pt
+2026-10-22 18:23:45 [INFO]   step 30000  epoch 1 [30000/180286]  loss=2.2787 (policy=1.9470 value=0.6634)  accuracy=43.44%  lr=9.96e-04  8503 samples/s
+2026-10-22 18:25:45 [INFO]   step 31000  epoch 1 [31000/180286]  loss=2.2710 (policy=1.9399 value=0.6621)  accuracy=43.57%  lr=9.96e-04  8505 samples/s
+2026-10-22 18:27:45 [INFO]   step 32000  epoch 1 [32000/180286]  loss=2.2635 (policy=1.9331 value=0.6608)  accuracy=43.69%  lr=9.96e-04  8506 samples/s
+2026-10-22 18:29:44 [INFO]   step 33000  epoch 1 [33000/180286]  loss=2.2564 (policy=1.9266 value=0.6596)  accuracy=43.81%  lr=9.95e-04  8508 samples/s
+2026-10-22 18:31:44 [INFO]   step 34000  epoch 1 [34000/180286]  loss=2.2496 (policy=1.9204 value=0.6585)  accuracy=43.93%  lr=9.95e-04  8509 samples/s
+2026-10-22 18:33:44 [INFO]   step 35000  epoch 1 [35000/180286]  loss=2.2429 (policy=1.9143 value=0.6574)  accuracy=44.04%  lr=9.95e-04  8511 samples/s
+2026-10-22 18:35:43 [INFO]   step 36000  epoch 1 [36000/180286]  loss=2.2367 (policy=1.9085 value=0.6563)  accuracy=44.15%  lr=9.95e-04  8512 samples/s
+2026-10-22 18:37:43 [INFO]   step 37000  epoch 1 [37000/180286]  loss=2.2306 (policy=1.9030 value=0.6553)  accuracy=44.25%  lr=9.94e-04  8513 samples/s
+2026-10-22 18:39:43 [INFO]   step 38000  epoch 1 [38000/180286]  loss=2.2249 (policy=1.8978 value=0.6543)  accuracy=44.35%  lr=9.94e-04  8514 samples/s
+2026-10-22 18:41:42 [INFO]   step 39000  epoch 1 [39000/180286]  loss=2.2192 (policy=1.8926 value=0.6533)  accuracy=44.44%  lr=9.94e-04  8516 samples/s
+2026-10-22 18:43:42 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00040000.pt
+2026-10-22 18:43:42 [INFO]   step 40000  epoch 1 [40000/180286]  loss=2.2139 (policy=1.8877 value=0.6524)  accuracy=44.53%  lr=9.93e-04  8517 samples/s
+2026-10-22 18:45:42 [INFO]   step 41000  epoch 1 [41000/180286]  loss=2.2087 (policy=1.8830 value=0.6515)  accuracy=44.62%  lr=9.93e-04  8518 samples/s
+2026-10-22 18:47:41 [INFO]   step 42000  epoch 1 [42000/180286]  loss=2.2037 (policy=1.8784 value=0.6506)  accuracy=44.70%  lr=9.92e-04  8518 samples/s
+2026-10-22 18:49:41 [INFO]   step 43000  epoch 1 [43000/180286]  loss=2.1989 (policy=1.8740 value=0.6498)  accuracy=44.78%  lr=9.92e-04  8519 samples/s
+2026-10-22 18:51:41 [INFO]   step 44000  epoch 1 [44000/180286]  loss=2.1942 (policy=1.8697 value=0.6490)  accuracy=44.86%  lr=9.92e-04  8520 samples/s
+2026-10-22 18:53:40 [INFO]   step 45000  epoch 1 [45000/180286]  loss=2.1896 (policy=1.8655 value=0.6482)  accuracy=44.94%  lr=9.91e-04  8521 samples/s
+2026-10-22 18:55:40 [INFO]   step 46000  epoch 1 [46000/180286]  loss=2.1852 (policy=1.8615 value=0.6474)  accuracy=45.02%  lr=9.91e-04  8522 samples/s
+2026-10-22 18:57:39 [INFO]   step 47000  epoch 1 [47000/180286]  loss=2.1810 (policy=1.8577 value=0.6466)  accuracy=45.09%  lr=9.90e-04  8523 samples/s
+2026-10-22 18:59:39 [INFO]   step 48000  epoch 1 [48000/180286]  loss=2.1768 (policy=1.8539 value=0.6459)  accuracy=45.16%  lr=9.90e-04  8523 samples/s
+2026-10-22 19:01:39 [INFO]   step 49000  epoch 1 [49000/180286]  loss=2.1728 (policy=1.8502 value=0.6453)  accuracy=45.23%  lr=9.90e-04  8524 samples/s
+2026-10-22 19:03:38 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00050000.pt
+2026-10-22 19:03:38 [INFO]   step 50000  epoch 1 [50000/180286]  loss=2.1689 (policy=1.8467 value=0.6446)  accuracy=45.30%  lr=9.89e-04  8525 samples/s
+2026-10-22 19:05:38 [INFO]   step 51000  epoch 1 [51000/180286]  loss=2.1652 (policy=1.8432 value=0.6439)  accuracy=45.36%  lr=9.89e-04  8525 samples/s
+2026-10-22 19:07:38 [INFO]   step 52000  epoch 1 [52000/180286]  loss=2.1615 (policy=1.8398 value=0.6433)  accuracy=45.43%  lr=9.88e-04  8526 samples/s
+2026-10-22 19:09:40 [INFO]   step 53000  epoch 1 [53000/180286]  loss=2.1579 (policy=1.8366 value=0.6427)  accuracy=45.49%  lr=9.88e-04  8524 samples/s
+2026-10-22 19:11:39 [INFO]   step 54000  epoch 1 [54000/180286]  loss=2.1545 (policy=1.8334 value=0.6420)  accuracy=45.55%  lr=9.87e-04  8524 samples/s
+2026-10-22 19:13:39 [INFO]   step 55000  epoch 1 [55000/180286]  loss=2.1511 (policy=1.8304 value=0.6415)  accuracy=45.61%  lr=9.87e-04  8525 samples/s
+2026-10-22 19:15:39 [INFO]   step 56000  epoch 1 [56000/180286]  loss=2.1478 (policy=1.8274 value=0.6409)  accuracy=45.66%  lr=9.86e-04  8525 samples/s
+2026-10-22 19:17:38 [INFO]   step 57000  epoch 1 [57000/180286]  loss=2.1446 (policy=1.8245 value=0.6404)  accuracy=45.72%  lr=9.86e-04  8526 samples/s
+2026-10-22 19:19:38 [INFO]   step 58000  epoch 1 [58000/180286]  loss=2.1415 (policy=1.8216 value=0.6398)  accuracy=45.78%  lr=9.85e-04  8527 samples/s
+2026-10-22 19:21:38 [INFO]   step 59000  epoch 1 [59000/180286]  loss=2.1385 (policy=1.8189 value=0.6393)  accuracy=45.83%  lr=9.85e-04  8527 samples/s
+2026-10-22 19:23:37 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00060000.pt
+2026-10-22 19:23:37 [INFO]   step 60000  epoch 1 [60000/180286]  loss=2.1356 (policy=1.8162 value=0.6388)  accuracy=45.88%  lr=9.84e-04  8528 samples/s
+2026-10-22 19:25:37 [INFO]   step 61000  epoch 1 [61000/180286]  loss=2.1327 (policy=1.8135 value=0.6383)  accuracy=45.93%  lr=9.84e-04  8528 samples/s
+2026-10-22 19:27:37 [INFO]   step 62000  epoch 1 [62000/180286]  loss=2.1299 (policy=1.8110 value=0.6378)  accuracy=45.98%  lr=9.83e-04  8529 samples/s
+2026-10-22 19:29:36 [INFO]   step 63000  epoch 1 [63000/180286]  loss=2.1271 (policy=1.8085 value=0.6373)  accuracy=46.03%  lr=9.83e-04  8529 samples/s
+2026-10-22 19:31:36 [INFO]   step 64000  epoch 1 [64000/180286]  loss=2.1244 (policy=1.8060 value=0.6368)  accuracy=46.07%  lr=9.82e-04  8530 samples/s
+2026-10-22 19:33:35 [INFO]   step 65000  epoch 1 [65000/180286]  loss=2.1218 (policy=1.8036 value=0.6364)  accuracy=46.12%  lr=9.81e-04  8530 samples/s
+2026-10-22 19:35:35 [INFO]   step 66000  epoch 1 [66000/180286]  loss=2.1192 (policy=1.8013 value=0.6359)  accuracy=46.17%  lr=9.81e-04  8530 samples/s
+2026-10-22 19:37:35 [INFO]   step 67000  epoch 1 [67000/180286]  loss=2.1166 (policy=1.7989 value=0.6355)  accuracy=46.21%  lr=9.80e-04  8531 samples/s
+2026-10-22 19:39:35 [INFO]   step 68000  epoch 1 [68000/180286]  loss=2.1142 (policy=1.7967 value=0.6351)  accuracy=46.26%  lr=9.80e-04  8531 samples/s
+2026-10-22 19:41:34 [INFO]   step 69000  epoch 1 [69000/180286]  loss=2.1117 (policy=1.7944 value=0.6346)  accuracy=46.30%  lr=9.79e-04  8532 samples/s
+2026-10-22 19:43:34 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00070000.pt
+2026-10-22 19:43:34 [INFO]   step 70000  epoch 1 [70000/180286]  loss=2.1094 (policy=1.7923 value=0.6342)  accuracy=46.34%  lr=9.78e-04  8532 samples/s
+2026-10-22 19:45:34 [INFO]   step 71000  epoch 1 [71000/180286]  loss=2.1070 (policy=1.7901 value=0.6338)  accuracy=46.38%  lr=9.78e-04  8532 samples/s
+2026-10-22 19:47:34 [INFO]   step 72000  epoch 1 [72000/180286]  loss=2.1048 (policy=1.7881 value=0.6334)  accuracy=46.42%  lr=9.77e-04  8532 samples/s
+2026-10-22 19:49:34 [INFO]   step 73000  epoch 1 [73000/180286]  loss=2.1026 (policy=1.7861 value=0.6330)  accuracy=46.46%  lr=9.76e-04  8532 samples/s
+2026-10-22 19:51:33 [INFO]   step 74000  epoch 1 [74000/180286]  loss=2.1004 (policy=1.7841 value=0.6326)  accuracy=46.50%  lr=9.76e-04  8532 samples/s
+2026-10-22 19:53:33 [INFO]   step 75000  epoch 1 [75000/180286]  loss=2.0982 (policy=1.7821 value=0.6323)  accuracy=46.54%  lr=9.75e-04  8533 samples/s
+2026-10-22 19:55:33 [INFO]   step 76000  epoch 1 [76000/180286]  loss=2.0961 (policy=1.7802 value=0.6319)  accuracy=46.58%  lr=9.74e-04  8533 samples/s
+2026-10-22 19:57:32 [INFO]   step 77000  epoch 1 [77000/180286]  loss=2.0941 (policy=1.7783 value=0.6315)  accuracy=46.61%  lr=9.74e-04  8533 samples/s
+2026-10-22 19:59:32 [INFO]   step 78000  epoch 1 [78000/180286]  loss=2.0921 (policy=1.7765 value=0.6312)  accuracy=46.65%  lr=9.73e-04  8534 samples/s
+2026-10-22 20:01:32 [INFO]   step 79000  epoch 1 [79000/180286]  loss=2.0901 (policy=1.7747 value=0.6308)  accuracy=46.68%  lr=9.72e-04  8534 samples/s
+2026-10-22 20:03:31 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00080000.pt
+2026-10-22 20:03:31 [INFO]   step 80000  epoch 1 [80000/180286]  loss=2.0881 (policy=1.7729 value=0.6305)  accuracy=46.72%  lr=9.72e-04  8534 samples/s
+2026-10-22 20:05:31 [INFO]   step 81000  epoch 1 [81000/180286]  loss=2.0862 (policy=1.7712 value=0.6301)  accuracy=46.75%  lr=9.71e-04  8534 samples/s
+2026-10-22 20:07:31 [INFO]   step 82000  epoch 1 [82000/180286]  loss=2.0844 (policy=1.7695 value=0.6298)  accuracy=46.79%  lr=9.70e-04  8535 samples/s
+2026-10-22 20:09:30 [INFO]   step 83000  epoch 1 [83000/180286]  loss=2.0825 (policy=1.7678 value=0.6295)  accuracy=46.82%  lr=9.69e-04  8535 samples/s
+2026-10-22 20:11:30 [INFO]   step 84000  epoch 1 [84000/180286]  loss=2.0807 (policy=1.7661 value=0.6292)  accuracy=46.85%  lr=9.69e-04  8535 samples/s
+2026-10-22 20:13:30 [INFO]   step 85000  epoch 1 [85000/180286]  loss=2.0790 (policy=1.7645 value=0.6289)  accuracy=46.88%  lr=9.68e-04  8536 samples/s
+2026-10-22 20:15:29 [INFO]   step 86000  epoch 1 [86000/180286]  loss=2.0772 (policy=1.7630 value=0.6286)  accuracy=46.91%  lr=9.67e-04  8536 samples/s
+2026-10-22 20:17:29 [INFO]   step 87000  epoch 1 [87000/180286]  loss=2.0755 (policy=1.7614 value=0.6282)  accuracy=46.95%  lr=9.66e-04  8536 samples/s
+2026-10-22 20:19:29 [INFO]   step 88000  epoch 1 [88000/180286]  loss=2.0738 (policy=1.7598 value=0.6279)  accuracy=46.98%  lr=9.65e-04  8536 samples/s
+2026-10-22 20:21:28 [INFO]   step 89000  epoch 1 [89000/180286]  loss=2.0722 (policy=1.7583 value=0.6277)  accuracy=47.01%  lr=9.65e-04  8537 samples/s
+2026-10-22 20:23:28 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00090000.pt
+2026-10-22 20:23:28 [INFO]   step 90000  epoch 1 [90000/180286]  loss=2.0705 (policy=1.7569 value=0.6274)  accuracy=47.03%  lr=9.64e-04  8537 samples/s
+2026-10-22 20:25:28 [INFO]   step 91000  epoch 1 [91000/180286]  loss=2.0689 (policy=1.7554 value=0.6271)  accuracy=47.06%  lr=9.63e-04  8537 samples/s
+2026-10-22 20:27:28 [INFO]   step 92000  epoch 1 [92000/180286]  loss=2.0673 (policy=1.7539 value=0.6268)  accuracy=47.09%  lr=9.62e-04  8537 samples/s
+2026-10-22 20:29:28 [INFO]   step 93000  epoch 1 [93000/180286]  loss=2.0658 (policy=1.7525 value=0.6265)  accuracy=47.12%  lr=9.61e-04  8537 samples/s
+2026-10-22 20:31:28 [INFO]   step 94000  epoch 1 [94000/180286]  loss=2.0642 (policy=1.7511 value=0.6263)  accuracy=47.15%  lr=9.61e-04  8537 samples/s
+2026-10-22 20:33:28 [INFO]   step 95000  epoch 1 [95000/180286]  loss=2.0627 (policy=1.7498 value=0.6260)  accuracy=47.17%  lr=9.60e-04  8537 samples/s
+2026-10-22 20:35:28 [INFO]   step 96000  epoch 1 [96000/180286]  loss=2.0613 (policy=1.7484 value=0.6257)  accuracy=47.20%  lr=9.59e-04  8537 samples/s
+2026-10-22 20:37:28 [INFO]   step 97000  epoch 1 [97000/180286]  loss=2.0598 (policy=1.7471 value=0.6255)  accuracy=47.23%  lr=9.58e-04  8537 samples/s
+2026-10-22 20:39:28 [INFO]   step 98000  epoch 1 [98000/180286]  loss=2.0584 (policy=1.7458 value=0.6252)  accuracy=47.25%  lr=9.57e-04  8537 samples/s
+2026-10-22 20:41:28 [INFO]   step 99000  epoch 1 [99000/180286]  loss=2.0569 (policy=1.7445 value=0.6250)  accuracy=47.28%  lr=9.56e-04  8536 samples/s
+2026-10-22 20:43:28 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00100000.pt
+2026-10-22 20:43:28 [INFO]   step 100000  epoch 1 [100000/180286]  loss=2.0556 (policy=1.7432 value=0.6247)  accuracy=47.30%  lr=9.55e-04  8536 samples/s
+2026-10-22 20:45:28 [INFO]   step 101000  epoch 1 [101000/180286]  loss=2.0542 (policy=1.7420 value=0.6245)  accuracy=47.33%  lr=9.54e-04  8536 samples/s
+2026-10-22 20:47:28 [INFO]   step 102000  epoch 1 [102000/180286]  loss=2.0528 (policy=1.7407 value=0.6242)  accuracy=47.35%  lr=9.54e-04  8536 samples/s
+2026-10-22 20:49:28 [INFO]   step 103000  epoch 1 [103000/180286]  loss=2.0515 (policy=1.7395 value=0.6240)  accuracy=47.38%  lr=9.53e-04  8536 samples/s
+2026-10-22 20:51:28 [INFO]   step 104000  epoch 1 [104000/180286]  loss=2.0502 (policy=1.7383 value=0.6237)  accuracy=47.40%  lr=9.52e-04  8536 samples/s
+2026-10-22 20:53:29 [INFO]   step 105000  epoch 1 [105000/180286]  loss=2.0489 (policy=1.7371 value=0.6235)  accuracy=47.42%  lr=9.51e-04  8536 samples/s
+2026-10-22 20:55:29 [INFO]   step 106000  epoch 1 [106000/180286]  loss=2.0476 (policy=1.7360 value=0.6233)  accuracy=47.45%  lr=9.50e-04  8536 samples/s
+2026-10-22 20:57:29 [INFO]   step 107000  epoch 1 [107000/180286]  loss=2.0464 (policy=1.7348 value=0.6231)  accuracy=47.47%  lr=9.49e-04  8536 samples/s
+2026-10-22 20:59:29 [INFO]   step 108000  epoch 1 [108000/180286]  loss=2.0451 (policy=1.7337 value=0.6229)  accuracy=47.49%  lr=9.48e-04  8536 samples/s
+2026-10-22 21:01:29 [INFO]   step 109000  epoch 1 [109000/180286]  loss=2.0439 (policy=1.7326 value=0.6227)  accuracy=47.51%  lr=9.47e-04  8536 samples/s
+2026-10-22 21:03:29 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00110000.pt
+2026-10-22 21:03:29 [INFO]   step 110000  epoch 1 [110000/180286]  loss=2.0427 (policy=1.7315 value=0.6224)  accuracy=47.54%  lr=9.46e-04  8535 samples/s
+2026-10-22 21:05:30 [INFO]   step 111000  epoch 1 [111000/180286]  loss=2.0415 (policy=1.7304 value=0.6222)  accuracy=47.56%  lr=9.45e-04  8535 samples/s
+2026-10-22 21:07:31 [INFO]   step 112000  epoch 1 [112000/180286]  loss=2.0403 (policy=1.7293 value=0.6220)  accuracy=47.58%  lr=9.44e-04  8535 samples/s
+2026-10-22 21:09:31 [INFO]   step 113000  epoch 1 [113000/180286]  loss=2.0392 (policy=1.7283 value=0.6218)  accuracy=47.60%  lr=9.43e-04  8535 samples/s
+2026-10-22 21:11:31 [INFO]   step 114000  epoch 1 [114000/180286]  loss=2.0380 (policy=1.7272 value=0.6216)  accuracy=47.62%  lr=9.42e-04  8534 samples/s
+2026-10-22 21:13:31 [INFO]   step 115000  epoch 1 [115000/180286]  loss=2.0369 (policy=1.7262 value=0.6214)  accuracy=47.64%  lr=9.41e-04  8534 samples/s
+2026-10-22 21:15:31 [INFO]   step 116000  epoch 1 [116000/180286]  loss=2.0357 (policy=1.7252 value=0.6212)  accuracy=47.66%  lr=9.40e-04  8534 samples/s
+2026-10-22 21:17:31 [INFO]   step 117000  epoch 1 [117000/180286]  loss=2.0346 (policy=1.7241 value=0.6210)  accuracy=47.69%  lr=9.39e-04  8534 samples/s
+2026-10-22 21:19:31 [INFO]   step 118000  epoch 1 [118000/180286]  loss=2.0335 (policy=1.7231 value=0.6208)  accuracy=47.71%  lr=9.38e-04  8534 samples/s
+2026-10-22 21:21:31 [INFO]   step 119000  epoch 1 [119000/180286]  loss=2.0325 (policy=1.7222 value=0.6206)  accuracy=47.72%  lr=9.37e-04  8534 samples/s
+2026-10-22 21:23:31 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00120000.pt
+2026-10-22 21:23:31 [INFO]   step 120000  epoch 1 [120000/180286]  loss=2.0314 (policy=1.7212 value=0.6204)  accuracy=47.74%  lr=9.36e-04  8534 samples/s
+2026-10-22 21:25:31 [INFO]   step 121000  epoch 1 [121000/180286]  loss=2.0304 (policy=1.7202 value=0.6202)  accuracy=47.76%  lr=9.35e-04  8534 samples/s
+2026-10-22 21:27:31 [INFO]   step 122000  epoch 1 [122000/180286]  loss=2.0293 (policy=1.7193 value=0.6201)  accuracy=47.78%  lr=9.34e-04  8534 samples/s
+2026-10-22 21:29:31 [INFO]   step 123000  epoch 1 [123000/180286]  loss=2.0283 (policy=1.7183 value=0.6199)  accuracy=47.80%  lr=9.32e-04  8534 samples/s
+2026-10-22 21:31:31 [INFO]   step 124000  epoch 1 [124000/180286]  loss=2.0272 (policy=1.7174 value=0.6197)  accuracy=47.82%  lr=9.31e-04  8534 samples/s
+2026-10-22 21:33:31 [INFO]   step 125000  epoch 1 [125000/180286]  loss=2.0263 (policy=1.7165 value=0.6195)  accuracy=47.84%  lr=9.30e-04  8534 samples/s
+2026-10-22 21:35:31 [INFO]   step 126000  epoch 1 [126000/180286]  loss=2.0253 (policy=1.7156 value=0.6194)  accuracy=47.86%  lr=9.29e-04  8534 samples/s
+2026-10-22 21:37:32 [INFO]   step 127000  epoch 1 [127000/180286]  loss=2.0243 (policy=1.7147 value=0.6192)  accuracy=47.88%  lr=9.28e-04  8534 samples/s
+2026-10-22 21:39:32 [INFO]   step 128000  epoch 1 [128000/180286]  loss=2.0233 (policy=1.7138 value=0.6190)  accuracy=47.89%  lr=9.27e-04  8534 samples/s
+2026-10-22 21:41:32 [INFO]   step 129000  epoch 1 [129000/180286]  loss=2.0223 (policy=1.7129 value=0.6188)  accuracy=47.91%  lr=9.26e-04  8534 samples/s
+2026-10-22 21:43:32 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00130000.pt
+2026-10-22 21:43:32 [INFO]   step 130000  epoch 1 [130000/180286]  loss=2.0214 (policy=1.7120 value=0.6187)  accuracy=47.93%  lr=9.25e-04  8534 samples/s
+2026-10-22 21:45:32 [INFO]   step 131000  epoch 1 [131000/180286]  loss=2.0205 (policy=1.7112 value=0.6185)  accuracy=47.95%  lr=9.23e-04  8534 samples/s
+2026-10-22 21:47:34 [INFO]   step 132000  epoch 1 [132000/180286]  loss=2.0195 (policy=1.7104 value=0.6183)  accuracy=47.96%  lr=9.22e-04  8533 samples/s
+2026-10-22 21:49:34 [INFO]   step 133000  epoch 1 [133000/180286]  loss=2.0186 (policy=1.7095 value=0.6182)  accuracy=47.98%  lr=9.21e-04  8533 samples/s
+2026-10-22 21:51:34 [INFO]   step 134000  epoch 1 [134000/180286]  loss=2.0177 (policy=1.7087 value=0.6180)  accuracy=48.00%  lr=9.20e-04  8533 samples/s
+2026-10-22 21:53:34 [INFO]   step 135000  epoch 1 [135000/180286]  loss=2.0168 (policy=1.7079 value=0.6179)  accuracy=48.01%  lr=9.19e-04  8533 samples/s
+2026-10-22 21:55:33 [INFO]   step 136000  epoch 1 [136000/180286]  loss=2.0160 (policy=1.7071 value=0.6177)  accuracy=48.03%  lr=9.18e-04  8533 samples/s
+2026-10-22 21:57:33 [INFO]   step 137000  epoch 1 [137000/180286]  loss=2.0151 (policy=1.7063 value=0.6176)  accuracy=48.05%  lr=9.16e-04  8533 samples/s
+2026-10-22 21:59:33 [INFO]   step 138000  epoch 1 [138000/180286]  loss=2.0142 (policy=1.7055 value=0.6174)  accuracy=48.06%  lr=9.15e-04  8533 samples/s
+2026-10-22 22:01:33 [INFO]   step 139000  epoch 1 [139000/180286]  loss=2.0134 (policy=1.7047 value=0.6173)  accuracy=48.08%  lr=9.14e-04  8533 samples/s
+2026-10-22 22:03:33 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00140000.pt
+2026-10-22 22:03:33 [INFO]   step 140000  epoch 1 [140000/180286]  loss=2.0125 (policy=1.7040 value=0.6171)  accuracy=48.09%  lr=9.13e-04  8533 samples/s
+2026-10-22 22:05:33 [INFO]   step 141000  epoch 1 [141000/180286]  loss=2.0117 (policy=1.7032 value=0.6170)  accuracy=48.11%  lr=9.12e-04  8533 samples/s
+2026-10-22 22:07:33 [INFO]   step 142000  epoch 1 [142000/180286]  loss=2.0108 (policy=1.7024 value=0.6168)  accuracy=48.12%  lr=9.10e-04  8533 samples/s
+2026-10-22 22:09:33 [INFO]   step 143000  epoch 1 [143000/180286]  loss=2.0100 (policy=1.7017 value=0.6167)  accuracy=48.14%  lr=9.09e-04  8533 samples/s
+2026-10-22 22:11:32 [INFO]   step 144000  epoch 1 [144000/180286]  loss=2.0092 (policy=1.7010 value=0.6165)  accuracy=48.15%  lr=9.08e-04  8533 samples/s
+2026-10-22 22:13:32 [INFO]   step 145000  epoch 1 [145000/180286]  loss=2.0084 (policy=1.7002 value=0.6164)  accuracy=48.17%  lr=9.07e-04  8533 samples/s
+2026-10-22 22:15:32 [INFO]   step 146000  epoch 1 [146000/180286]  loss=2.0076 (policy=1.6995 value=0.6162)  accuracy=48.18%  lr=9.05e-04  8533 samples/s
+2026-10-22 22:17:32 [INFO]   step 147000  epoch 1 [147000/180286]  loss=2.0068 (policy=1.6988 value=0.6161)  accuracy=48.20%  lr=9.04e-04  8533 samples/s
+2026-10-22 22:19:32 [INFO]   step 148000  epoch 1 [148000/180286]  loss=2.0061 (policy=1.6981 value=0.6160)  accuracy=48.21%  lr=9.03e-04  8534 samples/s
+2026-10-22 22:21:32 [INFO]   step 149000  epoch 1 [149000/180286]  loss=2.0053 (policy=1.6973 value=0.6158)  accuracy=48.23%  lr=9.01e-04  8534 samples/s
+2026-10-22 22:23:32 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00150000.pt
+2026-10-22 22:23:32 [INFO]   step 150000  epoch 1 [150000/180286]  loss=2.0045 (policy=1.6966 value=0.6157)  accuracy=48.24%  lr=9.00e-04  8534 samples/s
+2026-10-22 22:25:32 [INFO]   step 151000  epoch 1 [151000/180286]  loss=2.0037 (policy=1.6959 value=0.6155)  accuracy=48.26%  lr=8.99e-04  8534 samples/s
+2026-10-22 22:27:32 [INFO]   step 152000  epoch 1 [152000/180286]  loss=2.0030 (policy=1.6952 value=0.6154)  accuracy=48.27%  lr=8.97e-04  8534 samples/s
+2026-10-22 22:29:33 [INFO]   step 153000  epoch 1 [153000/180286]  loss=2.0022 (policy=1.6945 value=0.6153)  accuracy=48.28%  lr=8.96e-04  8533 samples/s
+2026-10-22 22:31:33 [INFO]   step 154000  epoch 1 [154000/180286]  loss=2.0015 (policy=1.6939 value=0.6151)  accuracy=48.30%  lr=8.95e-04  8533 samples/s
+2026-10-22 22:33:32 [INFO]   step 155000  epoch 1 [155000/180286]  loss=2.0007 (policy=1.6932 value=0.6150)  accuracy=48.31%  lr=8.93e-04  8533 samples/s
+2026-10-22 22:35:32 [INFO]   step 156000  epoch 1 [156000/180286]  loss=2.0000 (policy=1.6926 value=0.6149)  accuracy=48.32%  lr=8.92e-04  8533 samples/s
+2026-10-22 22:37:32 [INFO]   step 157000  epoch 1 [157000/180286]  loss=1.9993 (policy=1.6919 value=0.6147)  accuracy=48.34%  lr=8.91e-04  8533 samples/s
+2026-10-22 22:39:32 [INFO]   step 158000  epoch 1 [158000/180286]  loss=1.9986 (policy=1.6912 value=0.6146)  accuracy=48.35%  lr=8.89e-04  8534 samples/s
+2026-10-22 22:41:32 [INFO]   step 159000  epoch 1 [159000/180286]  loss=1.9978 (policy=1.6906 value=0.6145)  accuracy=48.37%  lr=8.88e-04  8534 samples/s
+2026-10-22 22:43:32 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00160000.pt
+2026-10-22 22:43:32 [INFO]   step 160000  epoch 1 [160000/180286]  loss=1.9971 (policy=1.6900 value=0.6144)  accuracy=48.38%  lr=8.87e-04  8534 samples/s
+2026-10-22 22:45:32 [INFO]   step 161000  epoch 1 [161000/180286]  loss=1.9964 (policy=1.6893 value=0.6142)  accuracy=48.39%  lr=8.85e-04  8534 samples/s
+2026-10-22 22:47:31 [INFO]   step 162000  epoch 1 [162000/180286]  loss=1.9957 (policy=1.6887 value=0.6141)  accuracy=48.40%  lr=8.84e-04  8534 samples/s
+2026-10-22 22:49:31 [INFO]   step 163000  epoch 1 [163000/180286]  loss=1.9951 (policy=1.6881 value=0.6140)  accuracy=48.42%  lr=8.83e-04  8534 samples/s
+2026-10-22 22:51:31 [INFO]   step 164000  epoch 1 [164000/180286]  loss=1.9944 (policy=1.6874 value=0.6139)  accuracy=48.43%  lr=8.81e-04  8534 samples/s
+2026-10-22 22:53:31 [INFO]   step 165000  epoch 1 [165000/180286]  loss=1.9937 (policy=1.6868 value=0.6137)  accuracy=48.44%  lr=8.80e-04  8534 samples/s
+2026-10-22 22:55:31 [INFO]   step 166000  epoch 1 [166000/180286]  loss=1.9930 (policy=1.6862 value=0.6136)  accuracy=48.45%  lr=8.78e-04  8534 samples/s
+2026-10-22 22:57:31 [INFO]   step 167000  epoch 1 [167000/180286]  loss=1.9924 (policy=1.6856 value=0.6135)  accuracy=48.47%  lr=8.77e-04  8534 samples/s
+2026-10-22 22:59:31 [INFO]   step 168000  epoch 1 [168000/180286]  loss=1.9917 (policy=1.6850 value=0.6134)  accuracy=48.48%  lr=8.75e-04  8534 samples/s
+2026-10-22 23:01:31 [INFO]   step 169000  epoch 1 [169000/180286]  loss=1.9911 (policy=1.6844 value=0.6133)  accuracy=48.49%  lr=8.74e-04  8534 samples/s
+2026-10-22 23:03:31 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00170000.pt
+2026-10-22 23:03:31 [INFO]   step 170000  epoch 1 [170000/180286]  loss=1.9904 (policy=1.6838 value=0.6131)  accuracy=48.50%  lr=8.73e-04  8534 samples/s
+2026-10-22 23:05:30 [INFO]   step 171000  epoch 1 [171000/180286]  loss=1.9898 (policy=1.6832 value=0.6130)  accuracy=48.52%  lr=8.71e-04  8534 samples/s
+2026-10-22 23:07:32 [INFO]   step 172000  epoch 1 [172000/180286]  loss=1.9891 (policy=1.6827 value=0.6129)  accuracy=48.53%  lr=8.70e-04  8533 samples/s
+2026-10-22 23:09:32 [INFO]   step 173000  epoch 1 [173000/180286]  loss=1.9885 (policy=1.6821 value=0.6128)  accuracy=48.54%  lr=8.68e-04  8533 samples/s
+2026-10-22 23:11:32 [INFO]   step 174000  epoch 1 [174000/180286]  loss=1.9879 (policy=1.6815 value=0.6127)  accuracy=48.55%  lr=8.67e-04  8533 samples/s
+2026-10-22 23:13:32 [INFO]   step 175000  epoch 1 [175000/180286]  loss=1.9873 (policy=1.6810 value=0.6126)  accuracy=48.56%  lr=8.65e-04  8534 samples/s
+2026-10-22 23:15:32 [INFO]   step 176000  epoch 1 [176000/180286]  loss=1.9866 (policy=1.6804 value=0.6125)  accuracy=48.57%  lr=8.64e-04  8534 samples/s
+2026-10-22 23:17:31 [INFO]   step 177000  epoch 1 [177000/180286]  loss=1.9860 (policy=1.6798 value=0.6124)  accuracy=48.59%  lr=8.62e-04  8534 samples/s
+2026-10-22 23:19:31 [INFO]   step 178000  epoch 1 [178000/180286]  loss=1.9854 (policy=1.6793 value=0.6122)  accuracy=48.60%  lr=8.61e-04  8534 samples/s
+2026-10-22 23:21:31 [INFO]   step 179000  epoch 1 [179000/180286]  loss=1.9848 (policy=1.6787 value=0.6121)  accuracy=48.61%  lr=8.59e-04  8534 samples/s
+2026-10-22 23:23:31 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00180000.pt
+2026-10-22 23:23:31 [INFO]   step 180000  epoch 1 [180000/180286]  loss=1.9842 (policy=1.6782 value=0.6120)  accuracy=48.62%  lr=8.58e-04  8534 samples/s
+2026-10-22 23:24:46 [INFO] Epoch 1/4  loss=1.9840 (policy=1.6780 value=0.6120)  accuracy=48.62%  lr=8.57e-04  8518 samples/s  21673.9s
+2026-10-22 23:27:20 [INFO]   validation  loss=1.8488 (policy=1.5551 value=0.5874)  accuracy=51.08%  on 3820025 samples  (new best)
+2026-10-22 23:27:20 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_best.pt
+2026-10-22 23:27:20 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_epoch_0001.pt
+2026-10-22 23:28:54 [INFO]   step 181000  epoch 2 [714/180286]  loss=1.8695 (policy=1.5737 value=0.5916)  accuracy=50.76%  lr=8.56e-04  7778 samples/s
+2026-10-22 23:30:54 [INFO]   step 182000  epoch 2 [1714/180286]  loss=1.8694 (policy=1.5735 value=0.5917)  accuracy=50.80%  lr=8.55e-04  8203 samples/s
+2026-10-22 23:32:54 [INFO]   step 183000  epoch 2 [2714/180286]  loss=1.8685 (policy=1.5727 value=0.5917)  accuracy=50.82%  lr=8.53e-04  8325 samples/s
+2026-10-22 23:34:53 [INFO]   step 184000  epoch 2 [3714/180286]  loss=1.8685 (policy=1.5726 value=0.5917)  accuracy=50.82%  lr=8.52e-04  8383 samples/s
+2026-10-22 23:36:53 [INFO]   step 185000  epoch 2 [4714/180286]  loss=1.8690 (policy=1.5732 value=0.5916)  accuracy=50.81%  lr=8.50e-04  8414 samples/s
+2026-10-22 23:38:55 [INFO]   step 186000  epoch 2 [5714/180286]  loss=1.8692 (policy=1.5734 value=0.5915)  accuracy=50.82%  lr=8.49e-04  8422 samples/s
+2026-10-22 23:40:55 [INFO]   step 187000  epoch 2 [6714/180286]  loss=1.8690 (policy=1.5732 value=0.5917)  accuracy=50.82%  lr=8.47e-04  8438 samples/s
+2026-10-22 23:42:55 [INFO]   step 188000  epoch 2 [7714/180286]  loss=1.8692 (policy=1.5734 value=0.5916)  accuracy=50.81%  lr=8.45e-04  8451 samples/s
+2026-10-22 23:44:55 [INFO]   step 189000  epoch 2 [8714/180286]  loss=1.8694 (policy=1.5736 value=0.5917)  accuracy=50.81%  lr=8.44e-04  8460 samples/s
+2026-10-22 23:46:55 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00190000.pt
+2026-10-22 23:46:55 [INFO]   step 190000  epoch 2 [9714/180286]  loss=1.8696 (policy=1.5737 value=0.5917)  accuracy=50.81%  lr=8.42e-04  8467 samples/s
+2026-10-22 23:48:55 [INFO]   step 191000  epoch 2 [10714/180286]  loss=1.8699 (policy=1.5741 value=0.5917)  accuracy=50.80%  lr=8.41e-04  8473 samples/s
+2026-10-22 23:50:55 [INFO]   step 192000  epoch 2 [11714/180286]  loss=1.8699 (policy=1.5741 value=0.5916)  accuracy=50.79%  lr=8.39e-04  8475 samples/s
+2026-10-22 23:52:55 [INFO]   step 193000  epoch 2 [12714/180286]  loss=1.8699 (policy=1.5740 value=0.5916)  accuracy=50.79%  lr=8.37e-04  8479 samples/s
+2026-10-22 23:54:55 [INFO]   step 194000  epoch 2 [13714/180286]  loss=1.8699 (policy=1.5741 value=0.5915)  accuracy=50.79%  lr=8.36e-04  8483 samples/s
+2026-10-22 23:56:55 [INFO]   step 195000  epoch 2 [14714/180286]  loss=1.8698 (policy=1.5740 value=0.5916)  accuracy=50.79%  lr=8.34e-04  8486 samples/s
+2026-10-22 23:58:55 [INFO]   step 196000  epoch 2 [15714/180286]  loss=1.8698 (policy=1.5740 value=0.5916)  accuracy=50.79%  lr=8.33e-04  8489 samples/s
+2026-10-23 00:00:55 [INFO]   step 197000  epoch 2 [16714/180286]  loss=1.8698 (policy=1.5740 value=0.5916)  accuracy=50.79%  lr=8.31e-04  8492 samples/s
+2026-10-23 00:02:55 [INFO]   step 198000  epoch 2 [17714/180286]  loss=1.8696 (policy=1.5738 value=0.5916)  accuracy=50.79%  lr=8.29e-04  8494 samples/s
+2026-10-23 00:04:55 [INFO]   step 199000  epoch 2 [18714/180286]  loss=1.8695 (policy=1.5737 value=0.5915)  accuracy=50.79%  lr=8.28e-04  8496 samples/s
+2026-10-23 00:06:55 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00200000.pt
+2026-10-23 00:06:55 [INFO]   step 200000  epoch 2 [19714/180286]  loss=1.8693 (policy=1.5736 value=0.5915)  accuracy=50.79%  lr=8.26e-04  8498 samples/s
+2026-10-23 00:08:57 [INFO]   step 201000  epoch 2 [20714/180286]  loss=1.8692 (policy=1.5735 value=0.5915)  accuracy=50.79%  lr=8.24e-04  8494 samples/s
+2026-10-23 00:10:57 [INFO]   step 202000  epoch 2 [21714/180286]  loss=1.8692 (policy=1.5735 value=0.5915)  accuracy=50.79%  lr=8.23e-04  8497 samples/s
+2026-10-23 00:12:56 [INFO]   step 203000  epoch 2 [22714/180286]  loss=1.8691 (policy=1.5733 value=0.5915)  accuracy=50.80%  lr=8.21e-04  8499 samples/s
+2026-10-23 00:14:56 [INFO]   step 204000  epoch 2 [23714/180286]  loss=1.8689 (policy=1.5731 value=0.5915)  accuracy=50.80%  lr=8.19e-04  8501 samples/s
+2026-10-23 00:16:56 [INFO]   step 205000  epoch 2 [24714/180286]  loss=1.8688 (policy=1.5730 value=0.5915)  accuracy=50.80%  lr=8.18e-04  8503 samples/s
+2026-10-23 00:18:56 [INFO]   step 206000  epoch 2 [25714/180286]  loss=1.8687 (policy=1.5729 value=0.5915)  accuracy=50.81%  lr=8.16e-04  8505 samples/s
+2026-10-23 00:20:56 [INFO]   step 207000  epoch 2 [26714/180286]  loss=1.8686 (policy=1.5729 value=0.5914)  accuracy=50.81%  lr=8.14e-04  8506 samples/s
+2026-10-23 00:22:55 [INFO]   step 208000  epoch 2 [27714/180286]  loss=1.8685 (policy=1.5728 value=0.5914)  accuracy=50.81%  lr=8.13e-04  8508 samples/s
+2026-10-23 00:24:55 [INFO]   step 209000  epoch 2 [28714/180286]  loss=1.8684 (policy=1.5727 value=0.5914)  accuracy=50.81%  lr=8.11e-04  8509 samples/s
+2026-10-23 00:26:55 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00210000.pt
+2026-10-23 00:26:55 [INFO]   step 210000  epoch 2 [29714/180286]  loss=1.8684 (policy=1.5727 value=0.5914)  accuracy=50.81%  lr=8.09e-04  8510 samples/s
+2026-10-23 00:28:55 [INFO]   step 211000  epoch 2 [30714/180286]  loss=1.8682 (policy=1.5726 value=0.5913)  accuracy=50.81%  lr=8.08e-04  8511 samples/s
+2026-10-23 00:30:55 [INFO]   step 212000  epoch 2 [31714/180286]  loss=1.8681 (policy=1.5724 value=0.5913)  accuracy=50.82%  lr=8.06e-04  8512 samples/s
+2026-10-23 00:32:55 [INFO]   step 213000  epoch 2 [32714/180286]  loss=1.8679 (policy=1.5723 value=0.5912)  accuracy=50.82%  lr=8.04e-04  8513 samples/s
+2026-10-23 00:34:55 [INFO]   step 214000  epoch 2 [33714/180286]  loss=1.8678 (policy=1.5722 value=0.5912)  accuracy=50.83%  lr=8.02e-04  8514 samples/s
+2026-10-23 00:36:55 [INFO]   step 215000  epoch 2 [34714/180286]  loss=1.8677 (policy=1.5721 value=0.5912)  accuracy=50.83%  lr=8.01e-04  8515 samples/s
+2026-10-23 00:38:54 [INFO]   step 216000  epoch 2 [35714/180286]  loss=1.8676 (policy=1.5720 value=0.5912)  accuracy=50.83%  lr=7.99e-04  8515 samples/s
+2026-10-23 00:40:54 [INFO]   step 217000  epoch 2 [36714/180286]  loss=1.8675 (policy=1.5719 value=0.5912)  accuracy=50.83%  lr=7.97e-04  8516 samples/s
+2026-10-23 00:42:54 [INFO]   step 218000  epoch 2 [37714/180286]  loss=1.8673 (policy=1.5717 value=0.5912)  accuracy=50.84%  lr=7.96e-04  8517 samples/s
+2026-10-23 00:44:54 [INFO]   step 219000  epoch 2 [38714/180286]  loss=1.8671 (policy=1.5715 value=0.5911)  accuracy=50.84%  lr=7.94e-04  8518 samples/s
+2026-10-23 00:46:54 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00220000.pt
+2026-10-23 00:46:54 [INFO]   step 220000  epoch 2 [39714/180286]  loss=1.8670 (policy=1.5715 value=0.5911)  accuracy=50.84%  lr=7.92e-04  8519 samples/s
+2026-10-23 00:48:54 [INFO]   step 221000  epoch 2 [40714/180286]  loss=1.8669 (policy=1.5713 value=0.5911)  accuracy=50.84%  lr=7.90e-04  8519 samples/s
+2026-10-23 00:50:54 [INFO]   step 222000  epoch 2 [41714/180286]  loss=1.8668 (policy=1.5712 value=0.5910)  accuracy=50.85%  lr=7.88e-04  8518 samples/s
+2026-10-23 00:52:54 [INFO]   step 223000  epoch 2 [42714/180286]  loss=1.8666 (policy=1.5711 value=0.5910)  accuracy=50.85%  lr=7.87e-04  8519 samples/s
+2026-10-23 00:54:54 [INFO]   step 224000  epoch 2 [43714/180286]  loss=1.8665 (policy=1.5710 value=0.5910)  accuracy=50.85%  lr=7.85e-04  8520 samples/s
+2026-10-23 00:56:54 [INFO]   step 225000  epoch 2 [44714/180286]  loss=1.8663 (policy=1.5708 value=0.5910)  accuracy=50.86%  lr=7.83e-04  8520 samples/s
+2026-10-23 00:58:53 [INFO]   step 226000  epoch 2 [45714/180286]  loss=1.8662 (policy=1.5707 value=0.5909)  accuracy=50.86%  lr=7.81e-04  8521 samples/s
+2026-10-23 01:00:53 [INFO]   step 227000  epoch 2 [46714/180286]  loss=1.8661 (policy=1.5706 value=0.5909)  accuracy=50.86%  lr=7.80e-04  8521 samples/s
+2026-10-23 01:02:53 [INFO]   step 228000  epoch 2 [47714/180286]  loss=1.8660 (policy=1.5705 value=0.5909)  accuracy=50.86%  lr=7.78e-04  8522 samples/s
+2026-10-23 01:04:53 [INFO]   step 229000  epoch 2 [48714/180286]  loss=1.8659 (policy=1.5704 value=0.5908)  accuracy=50.87%  lr=7.76e-04  8522 samples/s
+2026-10-23 01:06:53 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00230000.pt
+2026-10-23 01:06:53 [INFO]   step 230000  epoch 2 [49714/180286]  loss=1.8658 (policy=1.5703 value=0.5908)  accuracy=50.87%  lr=7.74e-04  8523 samples/s
+2026-10-23 01:08:53 [INFO]   step 231000  epoch 2 [50714/180286]  loss=1.8657 (policy=1.5702 value=0.5908)  accuracy=50.87%  lr=7.72e-04  8523 samples/s
+2026-10-23 01:10:53 [INFO]   step 232000  epoch 2 [51714/180286]  loss=1.8655 (policy=1.5701 value=0.5908)  accuracy=50.87%  lr=7.70e-04  8523 samples/s
+2026-10-23 01:12:53 [INFO]   step 233000  epoch 2 [52714/180286]  loss=1.8654 (policy=1.5700 value=0.5908)  accuracy=50.88%  lr=7.69e-04  8524 samples/s
+2026-10-23 01:14:52 [INFO]   step 234000  epoch 2 [53714/180286]  loss=1.8653 (policy=1.5699 value=0.5907)  accuracy=50.88%  lr=7.67e-04  8524 samples/s
+2026-10-23 01:16:52 [INFO]   step 235000  epoch 2 [54714/180286]  loss=1.8652 (policy=1.5698 value=0.5907)  accuracy=50.88%  lr=7.65e-04  8525 samples/s
+2026-10-23 01:18:52 [INFO]   step 236000  epoch 2 [55714/180286]  loss=1.8650 (policy=1.5697 value=0.5907)  accuracy=50.88%  lr=7.63e-04  8524 samples/s
+2026-10-23 01:20:52 [INFO]   step 237000  epoch 2 [56714/180286]  loss=1.8649 (policy=1.5696 value=0.5907)  accuracy=50.89%  lr=7.61e-04  8525 samples/s
+2026-10-23 01:22:52 [INFO]   step 238000  epoch 2 [57714/180286]  loss=1.8648 (policy=1.5695 value=0.5906)  accuracy=50.89%  lr=7.59e-04  8525 samples/s
+2026-10-23 01:24:52 [INFO]   step 239000  epoch 2 [58714/180286]  loss=1.8646 (policy=1.5693 value=0.5906)  accuracy=50.89%  lr=7.58e-04  8526 samples/s
+2026-10-23 01:26:52 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00240000.pt
+2026-10-23 01:26:52 [INFO]   step 240000  epoch 2 [59714/180286]  loss=1.8645 (policy=1.5692 value=0.5906)  accuracy=50.89%  lr=7.56e-04  8525 samples/s
+2026-10-23 01:28:52 [INFO]   step 241000  epoch 2 [60714/180286]  loss=1.8643 (policy=1.5690 value=0.5906)  accuracy=50.90%  lr=7.54e-04  8526 samples/s
+2026-10-23 01:30:53 [INFO]   step 242000  epoch 2 [61714/180286]  loss=1.8642 (policy=1.5689 value=0.5905)  accuracy=50.90%  lr=7.52e-04  8525 samples/s
+2026-10-23 01:32:52 [INFO]   step 243000  epoch 2 [62714/180286]  loss=1.8640 (policy=1.5688 value=0.5905)  accuracy=50.90%  lr=7.50e-04  8525 samples/s
+2026-10-23 01:34:52 [INFO]   step 244000  epoch 2 [63714/180286]  loss=1.8639 (policy=1.5687 value=0.5905)  accuracy=50.90%  lr=7.48e-04  8526 samples/s
+2026-10-23 01:36:52 [INFO]   step 245000  epoch 2 [64714/180286]  loss=1.8638 (policy=1.5685 value=0.5905)  accuracy=50.91%  lr=7.46e-04  8526 samples/s
+2026-10-23 01:38:52 [INFO]   step 246000  epoch 2 [65714/180286]  loss=1.8636 (policy=1.5684 value=0.5904)  accuracy=50.91%  lr=7.44e-04  8526 samples/s
+2026-10-23 01:40:52 [INFO]   step 247000  epoch 2 [66714/180286]  loss=1.8635 (policy=1.5683 value=0.5904)  accuracy=50.91%  lr=7.43e-04  8526 samples/s
+2026-10-23 01:42:52 [INFO]   step 248000  epoch 2 [67714/180286]  loss=1.8633 (policy=1.5682 value=0.5904)  accuracy=50.92%  lr=7.41e-04  8527 samples/s
+2026-10-23 01:44:53 [INFO]   step 249000  epoch 2 [68714/180286]  loss=1.8632 (policy=1.5680 value=0.5904)  accuracy=50.92%  lr=7.39e-04  8526 samples/s
+2026-10-23 01:46:53 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00250000.pt
+2026-10-23 01:46:53 [INFO]   step 250000  epoch 2 [69714/180286]  loss=1.8630 (policy=1.5678 value=0.5903)  accuracy=50.92%  lr=7.37e-04  8526 samples/s
+2026-10-23 01:48:53 [INFO]   step 251000  epoch 2 [70714/180286]  loss=1.8629 (policy=1.5677 value=0.5903)  accuracy=50.93%  lr=7.35e-04  8526 samples/s
+2026-10-23 01:50:52 [INFO]   step 252000  epoch 2 [71714/180286]  loss=1.8627 (policy=1.5676 value=0.5903)  accuracy=50.93%  lr=7.33e-04  8526 samples/s
+2026-10-23 01:52:52 [INFO]   step 253000  epoch 2 [72714/180286]  loss=1.8626 (policy=1.5675 value=0.5902)  accuracy=50.93%  lr=7.31e-04  8527 samples/s
+2026-10-23 01:54:52 [INFO]   step 254000  epoch 2 [73714/180286]  loss=1.8625 (policy=1.5674 value=0.5902)  accuracy=50.94%  lr=7.29e-04  8527 samples/s
+2026-10-23 01:56:52 [INFO]   step 255000  epoch 2 [74714/180286]  loss=1.8624 (policy=1.5673 value=0.5902)  accuracy=50.94%  lr=7.27e-04  8527 samples/s
+2026-10-23 01:58:52 [INFO]   step 256000  epoch 2 [75714/180286]  loss=1.8622 (policy=1.5672 value=0.5901)  accuracy=50.94%  lr=7.25e-04  8527 samples/s
+2026-10-23 02:00:52 [INFO]   step 257000  epoch 2 [76714/180286]  loss=1.8621 (policy=1.5670 value=0.5901)  accuracy=50.95%  lr=7.23e-04  8527 samples/s
+2026-10-23 02:02:52 [INFO]   step 258000  epoch 2 [77714/180286]  loss=1.8620 (policy=1.5669 value=0.5901)  accuracy=50.95%  lr=7.21e-04  8528 samples/s
+2026-10-23 02:04:52 [INFO]   step 259000  epoch 2 [78714/180286]  loss=1.8618 (policy=1.5668 value=0.5900)  accuracy=50.95%  lr=7.19e-04  8528 samples/s
+2026-10-23 02:06:51 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00260000.pt
+2026-10-23 02:06:51 [INFO]   step 260000  epoch 2 [79714/180286]  loss=1.8617 (policy=1.5667 value=0.5900)  accuracy=50.95%  lr=7.18e-04  8528 samples/s
+2026-10-23 02:08:55 [INFO]   step 261000  epoch 2 [80714/180286]  loss=1.8616 (policy=1.5666 value=0.5900)  accuracy=50.96%  lr=7.16e-04  8525 samples/s
+2026-10-23 02:10:55 [INFO]   step 262000  epoch 2 [81714/180286]  loss=1.8615 (policy=1.5665 value=0.5900)  accuracy=50.96%  lr=7.14e-04  8525 samples/s
+2026-10-23 02:12:54 [INFO]   step 263000  epoch 2 [82714/180286]  loss=1.8613 (policy=1.5664 value=0.5899)  accuracy=50.96%  lr=7.12e-04  8526 samples/s
+2026-10-23 02:14:54 [INFO]   step 264000  epoch 2 [83714/180286]  loss=1.8612 (policy=1.5662 value=0.5899)  accuracy=50.97%  lr=7.10e-04  8526 samples/s
+2026-10-23 02:16:54 [INFO]   step 265000  epoch 2 [84714/180286]  loss=1.8610 (policy=1.5661 value=0.5899)  accuracy=50.97%  lr=7.08e-04  8526 samples/s
+2026-10-23 02:18:54 [INFO]   step 266000  epoch 2 [85714/180286]  loss=1.8609 (policy=1.5660 value=0.5898)  accuracy=50.97%  lr=7.06e-04  8526 samples/s
+2026-10-23 02:20:54 [INFO]   step 267000  epoch 2 [86714/180286]  loss=1.8608 (policy=1.5659 value=0.5898)  accuracy=50.97%  lr=7.04e-04  8527 samples/s
+2026-10-23 02:22:53 [INFO]   step 268000  epoch 2 [87714/180286]  loss=1.8606 (policy=1.5658 value=0.5898)  accuracy=50.98%  lr=7.02e-04  8527 samples/s
+2026-10-23 02:24:53 [INFO]   step 269000  epoch 2 [88714/180286]  loss=1.8605 (policy=1.5657 value=0.5898)  accuracy=50.98%  lr=7.00e-04  8527 samples/s
+2026-10-23 02:26:53 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00270000.pt
+2026-10-23 02:26:53 [INFO]   step 270000  epoch 2 [89714/180286]  loss=1.8604 (policy=1.5656 value=0.5897)  accuracy=50.98%  lr=6.98e-04  8527 samples/s
+2026-10-23 02:28:53 [INFO]   step 271000  epoch 2 [90714/180286]  loss=1.8603 (policy=1.5654 value=0.5897)  accuracy=50.98%  lr=6.96e-04  8527 samples/s
+2026-10-23 02:30:53 [INFO]   step 272000  epoch 2 [91714/180286]  loss=1.8601 (policy=1.5653 value=0.5897)  accuracy=50.99%  lr=6.94e-04  8528 samples/s
+2026-10-23 02:32:53 [INFO]   step 273000  epoch 2 [92714/180286]  loss=1.8600 (policy=1.5652 value=0.5897)  accuracy=50.99%  lr=6.92e-04  8528 samples/s
+2026-10-23 02:34:52 [INFO]   step 274000  epoch 2 [93714/180286]  loss=1.8599 (policy=1.5651 value=0.5896)  accuracy=50.99%  lr=6.90e-04  8528 samples/s
+2026-10-23 02:36:52 [INFO]   step 275000  epoch 2 [94714/180286]  loss=1.8597 (policy=1.5650 value=0.5896)  accuracy=51.00%  lr=6.88e-04  8528 samples/s
+2026-10-23 02:38:52 [INFO]   step 276000  epoch 2 [95714/180286]  loss=1.8596 (policy=1.5648 value=0.5896)  accuracy=51.00%  lr=6.86e-04  8529 samples/s
+2026-10-23 02:40:52 [INFO]   step 277000  epoch 2 [96714/180286]  loss=1.8594 (policy=1.5647 value=0.5895)  accuracy=51.00%  lr=6.84e-04  8529 samples/s
+2026-10-23 02:42:52 [INFO]   step 278000  epoch 2 [97714/180286]  loss=1.8593 (policy=1.5646 value=0.5895)  accuracy=51.01%  lr=6.82e-04  8529 samples/s
+2026-10-23 02:44:51 [INFO]   step 279000  epoch 2 [98714/180286]  loss=1.8592 (policy=1.5645 value=0.5895)  accuracy=51.01%  lr=6.80e-04  8529 samples/s
+2026-10-23 02:46:51 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00280000.pt
+2026-10-23 02:46:51 [INFO]   step 280000  epoch 2 [99714/180286]  loss=1.8590 (policy=1.5643 value=0.5895)  accuracy=51.01%  lr=6.78e-04  8529 samples/s
+2026-10-23 02:48:53 [INFO]   step 281000  epoch 2 [100714/180286]  loss=1.8589 (policy=1.5642 value=0.5894)  accuracy=51.01%  lr=6.76e-04  8528 samples/s
+2026-10-23 02:50:53 [INFO]   step 282000  epoch 2 [101714/180286]  loss=1.8587 (policy=1.5641 value=0.5894)  accuracy=51.02%  lr=6.74e-04  8528 samples/s
+2026-10-23 02:52:53 [INFO]   step 283000  epoch 2 [102714/180286]  loss=1.8586 (policy=1.5640 value=0.5894)  accuracy=51.02%  lr=6.72e-04  8528 samples/s
+2026-10-23 02:54:53 [INFO]   step 284000  epoch 2 [103714/180286]  loss=1.8585 (policy=1.5639 value=0.5893)  accuracy=51.02%  lr=6.70e-04  8528 samples/s
+2026-10-23 02:56:53 [INFO]   step 285000  epoch 2 [104714/180286]  loss=1.8584 (policy=1.5637 value=0.5893)  accuracy=51.03%  lr=6.68e-04  8529 samples/s
+2026-10-23 02:58:54 [INFO]   step 286000  epoch 2 [105714/180286]  loss=1.8583 (policy=1.5637 value=0.5893)  accuracy=51.03%  lr=6.65e-04  8528 samples/s
+2026-10-23 03:00:53 [INFO]   step 287000  epoch 2 [106714/180286]  loss=1.8581 (policy=1.5635 value=0.5893)  accuracy=51.03%  lr=6.63e-04  8528 samples/s
+2026-10-23 03:02:53 [INFO]   step 288000  epoch 2 [107714/180286]  loss=1.8580 (policy=1.5634 value=0.5892)  accuracy=51.03%  lr=6.61e-04  8528 samples/s
+2026-10-23 03:04:54 [INFO]   step 289000  epoch 2 [108714/180286]  loss=1.8578 (policy=1.5633 value=0.5892)  accuracy=51.04%  lr=6.59e-04  8528 samples/s
+2026-10-23 03:06:53 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00290000.pt
+2026-10-23 03:06:53 [INFO]   step 290000  epoch 2 [109714/180286]  loss=1.8577 (policy=1.5632 value=0.5892)  accuracy=51.04%  lr=6.57e-04  8528 samples/s
+2026-10-23 03:08:53 [INFO]   step 291000  epoch 2 [110714/180286]  loss=1.8576 (policy=1.5630 value=0.5891)  accuracy=51.04%  lr=6.55e-04  8528 samples/s
+2026-10-23 03:10:53 [INFO]   step 292000  epoch 2 [111714/180286]  loss=1.8574 (policy=1.5629 value=0.5891)  accuracy=51.04%  lr=6.53e-04  8528 samples/s
+2026-10-23 03:12:53 [INFO]   step 293000  epoch 2 [112714/180286]  loss=1.8573 (policy=1.5628 value=0.5891)  accuracy=51.04%  lr=6.51e-04  8529 samples/s
+2026-10-23 03:14:53 [INFO]   step 294000  epoch 2 [113714/180286]  loss=1.8572 (policy=1.5627 value=0.5890)  accuracy=51.05%  lr=6.49e-04  8529 samples/s
+2026-10-23 03:16:53 [INFO]   step 295000  epoch 2 [114714/180286]  loss=1.8570 (policy=1.5625 value=0.5890)  accuracy=51.05%  lr=6.47e-04  8529 samples/s
+2026-10-23 03:18:52 [INFO]   step 296000  epoch 2 [115714/180286]  loss=1.8569 (policy=1.5624 value=0.5890)  accuracy=51.05%  lr=6.45e-04  8529 samples/s
+2026-10-23 03:20:52 [INFO]   step 297000  epoch 2 [116714/180286]  loss=1.8567 (policy=1.5623 value=0.5889)  accuracy=51.06%  lr=6.43e-04  8529 samples/s
+2026-10-23 03:22:52 [INFO]   step 298000  epoch 2 [117714/180286]  loss=1.8566 (policy=1.5622 value=0.5889)  accuracy=51.06%  lr=6.41e-04  8529 samples/s
+2026-10-23 03:24:52 [INFO]   step 299000  epoch 2 [118714/180286]  loss=1.8565 (policy=1.5621 value=0.5889)  accuracy=51.06%  lr=6.39e-04  8529 samples/s
+2026-10-23 03:26:52 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00300000.pt
+2026-10-23 03:26:52 [INFO]   step 300000  epoch 2 [119714/180286]  loss=1.8563 (policy=1.5619 value=0.5889)  accuracy=51.07%  lr=6.37e-04  8529 samples/s
+2026-10-23 03:28:52 [INFO]   step 301000  epoch 2 [120714/180286]  loss=1.8562 (policy=1.5618 value=0.5888)  accuracy=51.07%  lr=6.34e-04  8529 samples/s
+2026-10-23 03:30:53 [INFO]   step 302000  epoch 2 [121714/180286]  loss=1.8561 (policy=1.5617 value=0.5888)  accuracy=51.07%  lr=6.32e-04  8529 samples/s
+2026-10-23 03:32:53 [INFO]   step 303000  epoch 2 [122714/180286]  loss=1.8559 (policy=1.5615 value=0.5888)  accuracy=51.07%  lr=6.30e-04  8529 samples/s
+2026-10-23 03:34:53 [INFO]   step 304000  epoch 2 [123714/180286]  loss=1.8557 (policy=1.5614 value=0.5888)  accuracy=51.08%  lr=6.28e-04  8529 samples/s
+2026-10-23 03:36:53 [INFO]   step 305000  epoch 2 [124714/180286]  loss=1.8556 (policy=1.5612 value=0.5887)  accuracy=51.08%  lr=6.26e-04  8529 samples/s
+2026-10-23 03:38:52 [INFO]   step 306000  epoch 2 [125714/180286]  loss=1.8554 (policy=1.5611 value=0.5887)  accuracy=51.09%  lr=6.24e-04  8529 samples/s
+2026-10-23 03:40:52 [INFO]   step 307000  epoch 2 [126714/180286]  loss=1.8553 (policy=1.5610 value=0.5887)  accuracy=51.09%  lr=6.22e-04  8530 samples/s
+2026-10-23 03:42:52 [INFO]   step 308000  epoch 2 [127714/180286]  loss=1.8551 (policy=1.5608 value=0.5886)  accuracy=51.09%  lr=6.20e-04  8530 samples/s
+2026-10-23 03:44:52 [INFO]   step 309000  epoch 2 [128714/180286]  loss=1.8550 (policy=1.5607 value=0.5886)  accuracy=51.09%  lr=6.18e-04  8530 samples/s
+2026-10-23 03:46:52 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00310000.pt
+2026-10-23 03:46:52 [INFO]   step 310000  epoch 2 [129714/180286]  loss=1.8548 (policy=1.5606 value=0.5886)  accuracy=51.10%  lr=6.16e-04  8530 samples/s
+2026-10-23 03:48:52 [INFO]   step 311000  epoch 2 [130714/180286]  loss=1.8547 (policy=1.5604 value=0.5885)  accuracy=51.10%  lr=6.13e-04  8530 samples/s
+2026-10-23 03:50:51 [INFO]   step 312000  epoch 2 [131714/180286]  loss=1.8545 (policy=1.5603 value=0.5885)  accuracy=51.10%  lr=6.11e-04  8530 samples/s
+2026-10-23 03:52:51 [INFO]   step 313000  epoch 2 [132714/180286]  loss=1.8544 (policy=1.5602 value=0.5885)  accuracy=51.11%  lr=6.09e-04  8530 samples/s
+2026-10-23 03:54:51 [INFO]   step 314000  epoch 2 [133714/180286]  loss=1.8543 (policy=1.5601 value=0.5885)  accuracy=51.11%  lr=6.07e-04  8530 samples/s
+2026-10-23 03:56:51 [INFO]   step 315000  epoch 2 [134714/180286]  loss=1.8541 (policy=1.5599 value=0.5884)  accuracy=51.11%  lr=6.05e-04  8531 samples/s
+2026-10-23 03:58:50 [INFO]   step 316000  epoch 2 [135714/180286]  loss=1.8540 (policy=1.5598 value=0.5884)  accuracy=51.12%  lr=6.03e-04  8531 samples/s
+2026-10-23 04:00:50 [INFO]   step 317000  epoch 2 [136714/180286]  loss=1.8538 (policy=1.5597 value=0.5884)  accuracy=51.12%  lr=6.01e-04  8531 samples/s
+2026-10-23 04:02:50 [INFO]   step 318000  epoch 2 [137714/180286]  loss=1.8537 (policy=1.5595 value=0.5883)  accuracy=51.12%  lr=5.99e-04  8531 samples/s
+2026-10-23 04:04:50 [INFO]   step 319000  epoch 2 [138714/180286]  loss=1.8535 (policy=1.5594 value=0.5883)  accuracy=51.13%  lr=5.97e-04  8531 samples/s
+2026-10-23 04:06:50 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00320000.pt
+2026-10-23 04:06:50 [INFO]   step 320000  epoch 2 [139714/180286]  loss=1.8534 (policy=1.5593 value=0.5883)  accuracy=51.13%  lr=5.94e-04  8531 samples/s
+2026-10-23 04:08:51 [INFO]   step 321000  epoch 2 [140714/180286]  loss=1.8533 (policy=1.5591 value=0.5882)  accuracy=51.13%  lr=5.92e-04  8530 samples/s
+2026-10-23 04:10:51 [INFO]   step 322000  epoch 2 [141714/180286]  loss=1.8531 (policy=1.5590 value=0.5882)  accuracy=51.14%  lr=5.90e-04  8531 samples/s
+2026-10-23 04:12:51 [INFO]   step 323000  epoch 2 [142714/180286]  loss=1.8529 (policy=1.5589 value=0.5882)  accuracy=51.14%  lr=5.88e-04  8531 samples/s
+2026-10-23 04:14:51 [INFO]   step 324000  epoch 2 [143714/180286]  loss=1.8528 (policy=1.5587 value=0.5881)  accuracy=51.14%  lr=5.86e-04  8531 samples/s
+2026-10-23 04:16:50 [INFO]   step 325000  epoch 2 [144714/180286]  loss=1.8527 (policy=1.5586 value=0.5881)  accuracy=51.14%  lr=5.84e-04  8531 samples/s
+2026-10-23 04:18:50 [INFO]   step 326000  epoch 2 [145714/180286]  loss=1.8525 (policy=1.5585 value=0.5881)  accuracy=51.15%  lr=5.82e-04  8531 samples/s
+2026-10-23 04:20:50 [INFO]   step 327000  epoch 2 [146714/180286]  loss=1.8524 (policy=1.5583 value=0.5880)  accuracy=51.15%  lr=5.79e-04  8531 samples/s
+2026-10-23 04:22:49 [INFO]   step 328000  epoch 2 [147714/180286]  loss=1.8522 (policy=1.5582 value=0.5880)  accuracy=51.15%  lr=5.77e-04  8531 samples/s
+2026-10-23 04:24:49 [INFO]   step 329000  epoch 2 [148714/180286]  loss=1.8521 (policy=1.5581 value=0.5880)  accuracy=51.16%  lr=5.75e-04  8532 samples/s
+2026-10-23 04:26:49 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00330000.pt
+2026-10-23 04:26:49 [INFO]   step 330000  epoch 2 [149714/180286]  loss=1.8520 (policy=1.5580 value=0.5880)  accuracy=51.16%  lr=5.73e-04  8532 samples/s
+2026-10-23 04:28:49 [INFO]   step 331000  epoch 2 [150714/180286]  loss=1.8518 (policy=1.5578 value=0.5879)  accuracy=51.16%  lr=5.71e-04  8532 samples/s
+2026-10-23 04:30:48 [INFO]   step 332000  epoch 2 [151714/180286]  loss=1.8517 (policy=1.5577 value=0.5879)  accuracy=51.17%  lr=5.69e-04  8532 samples/s
+2026-10-23 04:32:48 [INFO]   step 333000  epoch 2 [152714/180286]  loss=1.8515 (policy=1.5576 value=0.5879)  accuracy=51.17%  lr=5.67e-04  8532 samples/s
+2026-10-23 04:34:48 [INFO]   step 334000  epoch 2 [153714/180286]  loss=1.8514 (policy=1.5575 value=0.5878)  accuracy=51.17%  lr=5.64e-04  8532 samples/s
+2026-10-23 04:36:48 [INFO]   step 335000  epoch 2 [154714/180286]  loss=1.8512 (policy=1.5574 value=0.5878)  accuracy=51.17%  lr=5.62e-04  8532 samples/s
+2026-10-23 04:38:47 [INFO]   step 336000  epoch 2 [155714/180286]  loss=1.8511 (policy=1.5572 value=0.5878)  accuracy=51.18%  lr=5.60e-04  8533 samples/s
+2026-10-23 04:40:47 [INFO]   step 337000  epoch 2 [156714/180286]  loss=1.8509 (policy=1.5571 value=0.5877)  accuracy=51.18%  lr=5.58e-04  8533 samples/s
+2026-10-23 04:42:47 [INFO]   step 338000  epoch 2 [157714/180286]  loss=1.8508 (policy=1.5569 value=0.5877)  accuracy=51.18%  lr=5.56e-04  8533 samples/s
+2026-10-23 04:44:47 [INFO]   step 339000  epoch 2 [158714/180286]  loss=1.8506 (policy=1.5568 value=0.5877)  accuracy=51.19%  lr=5.54e-04  8532 samples/s
+2026-10-23 04:46:50 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00340000.pt
+2026-10-23 04:46:50 [INFO]   step 340000  epoch 2 [159714/180286]  loss=1.8505 (policy=1.5567 value=0.5876)  accuracy=51.19%  lr=5.52e-04  8531 samples/s
+2026-10-23 04:48:52 [INFO]   step 341000  epoch 2 [160714/180286]  loss=1.8503 (policy=1.5565 value=0.5876)  accuracy=51.19%  lr=5.49e-04  8530 samples/s
+2026-10-23 04:50:54 [INFO]   step 342000  epoch 2 [161714/180286]  loss=1.8502 (policy=1.5564 value=0.5876)  accuracy=51.20%  lr=5.47e-04  8530 samples/s
+2026-10-23 04:52:56 [INFO]   step 343000  epoch 2 [162714/180286]  loss=1.8500 (policy=1.5563 value=0.5875)  accuracy=51.20%  lr=5.45e-04  8529 samples/s
+2026-10-23 04:54:58 [INFO]   step 344000  epoch 2 [163714/180286]  loss=1.8499 (policy=1.5562 value=0.5875)  accuracy=51.20%  lr=5.43e-04  8528 samples/s
+2026-10-23 04:57:01 [INFO]   step 345000  epoch 2 [164714/180286]  loss=1.8498 (policy=1.5560 value=0.5875)  accuracy=51.21%  lr=5.41e-04  8527 samples/s
+2026-10-23 04:59:03 [INFO]   step 346000  epoch 2 [165714/180286]  loss=1.8496 (policy=1.5559 value=0.5875)  accuracy=51.21%  lr=5.39e-04  8526 samples/s
+2026-10-23 05:01:05 [INFO]   step 347000  epoch 2 [166714/180286]  loss=1.8495 (policy=1.5558 value=0.5874)  accuracy=51.21%  lr=5.36e-04  8525 samples/s
+2026-10-23 05:03:07 [INFO]   step 348000  epoch 2 [167714/180286]  loss=1.8493 (policy=1.5557 value=0.5874)  accuracy=51.21%  lr=5.34e-04  8524 samples/s
+2026-10-23 05:05:09 [INFO]   step 349000  epoch 2 [168714/180286]  loss=1.8492 (policy=1.5555 value=0.5874)  accuracy=51.22%  lr=5.32e-04  8523 samples/s
+2026-10-23 05:07:11 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00350000.pt
+2026-10-23 05:07:11 [INFO]   step 350000  epoch 2 [169714/180286]  loss=1.8491 (policy=1.5554 value=0.5873)  accuracy=51.22%  lr=5.30e-04  8522 samples/s
+2026-10-23 05:09:14 [INFO]   step 351000  epoch 2 [170714/180286]  loss=1.8489 (policy=1.5553 value=0.5873)  accuracy=51.22%  lr=5.28e-04  8522 samples/s
+2026-10-23 05:11:16 [INFO]   step 352000  epoch 2 [171714/180286]  loss=1.8488 (policy=1.5552 value=0.5873)  accuracy=51.23%  lr=5.26e-04  8521 samples/s
+2026-10-23 05:13:18 [INFO]   step 353000  epoch 2 [172714/180286]  loss=1.8486 (policy=1.5550 value=0.5872)  accuracy=51.23%  lr=5.24e-04  8520 samples/s
+2026-10-23 05:15:20 [INFO]   step 354000  epoch 2 [173714/180286]  loss=1.8485 (policy=1.5549 value=0.5872)  accuracy=51.23%  lr=5.21e-04  8519 samples/s
+2026-10-23 05:17:22 [INFO]   step 355000  epoch 2 [174714/180286]  loss=1.8483 (policy=1.5547 value=0.5872)  accuracy=51.24%  lr=5.19e-04  8518 samples/s
+2026-10-23 05:19:25 [INFO]   step 356000  epoch 2 [175714/180286]  loss=1.8482 (policy=1.5546 value=0.5871)  accuracy=51.24%  lr=5.17e-04  8518 samples/s
+2026-10-23 05:21:27 [INFO]   step 357000  epoch 2 [176714/180286]  loss=1.8480 (policy=1.5545 value=0.5871)  accuracy=51.24%  lr=5.15e-04  8517 samples/s
+2026-10-23 05:23:29 [INFO]   step 358000  epoch 2 [177714/180286]  loss=1.8479 (policy=1.5544 value=0.5871)  accuracy=51.24%  lr=5.13e-04  8516 samples/s
+2026-10-23 05:25:31 [INFO]   step 359000  epoch 2 [178714/180286]  loss=1.8477 (policy=1.5542 value=0.5870)  accuracy=51.25%  lr=5.11e-04  8515 samples/s
+2026-10-23 05:27:33 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00360000.pt
+2026-10-23 05:27:33 [INFO]   step 360000  epoch 2 [179714/180286]  loss=1.8476 (policy=1.5541 value=0.5870)  accuracy=51.25%  lr=5.08e-04  8514 samples/s
+2026-10-23 05:29:20 [INFO] Epoch 2/4  loss=1.8475 (policy=1.5540 value=0.5870)  accuracy=51.25%  lr=5.07e-04  8500 samples/s  21720.3s
+2026-10-23 05:31:56 [INFO]   validation  loss=1.7859 (policy=1.5037 value=0.5643)  accuracy=52.31%  on 3820025 samples  (new best)
+2026-10-23 05:31:56 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_best.pt
+2026-10-23 05:31:56 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_epoch_0002.pt
+2026-10-23 05:32:58 [INFO]   step 361000  epoch 3 [428/180286]  loss=1.8105 (policy=1.5204 value=0.5802)  accuracy=52.12%  lr=5.06e-04  7082 samples/s
+2026-10-23 05:35:01 [INFO]   step 362000  epoch 3 [1428/180286]  loss=1.8135 (policy=1.5227 value=0.5815)  accuracy=51.98%  lr=5.04e-04  7919 samples/s
+2026-10-23 05:37:03 [INFO]   step 363000  epoch 3 [2428/180286]  loss=1.8133 (policy=1.5226 value=0.5814)  accuracy=51.97%  lr=5.02e-04  8106 samples/s
+2026-10-23 05:39:05 [INFO]   step 364000  epoch 3 [3428/180286]  loss=1.8138 (policy=1.5233 value=0.5809)  accuracy=51.97%  lr=5.00e-04  8187 samples/s
+2026-10-23 05:41:07 [INFO]   step 365000  epoch 3 [4428/180286]  loss=1.8134 (policy=1.5231 value=0.5806)  accuracy=51.98%  lr=4.98e-04  8231 samples/s
+2026-10-23 05:43:09 [INFO]   step 366000  epoch 3 [5428/180286]  loss=1.8129 (policy=1.5227 value=0.5804)  accuracy=51.98%  lr=4.95e-04  8260 samples/s
+2026-10-23 05:45:11 [INFO]   step 367000  epoch 3 [6428/180286]  loss=1.8130 (policy=1.5228 value=0.5804)  accuracy=51.98%  lr=4.93e-04  8280 samples/s
+2026-10-23 05:47:13 [INFO]   step 368000  epoch 3 [7428/180286]  loss=1.8127 (policy=1.5225 value=0.5804)  accuracy=52.00%  lr=4.91e-04  8294 samples/s
+2026-10-23 05:49:15 [INFO]   step 369000  epoch 3 [8428/180286]  loss=1.8129 (policy=1.5228 value=0.5803)  accuracy=51.99%  lr=4.89e-04  8305 samples/s
+2026-10-23 05:51:17 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00370000.pt
+2026-10-23 05:51:17 [INFO]   step 370000  epoch 3 [9428/180286]  loss=1.8127 (policy=1.5226 value=0.5802)  accuracy=52.00%  lr=4.87e-04  8319 samples/s
+2026-10-23 05:53:17 [INFO]   step 371000  epoch 3 [10428/180286]  loss=1.8123 (policy=1.5222 value=0.5801)  accuracy=52.01%  lr=4.85e-04  8341 samples/s
+2026-10-23 05:55:16 [INFO]   step 372000  epoch 3 [11428/180286]  loss=1.8120 (policy=1.5219 value=0.5802)  accuracy=52.02%  lr=4.82e-04  8359 samples/s
+2026-10-23 05:57:16 [INFO]   step 373000  epoch 3 [12428/180286]  loss=1.8119 (policy=1.5218 value=0.5801)  accuracy=52.02%  lr=4.80e-04  8375 samples/s
+2026-10-23 05:59:15 [INFO]   step 374000  epoch 3 [13428/180286]  loss=1.8118 (policy=1.5218 value=0.5801)  accuracy=52.02%  lr=4.78e-04  8388 samples/s
+2026-10-23 06:01:15 [INFO]   step 375000  epoch 3 [14428/180286]  loss=1.8117 (policy=1.5216 value=0.5801)  accuracy=52.02%  lr=4.76e-04  8400 samples/s
+2026-10-23 06:03:17 [INFO]   step 376000  epoch 3 [15428/180286]  loss=1.8115 (policy=1.5215 value=0.5800)  accuracy=52.02%  lr=4.74e-04  8399 samples/s
+2026-10-23 06:05:17 [INFO]   step 377000  epoch 3 [16428/180286]  loss=1.8115 (policy=1.5216 value=0.5799)  accuracy=52.02%  lr=4.72e-04  8409 samples/s
+2026-10-23 06:07:16 [INFO]   step 378000  epoch 3 [17428/180286]  loss=1.8113 (policy=1.5214 value=0.5799)  accuracy=52.02%  lr=4.70e-04  8417 samples/s
+2026-10-23 06:09:16 [INFO]   step 379000  epoch 3 [18428/180286]  loss=1.8113 (policy=1.5213 value=0.5799)  accuracy=52.02%  lr=4.67e-04  8425 samples/s
+2026-10-23 06:11:16 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00380000.pt
+2026-10-23 06:11:16 [INFO]   step 380000  epoch 3 [19428/180286]  loss=1.8111 (policy=1.5212 value=0.5798)  accuracy=52.03%  lr=4.65e-04  8431 samples/s
+2026-10-23 06:13:16 [INFO]   step 381000  epoch 3 [20428/180286]  loss=1.8111 (policy=1.5211 value=0.5798)  accuracy=52.03%  lr=4.63e-04  8437 samples/s
+2026-10-23 06:15:15 [INFO]   step 382000  epoch 3 [21428/180286]  loss=1.8109 (policy=1.5210 value=0.5798)  accuracy=52.03%  lr=4.61e-04  8443 samples/s
+2026-10-23 06:17:15 [INFO]   step 383000  epoch 3 [22428/180286]  loss=1.8109 (policy=1.5211 value=0.5797)  accuracy=52.03%  lr=4.59e-04  8448 samples/s
+2026-10-23 06:19:15 [INFO]   step 384000  epoch 3 [23428/180286]  loss=1.8109 (policy=1.5210 value=0.5797)  accuracy=52.03%  lr=4.57e-04  8452 samples/s
+2026-10-23 06:21:14 [INFO]   step 385000  epoch 3 [24428/180286]  loss=1.8108 (policy=1.5210 value=0.5796)  accuracy=52.03%  lr=4.54e-04  8457 samples/s
+2026-10-23 06:23:14 [INFO]   step 386000  epoch 3 [25428/180286]  loss=1.8107 (policy=1.5209 value=0.5796)  accuracy=52.04%  lr=4.52e-04  8461 samples/s
+2026-10-23 06:25:14 [INFO]   step 387000  epoch 3 [26428/180286]  loss=1.8106 (policy=1.5208 value=0.5796)  accuracy=52.04%  lr=4.50e-04  8464 samples/s
+2026-10-23 06:27:13 [INFO]   step 388000  epoch 3 [27428/180286]  loss=1.8105 (policy=1.5207 value=0.5796)  accuracy=52.04%  lr=4.48e-04  8468 samples/s
+2026-10-23 06:29:13 [INFO]   step 389000  epoch 3 [28428/180286]  loss=1.8104 (policy=1.5206 value=0.5796)  accuracy=52.04%  lr=4.46e-04  8471 samples/s
+2026-10-23 06:31:13 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00390000.pt
+2026-10-23 06:31:13 [INFO]   step 390000  epoch 3 [29428/180286]  loss=1.8104 (policy=1.5206 value=0.5796)  accuracy=52.04%  lr=4.44e-04  8474 samples/s
+2026-10-23 06:33:12 [INFO]   step 391000  epoch 3 [30428/180286]  loss=1.8103 (policy=1.5205 value=0.5795)  accuracy=52.05%  lr=4.42e-04  8476 samples/s
+2026-10-23 06:35:12 [INFO]   step 392000  epoch 3 [31428/180286]  loss=1.8102 (policy=1.5205 value=0.5795)  accuracy=52.05%  lr=4.39e-04  8479 samples/s
+2026-10-23 06:37:11 [INFO]   step 393000  epoch 3 [32428/180286]  loss=1.8100 (policy=1.5203 value=0.5794)  accuracy=52.05%  lr=4.37e-04  8481 samples/s
+2026-10-23 06:39:11 [INFO]   step 394000  epoch 3 [33428/180286]  loss=1.8100 (policy=1.5202 value=0.5794)  accuracy=52.05%  lr=4.35e-04  8484 samples/s
+2026-10-23 06:41:12 [INFO]   step 395000  epoch 3 [34428/180286]  loss=1.8098 (policy=1.5201 value=0.5794)  accuracy=52.06%  lr=4.33e-04  8484 samples/s
+2026-10-23 06:43:11 [INFO]   step 396000  epoch 3 [35428/180286]  loss=1.8098 (policy=1.5201 value=0.5793)  accuracy=52.06%  lr=4.31e-04  8486 samples/s
+2026-10-23 06:45:11 [INFO]   step 397000  epoch 3 [36428/180286]  loss=1.8096 (policy=1.5200 value=0.5793)  accuracy=52.06%  lr=4.29e-04  8488 samples/s
+2026-10-23 06:47:11 [INFO]   step 398000  epoch 3 [37428/180286]  loss=1.8095 (policy=1.5198 value=0.5793)  accuracy=52.07%  lr=4.27e-04  8490 samples/s
+2026-10-23 06:49:10 [INFO]   step 399000  epoch 3 [38428/180286]  loss=1.8094 (policy=1.5198 value=0.5793)  accuracy=52.07%  lr=4.24e-04  8491 samples/s
+2026-10-23 06:51:10 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00400000.pt
+2026-10-23 06:51:10 [INFO]   step 400000  epoch 3 [39428/180286]  loss=1.8093 (policy=1.5197 value=0.5793)  accuracy=52.07%  lr=4.22e-04  8493 samples/s
+2026-10-23 06:53:10 [INFO]   step 401000  epoch 3 [40428/180286]  loss=1.8092 (policy=1.5196 value=0.5792)  accuracy=52.07%  lr=4.20e-04  8494 samples/s
+2026-10-23 06:55:09 [INFO]   step 402000  epoch 3 [41428/180286]  loss=1.8091 (policy=1.5195 value=0.5792)  accuracy=52.07%  lr=4.18e-04  8496 samples/s
+2026-10-23 06:57:09 [INFO]   step 403000  epoch 3 [42428/180286]  loss=1.8090 (policy=1.5194 value=0.5791)  accuracy=52.07%  lr=4.16e-04  8497 samples/s
+2026-10-23 06:59:09 [INFO]   step 404000  epoch 3 [43428/180286]  loss=1.8089 (policy=1.5194 value=0.5791)  accuracy=52.07%  lr=4.14e-04  8499 samples/s
+2026-10-23 07:01:09 [INFO]   step 405000  epoch 3 [44428/180286]  loss=1.8088 (policy=1.5193 value=0.5791)  accuracy=52.08%  lr=4.12e-04  8500 samples/s
+2026-10-23 07:03:08 [INFO]   step 406000  epoch 3 [45428/180286]  loss=1.8087 (policy=1.5191 value=0.5791)  accuracy=52.08%  lr=4.10e-04  8501 samples/s
+2026-10-23 07:05:08 [INFO]   step 407000  epoch 3 [46428/180286]  loss=1.8085 (policy=1.5190 value=0.5790)  accuracy=52.08%  lr=4.07e-04  8502 samples/s
+2026-10-23 07:07:08 [INFO]   step 408000  epoch 3 [47428/180286]  loss=1.8084 (policy=1.5189 value=0.5790)  accuracy=52.09%  lr=4.05e-04  8503 samples/s
+2026-10-23 07:09:08 [INFO]   step 409000  epoch 3 [48428/180286]  loss=1.8082 (policy=1.5187 value=0.5789)  accuracy=52.09%  lr=4.03e-04  8504 samples/s
+2026-10-23 07:11:08 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00410000.pt
+2026-10-23 07:11:08 [INFO]   step 410000  epoch 3 [49428/180286]  loss=1.8081 (policy=1.5186 value=0.5789)  accuracy=52.09%  lr=4.01e-04  8505 samples/s
+2026-10-23 07:13:09 [INFO]   step 411000  epoch 3 [50428/180286]  loss=1.8080 (policy=1.5185 value=0.5789)  accuracy=52.10%  lr=3.99e-04  8504 samples/s
+2026-10-23 07:15:10 [INFO]   step 412000  epoch 3 [51428/180286]  loss=1.8079 (policy=1.5185 value=0.5789)  accuracy=52.10%  lr=3.97e-04  8503 samples/s
+2026-10-23 07:17:09 [INFO]   step 413000  epoch 3 [52428/180286]  loss=1.8078 (policy=1.5184 value=0.5788)  accuracy=52.10%  lr=3.95e-04  8504 samples/s
+2026-10-23 07:19:09 [INFO]   step 414000  epoch 3 [53428/180286]  loss=1.8077 (policy=1.5183 value=0.5788)  accuracy=52.10%  lr=3.93e-04  8505 samples/s
+2026-10-23 07:21:09 [INFO]   step 415000  epoch 3 [54428/180286]  loss=1.8076 (policy=1.5182 value=0.5788)  accuracy=52.10%  lr=3.91e-04  8506 samples/s
+2026-10-23 07:23:09 [INFO]   step 416000  epoch 3 [55428/180286]  loss=1.8075 (policy=1.5181 value=0.5788)  accuracy=52.11%  lr=3.88e-04  8506 samples/s
+2026-10-23 07:25:08 [INFO]   step 417000  epoch 3 [56428/180286]  loss=1.8073 (policy=1.5180 value=0.5787)  accuracy=52.11%  lr=3.86e-04  8507 samples/s
+2026-10-23 07:27:08 [INFO]   step 418000  epoch 3 [57428/180286]  loss=1.8072 (policy=1.5179 value=0.5787)  accuracy=52.11%  lr=3.84e-04  8508 samples/s
+2026-10-23 07:29:08 [INFO]   step 419000  epoch 3 [58428/180286]  loss=1.8071 (policy=1.5177 value=0.5786)  accuracy=52.11%  lr=3.82e-04  8508 samples/s
+2026-10-23 07:31:08 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00420000.pt
+2026-10-23 07:31:08 [INFO]   step 420000  epoch 3 [59428/180286]  loss=1.8070 (policy=1.5176 value=0.5786)  accuracy=52.12%  lr=3.80e-04  8509 samples/s
+2026-10-23 07:33:08 [INFO]   step 421000  epoch 3 [60428/180286]  loss=1.8068 (policy=1.5175 value=0.5786)  accuracy=52.12%  lr=3.78e-04  8510 samples/s
+2026-10-23 07:35:08 [INFO]   step 422000  epoch 3 [61428/180286]  loss=1.8067 (policy=1.5174 value=0.5786)  accuracy=52.12%  lr=3.76e-04  8510 samples/s
+2026-10-23 07:37:07 [INFO]   step 423000  epoch 3 [62428/180286]  loss=1.8065 (policy=1.5173 value=0.5785)  accuracy=52.13%  lr=3.74e-04  8511 samples/s
+2026-10-23 07:39:07 [INFO]   step 424000  epoch 3 [63428/180286]  loss=1.8064 (policy=1.5172 value=0.5785)  accuracy=52.13%  lr=3.72e-04  8511 samples/s
+2026-10-23 07:41:07 [INFO]   step 425000  epoch 3 [64428/180286]  loss=1.8063 (policy=1.5171 value=0.5784)  accuracy=52.13%  lr=3.70e-04  8512 samples/s
+2026-10-23 07:43:07 [INFO]   step 426000  epoch 3 [65428/180286]  loss=1.8062 (policy=1.5170 value=0.5784)  accuracy=52.13%  lr=3.68e-04  8512 samples/s
+2026-10-23 07:45:07 [INFO]   step 427000  epoch 3 [66428/180286]  loss=1.8061 (policy=1.5169 value=0.5784)  accuracy=52.14%  lr=3.65e-04  8513 samples/s
+2026-10-23 07:47:07 [INFO]   step 428000  epoch 3 [67428/180286]  loss=1.8059 (policy=1.5167 value=0.5784)  accuracy=52.14%  lr=3.63e-04  8513 samples/s
+2026-10-23 07:49:06 [INFO]   step 429000  epoch 3 [68428/180286]  loss=1.8058 (policy=1.5166 value=0.5783)  accuracy=52.14%  lr=3.61e-04  8514 samples/s
+2026-10-23 07:51:06 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00430000.pt
+2026-10-23 07:51:06 [INFO]   step 430000  epoch 3 [69428/180286]  loss=1.8056 (policy=1.5165 value=0.5783)  accuracy=52.15%  lr=3.59e-04  8514 samples/s
+2026-10-23 07:53:06 [INFO]   step 431000  epoch 3 [70428/180286]  loss=1.8055 (policy=1.5163 value=0.5783)  accuracy=52.15%  lr=3.57e-04  8515 samples/s
+2026-10-23 07:55:08 [INFO]   step 432000  epoch 3 [71428/180286]  loss=1.8053 (policy=1.5162 value=0.5782)  accuracy=52.15%  lr=3.55e-04  8513 samples/s
+2026-10-23 07:57:08 [INFO]   step 433000  epoch 3 [72428/180286]  loss=1.8052 (policy=1.5161 value=0.5782)  accuracy=52.16%  lr=3.53e-04  8513 samples/s
+2026-10-23 07:59:08 [INFO]   step 434000  epoch 3 [73428/180286]  loss=1.8050 (policy=1.5160 value=0.5782)  accuracy=52.16%  lr=3.51e-04  8514 samples/s
+2026-10-23 08:01:08 [INFO]   step 435000  epoch 3 [74428/180286]  loss=1.8049 (policy=1.5158 value=0.5782)  accuracy=52.16%  lr=3.49e-04  8514 samples/s
+2026-10-23 08:03:08 [INFO]   step 436000  epoch 3 [75428/180286]  loss=1.8048 (policy=1.5157 value=0.5781)  accuracy=52.17%  lr=3.47e-04  8515 samples/s
+2026-10-23 08:05:07 [INFO]   step 437000  epoch 3 [76428/180286]  loss=1.8047 (policy=1.5156 value=0.5781)  accuracy=52.17%  lr=3.45e-04  8515 samples/s
+2026-10-23 08:07:07 [INFO]   step 438000  epoch 3 [77428/180286]  loss=1.8045 (policy=1.5155 value=0.5781)  accuracy=52.17%  lr=3.43e-04  8515 samples/s
+2026-10-23 08:09:07 [INFO]   step 439000  epoch 3 [78428/180286]  loss=1.8044 (policy=1.5154 value=0.5780)  accuracy=52.18%  lr=3.41e-04  8516 samples/s
+2026-10-23 08:11:07 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00440000.pt
+2026-10-23 08:11:07 [INFO]   step 440000  epoch 3 [79428/180286]  loss=1.8042 (policy=1.5152 value=0.5780)  accuracy=52.18%  lr=3.39e-04  8516 samples/s
+2026-10-23 08:13:07 [INFO]   step 441000  epoch 3 [80428/180286]  loss=1.8041 (policy=1.5151 value=0.5780)  accuracy=52.18%  lr=3.37e-04  8516 samples/s
+2026-10-23 08:15:07 [INFO]   step 442000  epoch 3 [81428/180286]  loss=1.8039 (policy=1.5150 value=0.5779)  accuracy=52.19%  lr=3.35e-04  8517 samples/s
+2026-10-23 08:17:06 [INFO]   step 443000  epoch 3 [82428/180286]  loss=1.8038 (policy=1.5149 value=0.5779)  accuracy=52.19%  lr=3.33e-04  8517 samples/s
+2026-10-23 08:19:06 [INFO]   step 444000  epoch 3 [83428/180286]  loss=1.8037 (policy=1.5148 value=0.5779)  accuracy=52.19%  lr=3.31e-04  8518 samples/s
+2026-10-23 08:21:06 [INFO]   step 445000  epoch 3 [84428/180286]  loss=1.8036 (policy=1.5146 value=0.5779)  accuracy=52.20%  lr=3.29e-04  8518 samples/s
+2026-10-23 08:23:06 [INFO]   step 446000  epoch 3 [85428/180286]  loss=1.8034 (policy=1.5145 value=0.5778)  accuracy=52.20%  lr=3.27e-04  8518 samples/s
+2026-10-23 08:25:06 [INFO]   step 447000  epoch 3 [86428/180286]  loss=1.8033 (policy=1.5144 value=0.5778)  accuracy=52.20%  lr=3.25e-04  8519 samples/s
+2026-10-23 08:27:05 [INFO]   step 448000  epoch 3 [87428/180286]  loss=1.8031 (policy=1.5143 value=0.5777)  accuracy=52.21%  lr=3.23e-04  8519 samples/s
+2026-10-23 08:29:05 [INFO]   step 449000  epoch 3 [88428/180286]  loss=1.8030 (policy=1.5141 value=0.5777)  accuracy=52.21%  lr=3.21e-04  8519 samples/s
+2026-10-23 08:31:05 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00450000.pt
+2026-10-23 08:31:05 [INFO]   step 450000  epoch 3 [89428/180286]  loss=1.8028 (policy=1.5140 value=0.5777)  accuracy=52.21%  lr=3.19e-04  8519 samples/s
+2026-10-23 08:33:08 [INFO]   step 451000  epoch 3 [90428/180286]  loss=1.8027 (policy=1.5139 value=0.5776)  accuracy=52.22%  lr=3.17e-04  8518 samples/s
+2026-10-23 08:35:08 [INFO]   step 452000  epoch 3 [91428/180286]  loss=1.8026 (policy=1.5137 value=0.5776)  accuracy=52.22%  lr=3.15e-04  8518 samples/s
+2026-10-23 08:37:07 [INFO]   step 453000  epoch 3 [92428/180286]  loss=1.8024 (policy=1.5136 value=0.5776)  accuracy=52.22%  lr=3.13e-04  8518 samples/s
+2026-10-23 08:39:07 [INFO]   step 454000  epoch 3 [93428/180286]  loss=1.8023 (policy=1.5135 value=0.5775)  accuracy=52.22%  lr=3.11e-04  8518 samples/s
+2026-10-23 08:41:07 [INFO]   step 455000  epoch 3 [94428/180286]  loss=1.8021 (policy=1.5134 value=0.5775)  accuracy=52.23%  lr=3.09e-04  8519 samples/s
+2026-10-23 08:43:07 [INFO]   step 456000  epoch 3 [95428/180286]  loss=1.8020 (policy=1.5132 value=0.5775)  accuracy=52.23%  lr=3.07e-04  8519 samples/s
+2026-10-23 08:45:07 [INFO]   step 457000  epoch 3 [96428/180286]  loss=1.8018 (policy=1.5131 value=0.5774)  accuracy=52.23%  lr=3.05e-04  8519 samples/s
+2026-10-23 08:47:07 [INFO]   step 458000  epoch 3 [97428/180286]  loss=1.8016 (policy=1.5129 value=0.5774)  accuracy=52.24%  lr=3.03e-04  8519 samples/s
+2026-10-23 08:49:07 [INFO]   step 459000  epoch 3 [98428/180286]  loss=1.8015 (policy=1.5128 value=0.5774)  accuracy=52.24%  lr=3.01e-04  8520 samples/s
+2026-10-23 08:51:07 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00460000.pt
+2026-10-23 08:51:07 [INFO]   step 460000  epoch 3 [99428/180286]  loss=1.8013 (policy=1.5127 value=0.5773)  accuracy=52.24%  lr=2.99e-04  8520 samples/s
+2026-10-23 08:53:06 [INFO]   step 461000  epoch 3 [100428/180286]  loss=1.8012 (policy=1.5125 value=0.5773)  accuracy=52.25%  lr=2.97e-04  8520 samples/s
+2026-10-23 08:55:07 [INFO]   step 462000  epoch 3 [101428/180286]  loss=1.8010 (policy=1.5124 value=0.5772)  accuracy=52.25%  lr=2.95e-04  8520 samples/s
+2026-10-23 08:57:06 [INFO]   step 463000  epoch 3 [102428/180286]  loss=1.8009 (policy=1.5123 value=0.5772)  accuracy=52.25%  lr=2.93e-04  8520 samples/s
+2026-10-23 08:59:06 [INFO]   step 464000  epoch 3 [103428/180286]  loss=1.8007 (policy=1.5121 value=0.5772)  accuracy=52.26%  lr=2.91e-04  8521 samples/s
+2026-10-23 09:01:06 [INFO]   step 465000  epoch 3 [104428/180286]  loss=1.8006 (policy=1.5120 value=0.5771)  accuracy=52.26%  lr=2.89e-04  8521 samples/s
+2026-10-23 09:03:06 [INFO]   step 466000  epoch 3 [105428/180286]  loss=1.8004 (policy=1.5119 value=0.5771)  accuracy=52.26%  lr=2.87e-04  8521 samples/s
+2026-10-23 09:05:06 [INFO]   step 467000  epoch 3 [106428/180286]  loss=1.8003 (policy=1.5117 value=0.5770)  accuracy=52.27%  lr=2.85e-04  8521 samples/s
+2026-10-23 09:07:06 [INFO]   step 468000  epoch 3 [107428/180286]  loss=1.8001 (policy=1.5116 value=0.5770)  accuracy=52.27%  lr=2.83e-04  8521 samples/s
+2026-10-23 09:09:05 [INFO]   step 469000  epoch 3 [108428/180286]  loss=1.7999 (policy=1.5114 value=0.5770)  accuracy=52.27%  lr=2.81e-04  8522 samples/s
+2026-10-23 09:11:05 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00470000.pt
+2026-10-23 09:11:05 [INFO]   step 470000  epoch 3 [109428/180286]  loss=1.7998 (policy=1.5113 value=0.5770)  accuracy=52.28%  lr=2.79e-04  8522 samples/s
+2026-10-23 09:13:06 [INFO]   step 471000  epoch 3 [110428/180286]  loss=1.7996 (policy=1.5112 value=0.5769)  accuracy=52.28%  lr=2.77e-04  8521 samples/s
+2026-10-23 09:15:06 [INFO]   step 472000  epoch 3 [111428/180286]  loss=1.7995 (policy=1.5110 value=0.5769)  accuracy=52.28%  lr=2.75e-04  8521 samples/s
+2026-10-23 09:17:06 [INFO]   step 473000  epoch 3 [112428/180286]  loss=1.7993 (policy=1.5109 value=0.5768)  accuracy=52.29%  lr=2.73e-04  8522 samples/s
+2026-10-23 09:19:06 [INFO]   step 474000  epoch 3 [113428/180286]  loss=1.7992 (policy=1.5108 value=0.5768)  accuracy=52.29%  lr=2.72e-04  8522 samples/s
+2026-10-23 09:21:06 [INFO]   step 475000  epoch 3 [114428/180286]  loss=1.7990 (policy=1.5106 value=0.5768)  accuracy=52.29%  lr=2.70e-04  8522 samples/s
+2026-10-23 09:23:06 [INFO]   step 476000  epoch 3 [115428/180286]  loss=1.7989 (policy=1.5105 value=0.5768)  accuracy=52.30%  lr=2.68e-04  8522 samples/s
+2026-10-23 09:25:05 [INFO]   step 477000  epoch 3 [116428/180286]  loss=1.7987 (policy=1.5104 value=0.5767)  accuracy=52.30%  lr=2.66e-04  8522 samples/s
+2026-10-23 09:27:05 [INFO]   step 478000  epoch 3 [117428/180286]  loss=1.7986 (policy=1.5102 value=0.5767)  accuracy=52.30%  lr=2.64e-04  8523 samples/s
+2026-10-23 09:29:05 [INFO]   step 479000  epoch 3 [118428/180286]  loss=1.7984 (policy=1.5101 value=0.5766)  accuracy=52.31%  lr=2.62e-04  8523 samples/s
+2026-10-23 09:31:05 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00480000.pt
+2026-10-23 09:31:05 [INFO]   step 480000  epoch 3 [119428/180286]  loss=1.7983 (policy=1.5100 value=0.5766)  accuracy=52.31%  lr=2.60e-04  8523 samples/s
+2026-10-23 09:33:05 [INFO]   step 481000  epoch 3 [120428/180286]  loss=1.7981 (policy=1.5098 value=0.5766)  accuracy=52.31%  lr=2.58e-04  8523 samples/s
+2026-10-23 09:35:05 [INFO]   step 482000  epoch 3 [121428/180286]  loss=1.7980 (policy=1.5097 value=0.5766)  accuracy=52.32%  lr=2.56e-04  8523 samples/s
+2026-10-23 09:37:04 [INFO]   step 483000  epoch 3 [122428/180286]  loss=1.7979 (policy=1.5096 value=0.5765)  accuracy=52.32%  lr=2.55e-04  8524 samples/s
+2026-10-23 09:39:04 [INFO]   step 484000  epoch 3 [123428/180286]  loss=1.7977 (policy=1.5094 value=0.5765)  accuracy=52.32%  lr=2.53e-04  8524 samples/s
+2026-10-23 09:41:04 [INFO]   step 485000  epoch 3 [124428/180286]  loss=1.7975 (policy=1.5093 value=0.5765)  accuracy=52.33%  lr=2.51e-04  8524 samples/s
+2026-10-23 09:43:04 [INFO]   step 486000  epoch 3 [125428/180286]  loss=1.7974 (policy=1.5092 value=0.5764)  accuracy=52.33%  lr=2.49e-04  8524 samples/s
+2026-10-23 09:45:04 [INFO]   step 487000  epoch 3 [126428/180286]  loss=1.7972 (policy=1.5090 value=0.5764)  accuracy=52.33%  lr=2.47e-04  8524 samples/s
+2026-10-23 09:47:04 [INFO]   step 488000  epoch 3 [127428/180286]  loss=1.7971 (policy=1.5089 value=0.5763)  accuracy=52.34%  lr=2.45e-04  8524 samples/s
+2026-10-23 09:49:04 [INFO]   step 489000  epoch 3 [128428/180286]  loss=1.7970 (policy=1.5088 value=0.5763)  accuracy=52.34%  lr=2.43e-04  8525 samples/s
+2026-10-23 09:51:03 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00490000.pt
+2026-10-23 09:51:03 [INFO]   step 490000  epoch 3 [129428/180286]  loss=1.7968 (policy=1.5087 value=0.5763)  accuracy=52.34%  lr=2.42e-04  8525 samples/s
+2026-10-23 09:53:03 [INFO]   step 491000  epoch 3 [130428/180286]  loss=1.7967 (policy=1.5086 value=0.5762)  accuracy=52.35%  lr=2.40e-04  8525 samples/s
+2026-10-23 09:55:04 [INFO]   step 492000  epoch 3 [131428/180286]  loss=1.7965 (policy=1.5084 value=0.5762)  accuracy=52.35%  lr=2.38e-04  8524 samples/s
+2026-10-23 09:57:04 [INFO]   step 493000  epoch 3 [132428/180286]  loss=1.7964 (policy=1.5083 value=0.5762)  accuracy=52.35%  lr=2.36e-04  8524 samples/s
+2026-10-23 09:59:04 [INFO]   step 494000  epoch 3 [133428/180286]  loss=1.7962 (policy=1.5081 value=0.5761)  accuracy=52.36%  lr=2.34e-04  8525 samples/s
+2026-10-23 10:01:04 [INFO]   step 495000  epoch 3 [134428/180286]  loss=1.7961 (policy=1.5080 value=0.5761)  accuracy=52.36%  lr=2.33e-04  8525 samples/s
+2026-10-23 10:03:03 [INFO]   step 496000  epoch 3 [135428/180286]  loss=1.7959 (policy=1.5079 value=0.5761)  accuracy=52.36%  lr=2.31e-04  8525 samples/s
+2026-10-23 10:05:03 [INFO]   step 497000  epoch 3 [136428/180286]  loss=1.7958 (policy=1.5078 value=0.5760)  accuracy=52.37%  lr=2.29e-04  8525 samples/s
+2026-10-23 10:07:03 [INFO]   step 498000  epoch 3 [137428/180286]  loss=1.7956 (policy=1.5076 value=0.5760)  accuracy=52.37%  lr=2.27e-04  8526 samples/s
+2026-10-23 10:09:02 [INFO]   step 499000  epoch 3 [138428/180286]  loss=1.7955 (policy=1.5075 value=0.5759)  accuracy=52.37%  lr=2.25e-04  8526 samples/s
+2026-10-23 10:11:02 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00500000.pt
+2026-10-23 10:11:02 [INFO]   step 500000  epoch 3 [139428/180286]  loss=1.7953 (policy=1.5073 value=0.5759)  accuracy=52.38%  lr=2.24e-04  8526 samples/s
+2026-10-23 10:13:02 [INFO]   step 501000  epoch 3 [140428/180286]  loss=1.7951 (policy=1.5072 value=0.5758)  accuracy=52.38%  lr=2.22e-04  8526 samples/s
+2026-10-23 10:15:01 [INFO]   step 502000  epoch 3 [141428/180286]  loss=1.7950 (policy=1.5071 value=0.5758)  accuracy=52.38%  lr=2.20e-04  8526 samples/s
+2026-10-23 10:17:01 [INFO]   step 503000  epoch 3 [142428/180286]  loss=1.7949 (policy=1.5070 value=0.5758)  accuracy=52.39%  lr=2.18e-04  8527 samples/s
+2026-10-23 10:19:01 [INFO]   step 504000  epoch 3 [143428/180286]  loss=1.7947 (policy=1.5068 value=0.5757)  accuracy=52.39%  lr=2.17e-04  8527 samples/s
+2026-10-23 10:21:01 [INFO]   step 505000  epoch 3 [144428/180286]  loss=1.7945 (policy=1.5067 value=0.5757)  accuracy=52.39%  lr=2.15e-04  8527 samples/s
+2026-10-23 10:23:00 [INFO]   step 506000  epoch 3 [145428/180286]  loss=1.7944 (policy=1.5065 value=0.5757)  accuracy=52.40%  lr=2.13e-04  8527 samples/s
+2026-10-23 10:25:00 [INFO]   step 507000  epoch 3 [146428/180286]  loss=1.7942 (policy=1.5064 value=0.5756)  accuracy=52.40%  lr=2.11e-04  8527 samples/s
+2026-10-23 10:27:00 [INFO]   step 508000  epoch 3 [147428/180286]  loss=1.7941 (policy=1.5063 value=0.5756)  accuracy=52.40%  lr=2.10e-04  8527 samples/s
+2026-10-23 10:29:00 [INFO]   step 509000  epoch 3 [148428/180286]  loss=1.7939 (policy=1.5061 value=0.5756)  accuracy=52.41%  lr=2.08e-04  8528 samples/s
+2026-10-23 10:31:00 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00510000.pt
+2026-10-23 10:31:00 [INFO]   step 510000  epoch 3 [149428/180286]  loss=1.7938 (policy=1.5060 value=0.5755)  accuracy=52.41%  lr=2.06e-04  8528 samples/s
+2026-10-23 10:33:03 [INFO]   step 511000  epoch 3 [150428/180286]  loss=1.7936 (policy=1.5059 value=0.5755)  accuracy=52.41%  lr=2.04e-04  8526 samples/s
+2026-10-23 10:35:03 [INFO]   step 512000  epoch 3 [151428/180286]  loss=1.7934 (policy=1.5057 value=0.5754)  accuracy=52.42%  lr=2.03e-04  8526 samples/s
+2026-10-23 10:37:02 [INFO]   step 513000  epoch 3 [152428/180286]  loss=1.7933 (policy=1.5056 value=0.5754)  accuracy=52.42%  lr=2.01e-04  8526 samples/s
+2026-10-23 10:39:02 [INFO]   step 514000  epoch 3 [153428/180286]  loss=1.7931 (policy=1.5054 value=0.5754)  accuracy=52.42%  lr=1.99e-04  8527 samples/s
+2026-10-23 10:41:02 [INFO]   step 515000  epoch 3 [154428/180286]  loss=1.7930 (policy=1.5053 value=0.5753)  accuracy=52.43%  lr=1.98e-04  8527 samples/s
+2026-10-23 10:43:02 [INFO]   step 516000  epoch 3 [155428/180286]  loss=1.7928 (policy=1.5052 value=0.5753)  accuracy=52.43%  lr=1.96e-04  8527 samples/s
+2026-10-23 10:45:02 [INFO]   step 517000  epoch 3 [156428/180286]  loss=1.7927 (policy=1.5050 value=0.5752)  accuracy=52.43%  lr=1.94e-04  8527 samples/s
+2026-10-23 10:47:02 [INFO]   step 518000  epoch 3 [157428/180286]  loss=1.7925 (policy=1.5049 value=0.5752)  accuracy=52.44%  lr=1.92e-04  8527 samples/s
+2026-10-23 10:49:02 [INFO]   step 519000  epoch 3 [158428/180286]  loss=1.7924 (policy=1.5048 value=0.5752)  accuracy=52.44%  lr=1.91e-04  8527 samples/s
+2026-10-23 10:51:02 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00520000.pt
+2026-10-23 10:51:02 [INFO]   step 520000  epoch 3 [159428/180286]  loss=1.7922 (policy=1.5046 value=0.5751)  accuracy=52.44%  lr=1.89e-04  8527 samples/s
+2026-10-23 10:53:02 [INFO]   step 521000  epoch 3 [160428/180286]  loss=1.7921 (policy=1.5045 value=0.5751)  accuracy=52.45%  lr=1.87e-04  8527 samples/s
+2026-10-23 10:55:03 [INFO]   step 522000  epoch 3 [161428/180286]  loss=1.7919 (policy=1.5043 value=0.5751)  accuracy=52.45%  lr=1.86e-04  8527 samples/s
+2026-10-23 10:57:02 [INFO]   step 523000  epoch 3 [162428/180286]  loss=1.7917 (policy=1.5042 value=0.5750)  accuracy=52.46%  lr=1.84e-04  8527 samples/s
+2026-10-23 10:59:02 [INFO]   step 524000  epoch 3 [163428/180286]  loss=1.7916 (policy=1.5041 value=0.5750)  accuracy=52.46%  lr=1.83e-04  8527 samples/s
+2026-10-23 11:01:02 [INFO]   step 525000  epoch 3 [164428/180286]  loss=1.7914 (policy=1.5039 value=0.5750)  accuracy=52.46%  lr=1.81e-04  8527 samples/s
+2026-10-23 11:03:02 [INFO]   step 526000  epoch 3 [165428/180286]  loss=1.7913 (policy=1.5038 value=0.5749)  accuracy=52.47%  lr=1.79e-04  8527 samples/s
+2026-10-23 11:05:02 [INFO]   step 527000  epoch 3 [166428/180286]  loss=1.7911 (policy=1.5037 value=0.5749)  accuracy=52.47%  lr=1.78e-04  8527 samples/s
+2026-10-23 11:07:01 [INFO]   step 528000  epoch 3 [167428/180286]  loss=1.7910 (policy=1.5035 value=0.5748)  accuracy=52.47%  lr=1.76e-04  8527 samples/s
+2026-10-23 11:09:01 [INFO]   step 529000  epoch 3 [168428/180286]  loss=1.7908 (policy=1.5034 value=0.5748)  accuracy=52.48%  lr=1.74e-04  8528 samples/s
+2026-10-23 11:11:01 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00530000.pt
+2026-10-23 11:11:01 [INFO]   step 530000  epoch 3 [169428/180286]  loss=1.7906 (policy=1.5033 value=0.5748)  accuracy=52.48%  lr=1.73e-04  8528 samples/s
+2026-10-23 11:13:01 [INFO]   step 531000  epoch 3 [170428/180286]  loss=1.7905 (policy=1.5031 value=0.5747)  accuracy=52.48%  lr=1.71e-04  8528 samples/s
+2026-10-23 11:15:00 [INFO]   step 532000  epoch 3 [171428/180286]  loss=1.7903 (policy=1.5030 value=0.5747)  accuracy=52.49%  lr=1.70e-04  8528 samples/s
+2026-10-23 11:17:00 [INFO]   step 533000  epoch 3 [172428/180286]  loss=1.7902 (policy=1.5028 value=0.5746)  accuracy=52.49%  lr=1.68e-04  8528 samples/s
+2026-10-23 11:19:00 [INFO]   step 534000  epoch 3 [173428/180286]  loss=1.7900 (policy=1.5027 value=0.5746)  accuracy=52.49%  lr=1.66e-04  8528 samples/s
+2026-10-23 11:20:59 [INFO]   step 535000  epoch 3 [174428/180286]  loss=1.7898 (policy=1.5026 value=0.5746)  accuracy=52.50%  lr=1.65e-04  8529 samples/s
+2026-10-23 11:22:59 [INFO]   step 536000  epoch 3 [175428/180286]  loss=1.7897 (policy=1.5024 value=0.5745)  accuracy=52.50%  lr=1.63e-04  8529 samples/s
+2026-10-23 11:24:59 [INFO]   step 537000  epoch 3 [176428/180286]  loss=1.7895 (policy=1.5023 value=0.5745)  accuracy=52.50%  lr=1.62e-04  8529 samples/s
+2026-10-23 11:26:59 [INFO]   step 538000  epoch 3 [177428/180286]  loss=1.7894 (policy=1.5021 value=0.5744)  accuracy=52.51%  lr=1.60e-04  8529 samples/s
+2026-10-23 11:28:58 [INFO]   step 539000  epoch 3 [178428/180286]  loss=1.7892 (policy=1.5020 value=0.5744)  accuracy=52.51%  lr=1.59e-04  8529 samples/s
+2026-10-23 11:30:58 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00540000.pt
+2026-10-23 11:30:58 [INFO]   step 540000  epoch 3 [179428/180286]  loss=1.7890 (policy=1.5019 value=0.5744)  accuracy=52.52%  lr=1.57e-04  8529 samples/s
+2026-10-23 11:33:19 [INFO] Epoch 3/4  loss=1.7889 (policy=1.5017 value=0.5743)  accuracy=52.52%  lr=1.56e-04  8514 samples/s  21682.3s
+2026-10-23 11:35:52 [INFO]   validation  loss=1.7303 (policy=1.4533 value=0.5540)  accuracy=53.58%  on 3820025 samples  (new best)
+2026-10-23 11:35:52 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_best.pt
+2026-10-23 11:35:52 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_epoch_0003.pt
+2026-10-23 11:36:17 [INFO]   step 541000  epoch 4 [142/180286]  loss=1.7458 (policy=1.4636 value=0.5643)  accuracy=53.71%  lr=1.56e-04  5774 samples/s
+2026-10-23 11:38:17 [INFO]   step 542000  epoch 4 [1142/180286]  loss=1.7486 (policy=1.4653 value=0.5668)  accuracy=53.43%  lr=1.54e-04  8076 samples/s
+2026-10-23 11:40:16 [INFO]   step 543000  epoch 4 [2142/180286]  loss=1.7486 (policy=1.4656 value=0.5660)  accuracy=53.41%  lr=1.52e-04  8295 samples/s
+2026-10-23 11:42:16 [INFO]   step 544000  epoch 4 [3142/180286]  loss=1.7484 (policy=1.4655 value=0.5657)  accuracy=53.39%  lr=1.51e-04  8377 samples/s
+2026-10-23 11:44:16 [INFO]   step 545000  epoch 4 [4142/180286]  loss=1.7483 (policy=1.4654 value=0.5657)  accuracy=53.40%  lr=1.49e-04  8420 samples/s
+2026-10-23 11:46:15 [INFO]   step 546000  epoch 4 [5142/180286]  loss=1.7485 (policy=1.4656 value=0.5658)  accuracy=53.40%  lr=1.48e-04  8446 samples/s
+2026-10-23 11:48:15 [INFO]   step 547000  epoch 4 [6142/180286]  loss=1.7483 (policy=1.4655 value=0.5656)  accuracy=53.41%  lr=1.46e-04  8464 samples/s
+2026-10-23 11:50:15 [INFO]   step 548000  epoch 4 [7142/180286]  loss=1.7483 (policy=1.4654 value=0.5658)  accuracy=53.41%  lr=1.45e-04  8477 samples/s
+2026-10-23 11:52:14 [INFO]   step 549000  epoch 4 [8142/180286]  loss=1.7481 (policy=1.4653 value=0.5657)  accuracy=53.42%  lr=1.43e-04  8487 samples/s
+2026-10-23 11:54:14 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00550000.pt
+2026-10-23 11:54:14 [INFO]   step 550000  epoch 4 [9142/180286]  loss=1.7479 (policy=1.4650 value=0.5658)  accuracy=53.43%  lr=1.42e-04  8494 samples/s
+2026-10-23 11:56:14 [INFO]   step 551000  epoch 4 [10142/180286]  loss=1.7480 (policy=1.4651 value=0.5658)  accuracy=53.42%  lr=1.41e-04  8501 samples/s
+2026-10-23 11:58:13 [INFO]   step 552000  epoch 4 [11142/180286]  loss=1.7483 (policy=1.4654 value=0.5657)  accuracy=53.42%  lr=1.39e-04  8506 samples/s
+2026-10-23 12:00:13 [INFO]   step 553000  epoch 4 [12142/180286]  loss=1.7483 (policy=1.4655 value=0.5657)  accuracy=53.42%  lr=1.38e-04  8510 samples/s
+2026-10-23 12:02:13 [INFO]   step 554000  epoch 4 [13142/180286]  loss=1.7483 (policy=1.4655 value=0.5656)  accuracy=53.42%  lr=1.36e-04  8511 samples/s
+2026-10-23 12:04:14 [INFO]   step 555000  epoch 4 [14142/180286]  loss=1.7482 (policy=1.4654 value=0.5657)  accuracy=53.42%  lr=1.35e-04  8510 samples/s
+2026-10-23 12:06:13 [INFO]   step 556000  epoch 4 [15142/180286]  loss=1.7479 (policy=1.4651 value=0.5656)  accuracy=53.43%  lr=1.33e-04  8513 samples/s
+2026-10-23 12:08:13 [INFO]   step 557000  epoch 4 [16142/180286]  loss=1.7478 (policy=1.4650 value=0.5657)  accuracy=53.43%  lr=1.32e-04  8516 samples/s
+2026-10-23 12:10:12 [INFO]   step 558000  epoch 4 [17142/180286]  loss=1.7479 (policy=1.4650 value=0.5657)  accuracy=53.43%  lr=1.30e-04  8519 samples/s
+2026-10-23 12:12:12 [INFO]   step 559000  epoch 4 [18142/180286]  loss=1.7478 (policy=1.4649 value=0.5657)  accuracy=53.43%  lr=1.29e-04  8521 samples/s
+2026-10-23 12:14:35 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00560000.pt
+2026-10-23 12:14:35 [INFO]   step 560000  epoch 4 [19142/180286]  loss=1.7476 (policy=1.4648 value=0.5657)  accuracy=53.43%  lr=1.28e-04  8436 samples/s
+2026-10-23 12:16:35 [INFO]   step 561000  epoch 4 [20142/180286]  loss=1.7476 (policy=1.4648 value=0.5657)  accuracy=53.44%  lr=1.26e-04  8443 samples/s
+2026-10-23 12:18:35 [INFO]   step 562000  epoch 4 [21142/180286]  loss=1.7474 (policy=1.4646 value=0.5656)  accuracy=53.44%  lr=1.25e-04  8448 samples/s
+2026-10-23 12:20:34 [INFO]   step 563000  epoch 4 [22142/180286]  loss=1.7473 (policy=1.4645 value=0.5656)  accuracy=53.44%  lr=1.24e-04  8453 samples/s
+2026-10-23 12:22:34 [INFO]   step 564000  epoch 4 [23142/180286]  loss=1.7472 (policy=1.4644 value=0.5656)  accuracy=53.44%  lr=1.22e-04  8457 samples/s
+2026-10-23 12:24:34 [INFO]   step 565000  epoch 4 [24142/180286]  loss=1.7472 (policy=1.4644 value=0.5656)  accuracy=53.44%  lr=1.21e-04  8461 samples/s
+2026-10-23 12:26:34 [INFO]   step 566000  epoch 4 [25142/180286]  loss=1.7471 (policy=1.4643 value=0.5655)  accuracy=53.44%  lr=1.19e-04  8464 samples/s
+2026-10-23 12:28:35 [INFO]   step 567000  epoch 4 [26142/180286]  loss=1.7471 (policy=1.4643 value=0.5655)  accuracy=53.44%  lr=1.18e-04  8464 samples/s
+2026-10-23 12:30:34 [INFO]   step 568000  epoch 4 [27142/180286]  loss=1.7470 (policy=1.4642 value=0.5655)  accuracy=53.45%  lr=1.17e-04  8467 samples/s
+2026-10-23 12:32:34 [INFO]   step 569000  epoch 4 [28142/180286]  loss=1.7468 (policy=1.4641 value=0.5654)  accuracy=53.45%  lr=1.15e-04  8470 samples/s
+2026-10-23 12:34:34 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00570000.pt
+2026-10-23 12:34:34 [INFO]   step 570000  epoch 4 [29142/180286]  loss=1.7467 (policy=1.4640 value=0.5654)  accuracy=53.45%  lr=1.14e-04  8472 samples/s
+2026-10-23 12:36:34 [INFO]   step 571000  epoch 4 [30142/180286]  loss=1.7464 (policy=1.4638 value=0.5653)  accuracy=53.46%  lr=1.13e-04  8475 samples/s
+2026-10-23 12:38:34 [INFO]   step 572000  epoch 4 [31142/180286]  loss=1.7463 (policy=1.4636 value=0.5653)  accuracy=53.46%  lr=1.11e-04  8477 samples/s
+2026-10-23 12:40:34 [INFO]   step 573000  epoch 4 [32142/180286]  loss=1.7462 (policy=1.4636 value=0.5653)  accuracy=53.46%  lr=1.10e-04  8479 samples/s
+2026-10-23 12:42:33 [INFO]   step 574000  epoch 4 [33142/180286]  loss=1.7461 (policy=1.4635 value=0.5653)  accuracy=53.46%  lr=1.09e-04  8481 samples/s
+2026-10-23 12:44:33 [INFO]   step 575000  epoch 4 [34142/180286]  loss=1.7460 (policy=1.4634 value=0.5653)  accuracy=53.47%  lr=1.07e-04  8483 samples/s
+2026-10-23 12:46:33 [INFO]   step 576000  epoch 4 [35142/180286]  loss=1.7460 (policy=1.4633 value=0.5652)  accuracy=53.47%  lr=1.06e-04  8485 samples/s
+2026-10-23 12:48:33 [INFO]   step 577000  epoch 4 [36142/180286]  loss=1.7459 (policy=1.4633 value=0.5652)  accuracy=53.47%  lr=1.05e-04  8486 samples/s
+2026-10-23 12:50:33 [INFO]   step 578000  epoch 4 [37142/180286]  loss=1.7458 (policy=1.4632 value=0.5652)  accuracy=53.47%  lr=1.04e-04  8488 samples/s
+2026-10-23 12:52:33 [INFO]   step 579000  epoch 4 [38142/180286]  loss=1.7456 (policy=1.4631 value=0.5651)  accuracy=53.48%  lr=1.02e-04  8489 samples/s
+2026-10-23 12:54:32 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00580000.pt
+2026-10-23 12:54:32 [INFO]   step 580000  epoch 4 [39142/180286]  loss=1.7455 (policy=1.4630 value=0.5651)  accuracy=53.48%  lr=1.01e-04  8491 samples/s
+2026-10-23 12:56:33 [INFO]   step 581000  epoch 4 [40142/180286]  loss=1.7455 (policy=1.4629 value=0.5650)  accuracy=53.48%  lr=9.99e-05  8492 samples/s
+2026-10-23 12:58:32 [INFO]   step 582000  epoch 4 [41142/180286]  loss=1.7454 (policy=1.4629 value=0.5650)  accuracy=53.48%  lr=9.87e-05  8493 samples/s
+2026-10-23 13:00:32 [INFO]   step 583000  epoch 4 [42142/180286]  loss=1.7453 (policy=1.4628 value=0.5649)  accuracy=53.49%  lr=9.74e-05  8494 samples/s
+2026-10-23 13:02:32 [INFO]   step 584000  epoch 4 [43142/180286]  loss=1.7451 (policy=1.4627 value=0.5649)  accuracy=53.49%  lr=9.62e-05  8495 samples/s
+2026-10-23 13:04:33 [INFO]   step 585000  epoch 4 [44142/180286]  loss=1.7451 (policy=1.4627 value=0.5648)  accuracy=53.49%  lr=9.50e-05  8495 samples/s
+2026-10-23 13:06:33 [INFO]   step 586000  epoch 4 [45142/180286]  loss=1.7450 (policy=1.4626 value=0.5648)  accuracy=53.49%  lr=9.38e-05  8496 samples/s
+2026-10-23 13:08:33 [INFO]   step 587000  epoch 4 [46142/180286]  loss=1.7448 (policy=1.4624 value=0.5648)  accuracy=53.50%  lr=9.26e-05  8497 samples/s
+2026-10-23 13:10:35 [INFO]   step 588000  epoch 4 [47142/180286]  loss=1.7448 (policy=1.4624 value=0.5647)  accuracy=53.50%  lr=9.14e-05  8494 samples/s
+2026-10-23 13:12:36 [INFO]   step 589000  epoch 4 [48142/180286]  loss=1.7447 (policy=1.4623 value=0.5647)  accuracy=53.50%  lr=9.02e-05  8493 samples/s
+2026-10-23 13:14:36 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00590000.pt
+2026-10-23 13:14:36 [INFO]   step 590000  epoch 4 [49142/180286]  loss=1.7445 (policy=1.4622 value=0.5647)  accuracy=53.51%  lr=8.90e-05  8495 samples/s
+2026-10-23 13:16:36 [INFO]   step 591000  epoch 4 [50142/180286]  loss=1.7444 (policy=1.4621 value=0.5646)  accuracy=53.51%  lr=8.79e-05  8496 samples/s
+2026-10-23 13:18:35 [INFO]   step 592000  epoch 4 [51142/180286]  loss=1.7442 (policy=1.4619 value=0.5646)  accuracy=53.51%  lr=8.67e-05  8497 samples/s
+2026-10-23 13:20:35 [INFO]   step 593000  epoch 4 [52142/180286]  loss=1.7441 (policy=1.4618 value=0.5646)  accuracy=53.52%  lr=8.56e-05  8498 samples/s
+2026-10-23 13:22:35 [INFO]   step 594000  epoch 4 [53142/180286]  loss=1.7440 (policy=1.4617 value=0.5645)  accuracy=53.52%  lr=8.44e-05  8499 samples/s
+2026-10-23 13:24:34 [INFO]   step 595000  epoch 4 [54142/180286]  loss=1.7438 (policy=1.4616 value=0.5645)  accuracy=53.52%  lr=8.33e-05  8500 samples/s
+2026-10-23 13:26:34 [INFO]   step 596000  epoch 4 [55142/180286]  loss=1.7437 (policy=1.4615 value=0.5644)  accuracy=53.52%  lr=8.21e-05  8501 samples/s
+2026-10-23 13:28:34 [INFO]   step 597000  epoch 4 [56142/180286]  loss=1.7436 (policy=1.4614 value=0.5644)  accuracy=53.53%  lr=8.10e-05  8502 samples/s
+2026-10-23 13:30:33 [INFO]   step 598000  epoch 4 [57142/180286]  loss=1.7435 (policy=1.4613 value=0.5644)  accuracy=53.53%  lr=7.99e-05  8503 samples/s
+2026-10-23 13:32:33 [INFO]   step 599000  epoch 4 [58142/180286]  loss=1.7434 (policy=1.4612 value=0.5644)  accuracy=53.53%  lr=7.88e-05  8504 samples/s
+2026-10-23 13:34:33 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00600000.pt
+2026-10-23 13:34:33 [INFO]   step 600000  epoch 4 [59142/180286]  loss=1.7433 (policy=1.4611 value=0.5643)  accuracy=53.54%  lr=7.77e-05  8505 samples/s
+2026-10-23 13:36:33 [INFO]   step 601000  epoch 4 [60142/180286]  loss=1.7432 (policy=1.4611 value=0.5643)  accuracy=53.54%  lr=7.66e-05  8505 samples/s
+2026-10-23 13:38:36 [INFO]   step 602000  epoch 4 [61142/180286]  loss=1.7431 (policy=1.4610 value=0.5643)  accuracy=53.54%  lr=7.55e-05  8502 samples/s
+2026-10-23 13:40:35 [INFO]   step 603000  epoch 4 [62142/180286]  loss=1.7430 (policy=1.4609 value=0.5643)  accuracy=53.54%  lr=7.45e-05  8503 samples/s
+2026-10-23 13:42:35 [INFO]   step 604000  epoch 4 [63142/180286]  loss=1.7429 (policy=1.4608 value=0.5642)  accuracy=53.55%  lr=7.34e-05  8504 samples/s
+2026-10-23 13:44:35 [INFO]   step 605000  epoch 4 [64142/180286]  loss=1.7428 (policy=1.4607 value=0.5642)  accuracy=53.55%  lr=7.24e-05  8505 samples/s
+2026-10-23 13:46:34 [INFO]   step 606000  epoch 4 [65142/180286]  loss=1.7427 (policy=1.4606 value=0.5642)  accuracy=53.55%  lr=7.13e-05  8506 samples/s
+2026-10-23 13:48:34 [INFO]   step 607000  epoch 4 [66142/180286]  loss=1.7425 (policy=1.4605 value=0.5642)  accuracy=53.55%  lr=7.03e-05  8506 samples/s
+2026-10-23 13:50:34 [INFO]   step 608000  epoch 4 [67142/180286]  loss=1.7424 (policy=1.4604 value=0.5641)  accuracy=53.56%  lr=6.92e-05  8507 samples/s
+2026-10-23 13:52:33 [INFO]   step 609000  epoch 4 [68142/180286]  loss=1.7423 (policy=1.4603 value=0.5641)  accuracy=53.56%  lr=6.82e-05  8508 samples/s
+2026-10-23 13:54:33 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00610000.pt
+2026-10-23 13:54:33 [INFO]   step 610000  epoch 4 [69142/180286]  loss=1.7422 (policy=1.4602 value=0.5640)  accuracy=53.56%  lr=6.72e-05  8508 samples/s
+2026-10-23 13:56:33 [INFO]   step 611000  epoch 4 [70142/180286]  loss=1.7421 (policy=1.4601 value=0.5640)  accuracy=53.56%  lr=6.62e-05  8509 samples/s
+2026-10-23 13:58:33 [INFO]   step 612000  epoch 4 [71142/180286]  loss=1.7421 (policy=1.4601 value=0.5640)  accuracy=53.57%  lr=6.52e-05  8510 samples/s
+2026-10-23 14:00:32 [INFO]   step 613000  epoch 4 [72142/180286]  loss=1.7419 (policy=1.4600 value=0.5640)  accuracy=53.57%  lr=6.42e-05  8510 samples/s
+2026-10-23 14:02:32 [INFO]   step 614000  epoch 4 [73142/180286]  loss=1.7418 (policy=1.4598 value=0.5639)  accuracy=53.57%  lr=6.32e-05  8511 samples/s
+2026-10-23 14:04:32 [INFO]   step 615000  epoch 4 [74142/180286]  loss=1.7417 (policy=1.4597 value=0.5639)  accuracy=53.58%  lr=6.23e-05  8512 samples/s
+2026-10-23 14:06:31 [INFO]   step 616000  epoch 4 [75142/180286]  loss=1.7416 (policy=1.4596 value=0.5639)  accuracy=53.58%  lr=6.13e-05  8512 samples/s
+2026-10-23 14:08:31 [INFO]   step 617000  epoch 4 [76142/180286]  loss=1.7415 (policy=1.4595 value=0.5639)  accuracy=53.58%  lr=6.04e-05  8513 samples/s
+2026-10-23 14:10:31 [INFO]   step 618000  epoch 4 [77142/180286]  loss=1.7414 (policy=1.4594 value=0.5638)  accuracy=53.58%  lr=5.94e-05  8513 samples/s
+2026-10-23 14:12:30 [INFO]   step 619000  epoch 4 [78142/180286]  loss=1.7412 (policy=1.4593 value=0.5638)  accuracy=53.59%  lr=5.85e-05  8514 samples/s
+2026-10-23 14:14:30 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00620000.pt
+2026-10-23 14:14:30 [INFO]   step 620000  epoch 4 [79142/180286]  loss=1.7411 (policy=1.4592 value=0.5638)  accuracy=53.59%  lr=5.75e-05  8515 samples/s
+2026-10-23 14:16:30 [INFO]   step 621000  epoch 4 [80142/180286]  loss=1.7410 (policy=1.4592 value=0.5638)  accuracy=53.59%  lr=5.66e-05  8515 samples/s
+2026-10-23 14:18:29 [INFO]   step 622000  epoch 4 [81142/180286]  loss=1.7409 (policy=1.4591 value=0.5637)  accuracy=53.59%  lr=5.57e-05  8516 samples/s
+2026-10-23 14:20:29 [INFO]   step 623000  epoch 4 [82142/180286]  loss=1.7408 (policy=1.4590 value=0.5637)  accuracy=53.60%  lr=5.48e-05  8516 samples/s
+2026-10-23 14:22:30 [INFO]   step 624000  epoch 4 [83142/180286]  loss=1.7407 (policy=1.4589 value=0.5637)  accuracy=53.60%  lr=5.39e-05  8515 samples/s
+2026-10-23 14:24:30 [INFO]   step 625000  epoch 4 [84142/180286]  loss=1.7406 (policy=1.4587 value=0.5636)  accuracy=53.60%  lr=5.30e-05  8515 samples/s
+2026-10-23 14:26:30 [INFO]   step 626000  epoch 4 [85142/180286]  loss=1.7404 (policy=1.4586 value=0.5636)  accuracy=53.61%  lr=5.21e-05  8516 samples/s
+2026-10-23 14:28:30 [INFO]   step 627000  epoch 4 [86142/180286]  loss=1.7403 (policy=1.4586 value=0.5636)  accuracy=53.61%  lr=5.13e-05  8516 samples/s
+2026-10-23 14:30:29 [INFO]   step 628000  epoch 4 [87142/180286]  loss=1.7402 (policy=1.4584 value=0.5636)  accuracy=53.61%  lr=5.04e-05  8517 samples/s
+2026-10-23 14:32:29 [INFO]   step 629000  epoch 4 [88142/180286]  loss=1.7401 (policy=1.4583 value=0.5635)  accuracy=53.61%  lr=4.96e-05  8517 samples/s
+2026-10-23 14:34:29 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00630000.pt
+2026-10-23 14:34:29 [INFO]   step 630000  epoch 4 [89142/180286]  loss=1.7400 (policy=1.4582 value=0.5635)  accuracy=53.62%  lr=4.87e-05  8517 samples/s
+2026-10-23 14:36:29 [INFO]   step 631000  epoch 4 [90142/180286]  loss=1.7399 (policy=1.4581 value=0.5635)  accuracy=53.62%  lr=4.79e-05  8518 samples/s
+2026-10-23 14:38:28 [INFO]   step 632000  epoch 4 [91142/180286]  loss=1.7398 (policy=1.4581 value=0.5634)  accuracy=53.62%  lr=4.71e-05  8518 samples/s
+2026-10-23 14:40:28 [INFO]   step 633000  epoch 4 [92142/180286]  loss=1.7397 (policy=1.4580 value=0.5634)  accuracy=53.63%  lr=4.62e-05  8519 samples/s
+2026-10-23 14:42:28 [INFO]   step 634000  epoch 4 [93142/180286]  loss=1.7395 (policy=1.4578 value=0.5634)  accuracy=53.63%  lr=4.54e-05  8519 samples/s
+2026-10-23 14:44:27 [INFO]   step 635000  epoch 4 [94142/180286]  loss=1.7394 (policy=1.4578 value=0.5634)  accuracy=53.63%  lr=4.46e-05  8519 samples/s
+2026-10-23 14:46:27 [INFO]   step 636000  epoch 4 [95142/180286]  loss=1.7393 (policy=1.4577 value=0.5633)  accuracy=53.63%  lr=4.38e-05  8520 samples/s
+2026-10-23 14:48:27 [INFO]   step 637000  epoch 4 [96142/180286]  loss=1.7392 (policy=1.4576 value=0.5633)  accuracy=53.64%  lr=4.31e-05  8520 samples/s
+2026-10-23 14:50:27 [INFO]   step 638000  epoch 4 [97142/180286]  loss=1.7391 (policy=1.4575 value=0.5633)  accuracy=53.64%  lr=4.23e-05  8520 samples/s
+2026-10-23 14:52:27 [INFO]   step 639000  epoch 4 [98142/180286]  loss=1.7390 (policy=1.4574 value=0.5632)  accuracy=53.64%  lr=4.15e-05  8521 samples/s
+2026-10-23 14:54:26 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00640000.pt
+2026-10-23 14:54:26 [INFO]   step 640000  epoch 4 [99142/180286]  loss=1.7389 (policy=1.4573 value=0.5632)  accuracy=53.64%  lr=4.08e-05  8521 samples/s
+2026-10-23 14:56:26 [INFO]   step 641000  epoch 4 [100142/180286]  loss=1.7388 (policy=1.4572 value=0.5632)  accuracy=53.65%  lr=4.00e-05  8521 samples/s
+2026-10-23 14:58:29 [INFO]   step 642000  epoch 4 [101142/180286]  loss=1.7387 (policy=1.4571 value=0.5631)  accuracy=53.65%  lr=3.93e-05  8520 samples/s
+2026-10-23 15:00:28 [INFO]   step 643000  epoch 4 [102142/180286]  loss=1.7386 (policy=1.4570 value=0.5631)  accuracy=53.65%  lr=3.86e-05  8520 samples/s
+2026-10-23 15:02:28 [INFO]   step 644000  epoch 4 [103142/180286]  loss=1.7385 (policy=1.4570 value=0.5631)  accuracy=53.65%  lr=3.78e-05  8520 samples/s
+2026-10-23 15:04:28 [INFO]   step 645000  epoch 4 [104142/180286]  loss=1.7384 (policy=1.4569 value=0.5631)  accuracy=53.66%  lr=3.71e-05  8521 samples/s
+2026-10-23 15:06:27 [INFO]   step 646000  epoch 4 [105142/180286]  loss=1.7383 (policy=1.4568 value=0.5630)  accuracy=53.66%  lr=3.64e-05  8521 samples/s
+2026-10-23 15:08:27 [INFO]   step 647000  epoch 4 [106142/180286]  loss=1.7382 (policy=1.4567 value=0.5630)  accuracy=53.66%  lr=3.57e-05  8521 samples/s
+2026-10-23 15:10:27 [INFO]   step 648000  epoch 4 [107142/180286]  loss=1.7381 (policy=1.4566 value=0.5630)  accuracy=53.66%  lr=3.51e-05  8521 samples/s
+2026-10-23 15:12:27 [INFO]   step 649000  epoch 4 [108142/180286]  loss=1.7380 (policy=1.4565 value=0.5630)  accuracy=53.67%  lr=3.44e-05  8522 samples/s
+2026-10-23 15:14:27 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00650000.pt
+2026-10-23 15:14:27 [INFO]   step 650000  epoch 4 [109142/180286]  loss=1.7379 (policy=1.4564 value=0.5629)  accuracy=53.67%  lr=3.37e-05  8522 samples/s
+2026-10-23 15:16:26 [INFO]   step 651000  epoch 4 [110142/180286]  loss=1.7378 (policy=1.4563 value=0.5629)  accuracy=53.67%  lr=3.31e-05  8522 samples/s
+2026-10-23 15:18:26 [INFO]   step 652000  epoch 4 [111142/180286]  loss=1.7377 (policy=1.4562 value=0.5629)  accuracy=53.68%  lr=3.24e-05  8522 samples/s
+2026-10-23 15:20:26 [INFO]   step 653000  epoch 4 [112142/180286]  loss=1.7376 (policy=1.4562 value=0.5629)  accuracy=53.68%  lr=3.18e-05  8522 samples/s
+2026-10-23 15:22:26 [INFO]   step 654000  epoch 4 [113142/180286]  loss=1.7375 (policy=1.4561 value=0.5628)  accuracy=53.68%  lr=3.11e-05  8523 samples/s
+2026-10-23 15:24:26 [INFO]   step 655000  epoch 4 [114142/180286]  loss=1.7374 (policy=1.4560 value=0.5628)  accuracy=53.68%  lr=3.05e-05  8523 samples/s
+2026-10-23 15:26:25 [INFO]   step 656000  epoch 4 [115142/180286]  loss=1.7373 (policy=1.4559 value=0.5628)  accuracy=53.69%  lr=2.99e-05  8523 samples/s
+2026-10-23 15:28:25 [INFO]   step 657000  epoch 4 [116142/180286]  loss=1.7372 (policy=1.4558 value=0.5628)  accuracy=53.69%  lr=2.93e-05  8523 samples/s
+2026-10-23 15:30:25 [INFO]   step 658000  epoch 4 [117142/180286]  loss=1.7371 (policy=1.4557 value=0.5627)  accuracy=53.69%  lr=2.87e-05  8524 samples/s
+2026-10-23 15:32:25 [INFO]   step 659000  epoch 4 [118142/180286]  loss=1.7370 (policy=1.4557 value=0.5627)  accuracy=53.69%  lr=2.81e-05  8524 samples/s
+2026-10-23 15:34:28 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00660000.pt
+2026-10-23 15:34:28 [INFO]   step 660000  epoch 4 [119142/180286]  loss=1.7369 (policy=1.4556 value=0.5627)  accuracy=53.69%  lr=2.76e-05  8522 samples/s
+2026-10-23 15:36:28 [INFO]   step 661000  epoch 4 [120142/180286]  loss=1.7368 (policy=1.4555 value=0.5627)  accuracy=53.70%  lr=2.70e-05  8522 samples/s
+2026-10-23 15:38:27 [INFO]   step 662000  epoch 4 [121142/180286]  loss=1.7367 (policy=1.4554 value=0.5626)  accuracy=53.70%  lr=2.64e-05  8522 samples/s
+2026-10-23 15:40:27 [INFO]   step 663000  epoch 4 [122142/180286]  loss=1.7366 (policy=1.4553 value=0.5626)  accuracy=53.70%  lr=2.59e-05  8523 samples/s
+2026-10-23 15:42:27 [INFO]   step 664000  epoch 4 [123142/180286]  loss=1.7365 (policy=1.4552 value=0.5626)  accuracy=53.70%  lr=2.53e-05  8523 samples/s
+2026-10-23 15:44:27 [INFO]   step 665000  epoch 4 [124142/180286]  loss=1.7364 (policy=1.4551 value=0.5626)  accuracy=53.71%  lr=2.48e-05  8523 samples/s
+2026-10-23 15:46:27 [INFO]   step 666000  epoch 4 [125142/180286]  loss=1.7363 (policy=1.4550 value=0.5625)  accuracy=53.71%  lr=2.43e-05  8523 samples/s
+2026-10-23 15:48:26 [INFO]   step 667000  epoch 4 [126142/180286]  loss=1.7362 (policy=1.4549 value=0.5625)  accuracy=53.71%  lr=2.38e-05  8523 samples/s
+2026-10-23 15:50:26 [INFO]   step 668000  epoch 4 [127142/180286]  loss=1.7361 (policy=1.4549 value=0.5625)  accuracy=53.71%  lr=2.33e-05  8524 samples/s
+2026-10-23 15:52:26 [INFO]   step 669000  epoch 4 [128142/180286]  loss=1.7360 (policy=1.4548 value=0.5625)  accuracy=53.72%  lr=2.28e-05  8524 samples/s
+2026-10-23 15:54:26 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00670000.pt
+2026-10-23 15:54:26 [INFO]   step 670000  epoch 4 [129142/180286]  loss=1.7360 (policy=1.4547 value=0.5624)  accuracy=53.72%  lr=2.23e-05  8524 samples/s
+2026-10-23 15:56:26 [INFO]   step 671000  epoch 4 [130142/180286]  loss=1.7359 (policy=1.4546 value=0.5624)  accuracy=53.72%  lr=2.18e-05  8524 samples/s
+2026-10-23 15:58:26 [INFO]   step 672000  epoch 4 [131142/180286]  loss=1.7358 (policy=1.4546 value=0.5624)  accuracy=53.72%  lr=2.14e-05  8524 samples/s
+2026-10-23 16:00:25 [INFO]   step 673000  epoch 4 [132142/180286]  loss=1.7357 (policy=1.4545 value=0.5624)  accuracy=53.72%  lr=2.09e-05  8525 samples/s
+2026-10-23 16:02:25 [INFO]   step 674000  epoch 4 [133142/180286]  loss=1.7356 (policy=1.4544 value=0.5623)  accuracy=53.73%  lr=2.05e-05  8525 samples/s
+2026-10-23 16:04:25 [INFO]   step 675000  epoch 4 [134142/180286]  loss=1.7355 (policy=1.4543 value=0.5623)  accuracy=53.73%  lr=2.00e-05  8525 samples/s
+2026-10-23 16:06:25 [INFO]   step 676000  epoch 4 [135142/180286]  loss=1.7354 (policy=1.4542 value=0.5623)  accuracy=53.73%  lr=1.96e-05  8525 samples/s
+2026-10-23 16:08:25 [INFO]   step 677000  epoch 4 [136142/180286]  loss=1.7353 (policy=1.4541 value=0.5623)  accuracy=53.73%  lr=1.92e-05  8525 samples/s
+2026-10-23 16:10:25 [INFO]   step 678000  epoch 4 [137142/180286]  loss=1.7352 (policy=1.4541 value=0.5622)  accuracy=53.73%  lr=1.88e-05  8525 samples/s
+2026-10-23 16:12:24 [INFO]   step 679000  epoch 4 [138142/180286]  loss=1.7351 (policy=1.4540 value=0.5622)  accuracy=53.74%  lr=1.84e-05  8525 samples/s
+2026-10-23 16:14:24 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00680000.pt
+2026-10-23 16:14:24 [INFO]   step 680000  epoch 4 [139142/180286]  loss=1.7351 (policy=1.4540 value=0.5622)  accuracy=53.74%  lr=1.80e-05  8526 samples/s
+2026-10-23 16:16:24 [INFO]   step 681000  epoch 4 [140142/180286]  loss=1.7349 (policy=1.4539 value=0.5622)  accuracy=53.74%  lr=1.76e-05  8526 samples/s
+2026-10-23 16:18:24 [INFO]   step 682000  epoch 4 [141142/180286]  loss=1.7348 (policy=1.4538 value=0.5621)  accuracy=53.74%  lr=1.72e-05  8526 samples/s
+2026-10-23 16:20:24 [INFO]   step 683000  epoch 4 [142142/180286]  loss=1.7348 (policy=1.4537 value=0.5621)  accuracy=53.74%  lr=1.69e-05  8526 samples/s
+2026-10-23 16:22:24 [INFO]   step 684000  epoch 4 [143142/180286]  loss=1.7347 (policy=1.4537 value=0.5621)  accuracy=53.75%  lr=1.65e-05  8526 samples/s
+2026-10-23 16:24:24 [INFO]   step 685000  epoch 4 [144142/180286]  loss=1.7346 (policy=1.4536 value=0.5621)  accuracy=53.75%  lr=1.62e-05  8526 samples/s
+2026-10-23 16:26:23 [INFO]   step 686000  epoch 4 [145142/180286]  loss=1.7345 (policy=1.4535 value=0.5620)  accuracy=53.75%  lr=1.58e-05  8526 samples/s
+2026-10-23 16:28:23 [INFO]   step 687000  epoch 4 [146142/180286]  loss=1.7345 (policy=1.4534 value=0.5620)  accuracy=53.75%  lr=1.55e-05  8526 samples/s
+2026-10-23 16:30:23 [INFO]   step 688000  epoch 4 [147142/180286]  loss=1.7344 (policy=1.4534 value=0.5620)  accuracy=53.75%  lr=1.52e-05  8527 samples/s
+2026-10-23 16:32:23 [INFO]   step 689000  epoch 4 [148142/180286]  loss=1.7343 (policy=1.4533 value=0.5620)  accuracy=53.76%  lr=1.49e-05  8527 samples/s
+2026-10-23 16:34:23 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00690000.pt
+2026-10-23 16:34:23 [INFO]   step 690000  epoch 4 [149142/180286]  loss=1.7342 (policy=1.4532 value=0.5619)  accuracy=53.76%  lr=1.46e-05  8527 samples/s
+2026-10-23 16:36:23 [INFO]   step 691000  epoch 4 [150142/180286]  loss=1.7341 (policy=1.4532 value=0.5619)  accuracy=53.76%  lr=1.43e-05  8527 samples/s
+2026-10-23 16:38:22 [INFO]   step 692000  epoch 4 [151142/180286]  loss=1.7340 (policy=1.4531 value=0.5619)  accuracy=53.76%  lr=1.40e-05  8527 samples/s
+2026-10-23 16:40:22 [INFO]   step 693000  epoch 4 [152142/180286]  loss=1.7340 (policy=1.4530 value=0.5619)  accuracy=53.76%  lr=1.37e-05  8527 samples/s
+2026-10-23 16:42:22 [INFO]   step 694000  epoch 4 [153142/180286]  loss=1.7339 (policy=1.4529 value=0.5619)  accuracy=53.76%  lr=1.35e-05  8527 samples/s
+2026-10-23 16:44:22 [INFO]   step 695000  epoch 4 [154142/180286]  loss=1.7338 (policy=1.4529 value=0.5619)  accuracy=53.77%  lr=1.32e-05  8527 samples/s
+2026-10-23 16:46:22 [INFO]   step 696000  epoch 4 [155142/180286]  loss=1.7337 (policy=1.4528 value=0.5618)  accuracy=53.77%  lr=1.30e-05  8528 samples/s
+2026-10-23 16:48:21 [INFO]   step 697000  epoch 4 [156142/180286]  loss=1.7336 (policy=1.4527 value=0.5618)  accuracy=53.77%  lr=1.28e-05  8528 samples/s
+2026-10-23 16:50:21 [INFO]   step 698000  epoch 4 [157142/180286]  loss=1.7336 (policy=1.4527 value=0.5618)  accuracy=53.77%  lr=1.25e-05  8528 samples/s
+2026-10-23 16:52:21 [INFO]   step 699000  epoch 4 [158142/180286]  loss=1.7335 (policy=1.4526 value=0.5618)  accuracy=53.78%  lr=1.23e-05  8528 samples/s
+2026-10-23 16:54:21 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00700000.pt
+2026-10-23 16:54:21 [INFO]   step 700000  epoch 4 [159142/180286]  loss=1.7334 (policy=1.4525 value=0.5617)  accuracy=53.78%  lr=1.21e-05  8528 samples/s
+2026-10-23 16:56:20 [INFO]   step 701000  epoch 4 [160142/180286]  loss=1.7333 (policy=1.4524 value=0.5617)  accuracy=53.78%  lr=1.19e-05  8528 samples/s
+2026-10-23 16:58:21 [INFO]   step 702000  epoch 4 [161142/180286]  loss=1.7333 (policy=1.4524 value=0.5617)  accuracy=53.78%  lr=1.17e-05  8528 samples/s
+2026-10-23 17:00:22 [INFO]   step 703000  epoch 4 [162142/180286]  loss=1.7332 (policy=1.4523 value=0.5617)  accuracy=53.78%  lr=1.16e-05  8528 samples/s
+2026-10-23 17:02:22 [INFO]   step 704000  epoch 4 [163142/180286]  loss=1.7331 (policy=1.4522 value=0.5617)  accuracy=53.78%  lr=1.14e-05  8528 samples/s
+2026-10-23 17:04:21 [INFO]   step 705000  epoch 4 [164142/180286]  loss=1.7330 (policy=1.4522 value=0.5617)  accuracy=53.79%  lr=1.12e-05  8528 samples/s
+2026-10-23 17:06:21 [INFO]   step 706000  epoch 4 [165142/180286]  loss=1.7330 (policy=1.4521 value=0.5616)  accuracy=53.79%  lr=1.11e-05  8528 samples/s
+2026-10-23 17:08:21 [INFO]   step 707000  epoch 4 [166142/180286]  loss=1.7329 (policy=1.4521 value=0.5616)  accuracy=53.79%  lr=1.09e-05  8528 samples/s
+2026-10-23 17:10:21 [INFO]   step 708000  epoch 4 [167142/180286]  loss=1.7328 (policy=1.4520 value=0.5616)  accuracy=53.79%  lr=1.08e-05  8528 samples/s
+2026-10-23 17:12:21 [INFO]   step 709000  epoch 4 [168142/180286]  loss=1.7327 (policy=1.4519 value=0.5616)  accuracy=53.79%  lr=1.07e-05  8528 samples/s
+2026-10-23 17:14:20 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00710000.pt
+2026-10-23 17:14:20 [INFO]   step 710000  epoch 4 [169142/180286]  loss=1.7327 (policy=1.4519 value=0.5616)  accuracy=53.80%  lr=1.06e-05  8528 samples/s
+2026-10-23 17:16:20 [INFO]   step 711000  epoch 4 [170142/180286]  loss=1.7326 (policy=1.4518 value=0.5616)  accuracy=53.80%  lr=1.05e-05  8529 samples/s
+2026-10-23 17:18:20 [INFO]   step 712000  epoch 4 [171142/180286]  loss=1.7325 (policy=1.4518 value=0.5615)  accuracy=53.80%  lr=1.04e-05  8529 samples/s
+2026-10-23 17:20:20 [INFO]   step 713000  epoch 4 [172142/180286]  loss=1.7325 (policy=1.4517 value=0.5615)  accuracy=53.80%  lr=1.03e-05  8529 samples/s
+2026-10-23 17:22:20 [INFO]   step 714000  epoch 4 [173142/180286]  loss=1.7324 (policy=1.4516 value=0.5615)  accuracy=53.80%  lr=1.02e-05  8529 samples/s
+2026-10-23 17:24:19 [INFO]   step 715000  epoch 4 [174142/180286]  loss=1.7324 (policy=1.4516 value=0.5615)  accuracy=53.80%  lr=1.02e-05  8529 samples/s
+2026-10-23 17:26:19 [INFO]   step 716000  epoch 4 [175142/180286]  loss=1.7323 (policy=1.4515 value=0.5615)  accuracy=53.80%  lr=1.01e-05  8529 samples/s
+2026-10-23 17:28:19 [INFO]   step 717000  epoch 4 [176142/180286]  loss=1.7322 (policy=1.4515 value=0.5615)  accuracy=53.81%  lr=1.01e-05  8529 samples/s
+2026-10-23 17:30:19 [INFO]   step 718000  epoch 4 [177142/180286]  loss=1.7322 (policy=1.4514 value=0.5614)  accuracy=53.81%  lr=1.00e-05  8529 samples/s
+2026-10-23 17:32:19 [INFO]   step 719000  epoch 4 [178142/180286]  loss=1.7321 (policy=1.4514 value=0.5614)  accuracy=53.81%  lr=1.00e-05  8529 samples/s
+2026-10-23 17:34:19 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_step_00720000.pt
+2026-10-23 17:34:19 [INFO]   step 720000  epoch 4 [179142/180286]  loss=1.7321 (policy=1.4513 value=0.5614)  accuracy=53.81%  lr=1.00e-05  8529 samples/s
+2026-10-23 17:36:19 [INFO]   step 721000  epoch 4 [180142/180286]  loss=1.7320 (policy=1.4513 value=0.5614)  accuracy=53.81%  lr=1.00e-05  8529 samples/s
+2026-10-23 17:37:31 [INFO] Epoch 4/4  loss=1.7320 (policy=1.4513 value=0.5614)  accuracy=53.81%  lr=1.00e-05  8508 samples/s  21699.4s
+2026-10-23 17:40:05 [INFO]   validation  loss=1.6975 (policy=1.4246 value=0.5457)  accuracy=54.33%  on 3820025 samples  (new best)
+2026-10-23 17:40:05 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_best.pt
+2026-10-23 17:40:05 [INFO]   checkpoint saved: checkpoints/bonanza_v2/bonanza_epoch_0004.pt
+2026-10-23 17:40:05 [INFO] Training complete. 4 epochs, 721144 steps.

@@ -1,0 +1,17 @@
+2026-10-23 19:28:57 [INFO] Loading network A from checkpoints/bonanza_v2/bonanza_best.pt
+2026-10-23 19:28:57 [INFO]   architecture: 10 blocks x 128 filters, value head 128
+2026-10-23 19:28:57 [INFO] Loading network B from checkpoints/bonanza/bonanza_epoch_0050.pt
+2026-10-23 19:28:57 [INFO]   architecture: 4 blocks x 64 filters, value head 64
+2026-10-23 19:28:57 [INFO] Match config: 26 games, 200 MCTS sims/move, move_limit=512, device=cuda
+2026-10-23 19:58:39 [INFO]   match progress: 10/26 games complete  (A:10 W, B:0 W, 0 D)
+2026-10-23 20:33:39 [INFO]   match progress: 20/26 games complete  (A:20 W, B:0 W, 0 D)
+
+============================================================
+Match result:
+  Network A wins:   26
+  Network B wins:   0
+  Draws:            0
+  Total games:      26
+  A's score share:  100.0%
+  Elo (A - B):      +inf
+============================================================
