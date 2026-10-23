@@ -25,7 +25,7 @@ Compression ratios measured on this repo's data with `zstd -9`:
 | keep | `data/wdoor*.7z` | ~3.6 GB | **never touch** | — | — |
 | keep | `data/wdoor_all_files.txt`, `data/wdoor_files.txt` | few MB | **never touch** (sorted lists make re-preprocessing reproduce identical shards) | — | — |
 | 1 | `data/wdoor/` (extracted CSA) | ~25 GB | remove — already archived as `data/wdoor<year>.7z` | 3.6 GB (existing) | minutes (`7z x`) |
-| 2 | intermediate checkpoints: `checkpoints/<run>/bonanza_step_*.pt`, all but the last `bonanza_epoch_*.pt`, older runs' `checkpoints/epoch_*.pt` | ~37–58 MB each | archive → `checkpoints/archive/<run>-intermediate.tar.zst` | ~70% (float weights compress poorly) | seconds |
+| 2 | intermediate checkpoints: `checkpoints/<run>/bonanza_step_*.pt`, all but the last `bonanza_epoch_*.pt`, older runs' `checkpoints/epoch_*.pt` | ~37–58 MB each | archive → `checkpoints/archive/<run>-intermediate.tar.zst` | **~87–92%** — float weights and Adam optimizer state are near-random bytes; saves little (2.63 → 2.41 GB for 72 v2 step checkpoints) | seconds |
 | 3 | `data/packed/<name>/` (packed shards) | ~94 GB for full wdoor | archive → `data/archive/packed-<name>.tar.zst` | **~6–7% (~6 GB)** — consecutive positions in a game are nearly identical | ~10 min decompress vs ~18 h re-preprocessing |
 
 Always keep uncompressed, per training run: `bonanza_best.pt` and the
