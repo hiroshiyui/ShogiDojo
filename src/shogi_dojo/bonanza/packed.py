@@ -452,6 +452,27 @@ def preprocess_csa_files(
     return summary
 
 
+def _finished_shard_summary(task: tuple) -> Optional[dict]:
+    """Summary dict for a task whose shard is already complete on disk.
+
+    Returns the same dict ``_build_shard`` would have returned, read back
+    from the shard's ``meta.json``, or ``None`` if the shard is not
+    finished. A shard directory only appears (atomically renamed from
+    ``.tmp``) after ``meta.json`` is written, so its presence means done.
+    """
+    shard_id, _files, out_dir, _min_ply, _max_ply = task
+    meta_path = Path(out_dir) / _shard_name(shard_id) / SHARD_META_FILE
+    if not meta_path.exists():
+        return None
+    meta = json.loads(meta_path.read_text())
+    return {
+        "shard_id": shard_id,
+        "num_samples": meta["num_samples"],
+        "num_games": meta["num_games"],
+        "num_failed": len(meta["failed_files"]),
+    }
+
+
 def _run_in_pool(
     tasks: list[tuple],
     num_workers: int,
@@ -488,11 +509,20 @@ def _run_in_pool(
                     crashed.append(futures[future])
                     continue
                 record(result)
-        if not crashed:
-            return
         # A crash fails every in-flight task, not just the one that caused
-        # it, so several shards may be retried here.
-        pending = sorted(crashed, key=lambda t: t[0])
+        # it. Some of those may have finished writing their shard just
+        # before the pool broke (only the result message was lost). Count
+        # them as done from their meta.json instead of rebuilding them:
+        # renaming a rebuilt shard onto the finished one would fail.
+        pending = []
+        for task in sorted(crashed, key=lambda t: t[0]):
+            finished = _finished_shard_summary(task)
+            if finished is not None:
+                record(finished)
+            else:
+                pending.append(task)
+        if not pending:
+            return
         shard_ids = [t[0] for t in pending]
         if attempt < max_pool_restarts:
             logger.warning(

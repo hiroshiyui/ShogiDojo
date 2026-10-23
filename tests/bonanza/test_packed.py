@@ -10,6 +10,7 @@ Coverage goals:
     unreadable files counted, multi-process output identical to
     single-process; a worker process that dies abruptly (segfault /
     OOM kill) is retried on a fresh pool instead of hanging forever,
+    a shard written just before its worker died is counted, not rebuilt,
     and a worker that always dies raises RuntimeError.
   - PackedDataset: len, single and batched access across shard
     boundaries, out-of-range errors, version/config checks, ignores
@@ -299,17 +300,28 @@ class TestPreprocess:
 # by name (functions sent to a process pool must be importable).
 
 _REAL_BUILD_SHARD = packed_module._build_shard
-_CRASH_ENV = "SHOGI_DOJO_TEST_CRASH"  # "<marker dir>|<shard id>|once|always"
+# "<marker dir>|<shard id>|<mode>", mode one of:
+#   once        die before building the shard, the first time only
+#   always      die before building the shard, every time
+#   after_write build and write the shard completely, then die before
+#               returning — the finished shard is on disk but its result
+#               message is lost (a real race when a crash breaks the pool)
+_CRASH_ENV = "SHOGI_DOJO_TEST_CRASH"
 
 
 def _crashing_build_shard(task: tuple) -> dict:
     """Stand-in for _build_shard that kills its process on one shard."""
     marker_dir, shard_id, mode = os.environ[_CRASH_ENV].split("|")
-    if task[0] == int(shard_id):
-        marker = Path(marker_dir) / f"crashed_{shard_id}"
-        if mode == "always" or not marker.exists():
-            marker.touch()
-            os._exit(1)
+    if task[0] != int(shard_id):
+        return _REAL_BUILD_SHARD(task)
+    marker = Path(marker_dir) / f"crashed_{shard_id}"
+    if mode == "after_write":
+        _REAL_BUILD_SHARD(task)
+        marker.touch()
+        os._exit(1)
+    if mode == "always" or not marker.exists():
+        marker.touch()
+        os._exit(1)
     return _REAL_BUILD_SHARD(task)
 
 
@@ -366,6 +378,36 @@ class TestWorkerCrash:
             progress=seen.append,
         )
         assert sorted(r["shard_id"] for r in seen) == [0, 1, 2]
+
+    def test_shard_finished_before_crash_is_not_rebuilt(
+        self, tmp_path, monkeypatch, hang_guard,
+    ):
+        # Shard 1's worker writes the whole shard, then dies. The shard is
+        # complete, so it must be counted from its meta.json, not rebuilt:
+        # rebuilding would rename a new shard_00001 onto the finished one
+        # (OSError "Directory not empty"), and in "after_write" mode a
+        # rebuild would also die again every time.
+        files = _write_games(tmp_path, 6)
+        preprocess_csa_files(files, tmp_path / "ref", files_per_shard=2)
+
+        self._crash(monkeypatch, tmp_path, shard_id=1, mode="after_write")
+        out = tmp_path / "packed"
+        seen = []
+        summary = preprocess_csa_files(
+            files, out, files_per_shard=2, num_workers=2,
+            max_pool_restarts=1, progress=seen.append,
+        )
+
+        assert (tmp_path / "crashed_1").exists()
+        assert sorted(r["shard_id"] for r in seen) == [0, 1, 2]
+        assert summary.shards_built == 3
+        assert summary.games_built == 6
+        ref = PackedDataset(tmp_path / "ref")
+        assert summary.samples_built == len(ref)
+        np.testing.assert_array_equal(
+            np.load(tmp_path / "ref" / "shard_00001" / "target.npy"),
+            np.load(out / "shard_00001" / "target.npy"),
+        )
 
     def test_always_crashing_shard_raises(self, tmp_path, monkeypatch, hang_guard):
         files = _write_games(tmp_path, 6)
