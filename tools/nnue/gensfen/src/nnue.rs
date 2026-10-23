@@ -1162,9 +1162,14 @@ fn read_f32_vec(data: &[u8], cursor: &mut usize, count: usize) -> Vec<f32> {
     let byte_len = count * 4;
     let slice = &data[*cursor..*cursor + byte_len];
     *cursor += byte_len;
+    // `as_chunks::<4>()` splits the bytes into fixed-size `[u8; 4]` arrays
+    // (plus a remainder, empty here since byte_len = count * 4), so each
+    // chunk converts to an f32 without a fallible `try_into`.
     slice
-        .chunks_exact(4)
-        .map(|chunk| f32::from_le_bytes(chunk.try_into().unwrap()))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|chunk| f32::from_le_bytes(*chunk))
         .collect()
 }
 
